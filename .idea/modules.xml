@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.password-xl.main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.password-xl.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/password-xl.iml" filepath="$PROJECT_DIR$/password-xl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/password-xl-web.iml" filepath="$PROJECT_DIR$/password-xl-web.iml" />
+    </modules>
+  </component>
+</project>

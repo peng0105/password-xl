@@ -1,0 +1,338 @@
+<!--卡片式密码列表-->
+<script setup lang="ts">
+
+import {usePasswordStore} from "@/stores/PasswordStore.ts";
+import {copyText, displaySize, formatterDate, getBgColor, getPasswordLabelNames, getPasswordStrengthColor, getPasswordStrengthTip, isUrl, sharePassword} from "@/utils/global.ts";
+import {Password} from "@/types";
+import {useRefStore} from "@/stores/RefStore.ts";
+import {useSettingStore} from "@/stores/SettingStore.ts";
+
+const passwordStore = usePasswordStore()
+const refStore = useRefStore()
+const settingStore = useSettingStore()
+
+const showPasswordId = ref(0)
+
+
+// 收藏密码
+const favoritePassword = (password: Password) => {
+  console.log('收藏密码：', password.id)
+  password.favorite = !password.favorite
+  password.favoriteTime = Date.now()
+  // 同步密码文件
+  passwordStore.passwordManager.updatePassword(password)
+}
+
+// 查看密码
+const showLongPassword = (password: Password) => {
+  console.log('card 查看密码：', password.id)
+  if (password.password.length > 40) {
+    console.log('card 查看密码 长度大于40')
+    // 长度大于40使用弹框展示
+    refStore.showPasswordRef.showPassword(password)
+    showPasswordId.value = 0
+  } else {
+    // 长度小于40直接在table中展示
+    showPasswordId.value = password.id
+  }
+}
+
+// 删除密码
+const deletePassword = (password: Password) => {
+  console.log('card 删除密码：', password.id)
+  // 询问确认删除吗？
+  ElMessageBox.confirm(
+      '确认删除“' + password.title + '”吗？',
+      '删除密码',
+      {
+        confirmButtonClass: 'confirm-delete-btn',
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+  ).then(() => {
+    console.log('card 确认删除：', password.id)
+    passwordStore.passwordManager.deletePassword(password.id).then(resp => {
+      if (!resp.status){
+        console.log('card 删除密码异常：', resp.message)
+        ElNotification.error({title: '系统异常',message: resp.message})
+      }
+    })
+  }).catch(() => {
+  })
+}
+
+const getRowCount = (): number => {
+  if (['xs'].includes(displaySize().value)) {
+    return 1
+  } else if (['sm', 'md'].includes(displaySize().value)) {
+    return 2
+  } else if(['lg'].includes(displaySize().value)){
+    return 3
+  } else {
+    return 4
+  }
+}
+
+const cardStyle = (password: Password) => {
+  let borderColor = passwordStore.isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)'
+  if (!settingStore.setting.passwordColor) {
+    return {
+      'background-color': 'rgba(0,0,0,0)',
+      'border-bottom': '1px solid ' + borderColor
+    }
+  }
+  return {
+    'background-color': getBgColor(password.bgColor, '0.06'),
+    'border-bottom': password.bgColor ? '1px solid ' + getBgColor(password.bgColor, '0.06') : '1px solid ' + borderColor
+  };
+}
+
+</script>
+
+<template>
+  <EmptyList v-if="!passwordStore.visPasswordArray.length"></EmptyList>
+  <el-scrollbar
+      height="calc(100vh - 90px)"
+      v-if="passwordStore.visPasswordArray.length">
+    <div
+        style="display: grid;padding: 6px;"
+        :style="{'grid-template-columns':'repeat('+getRowCount()+', 1fr)'}">
+      <div v-for="password in passwordStore.visPasswordArray">
+        <el-card body-style="height: 100%;" :style="{'background-color':passwordStore.isDark?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.1)'}" class="password-card">
+          <template #header>
+            <div class="password-header-div" :style="cardStyle(password)">
+              <div>
+                <el-tooltip v-if="settingStore.setting.showStrength && password.password" :content="getPasswordStrengthTip(password.password)" placement="top">
+                  <div
+                      class="password-strength"
+                      :style="{'background-color':getPasswordStrengthColor(password.password)}"
+                  ></div>
+                </el-tooltip>
+                <el-text style="font-size: 17px">{{ password.title }}</el-text>
+              </div>
+              <div>
+                <el-tooltip :content="password.favorite?'取消收藏':'收藏'" placement="top">
+                    <span
+                        class="iconfont icon-favorited card-opt-icon"
+                        style="font-size: 115%;"
+                        :style="{'color':password.favorite?'#FF9700':'rgb(255 151 0 / 75%)'}"
+                        @click="favoritePassword(password)"
+                        :class="password.favorite?'icon-favorited':'icon-collect'"
+                    />
+                </el-tooltip>
+              </div>
+            </div>
+          </template>
+          <ul class="password-field-ul" style="height: 100%;">
+            <li class="empty-card" v-if="
+            !password.address
+            && !password.username
+            && !password.password
+            && !password.remark
+            && !password.labels.length
+            && !(password.customFields && Object.keys(password.customFields).length > 0)">
+              <el-text style="margin: 20px 0">
+                空空如也！
+              </el-text>
+            </li>
+            <li v-if="password.address">
+              <el-text class="password-field-name">地址:</el-text>
+              <el-text class="password-field-value" style="max-width: 20vw">
+                <el-link v-if="isUrl(password.address)" type="primary" :href="password.address" target="_blank">
+                  {{ password.address }}
+                </el-link>
+                <el-text v-else>
+                  {{ password.address }}
+                </el-text>
+              </el-text>
+              <div class="clear"></div>
+            </li>
+            <li v-if="password.username">
+              <el-text class="password-field-name">用户名:</el-text>
+              <el-text class="password-field-value">
+                <div class="card-username-div">
+                  {{ password.username }}
+                  <el-tooltip content="复制用户名" placement="top" :show-after="300" :hide-after="0">
+                  <span class="iconfont icon-copy password-row-icon copy-username" @click="copyText(password.username)"></span>
+                  </el-tooltip>
+                </div>
+              </el-text>
+              <div class="clear"></div>
+            </li>
+            <li v-if="password.password">
+              <el-text class="password-field-name">密码:</el-text>
+              <el-text class="password-field-value">
+                <span v-if="showPasswordId === password.id" class="card-password-span">{{ password.password }}</span>
+                <span v-else style="position: relative;top: 3px;">**********</span>
+                <span v-if="showPasswordId === password.id" class="iconfont icon-hide password-card-icon" @click="showPasswordId = 0"/>
+                <span v-else class="iconfont icon-show password-card-icon" @click="showLongPassword(password)"/>
+                <span class="iconfont icon-copy password-card-icon" style="" @click="copyText(password.password)"></span>
+              </el-text>
+              <div class="clear"></div>
+            </li>
+            <li v-if="password.remark">
+              <el-text class="password-field-name">备注:</el-text>
+              <el-text class="password-field-value">
+                {{ password.remark }}
+              </el-text>
+              <div class="clear"></div>
+            </li>
+            <li v-if="password.labels.length">
+              <el-text class="password-field-name">标签:</el-text>
+              <el-text class="password-field-value">
+                <el-tag v-for="label in getPasswordLabelNames(password)" class="card-label">
+                  {{ label.name }}
+                </el-tag>
+              </el-text>
+              <div class="clear"></div>
+            </li>
+            <li v-for="field in password.customFields">
+              <el-text class="password-field-name">{{ field }}:</el-text>
+              <el-text class="password-field-value">{{ password.customFields[field] }}</el-text>
+              <div class="clear"></div>
+            </li>
+          </ul>
+          <template #footer>
+            <div style="display: flex;justify-content: space-between">
+              <el-text type="info" style="font-size: 80%">{{ formatterDate(password.updateTime,'YYYY-MM-DD HH:mm')}}</el-text>
+              <div>
+                <el-tooltip content="删除" placement="top">
+                  <el-button type="danger" plain size="small" @click="deletePassword(password)">
+                    <span class="iconfont icon-delete card-opt-icon"/>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="修改" placement="top">
+                  <el-button type="primary" plain size="small" @click="refStore.passwordFormRef.editPasswordForm(password)">
+                    <span class="iconfont icon-edit card-opt-icon"/>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="分享" placement="top">
+                  <el-button type="success" plain size="small" @click="sharePassword(password)">
+                    <span class="iconfont icon-share card-opt-icon"/>
+                  </el-button>
+                </el-tooltip>
+              </div>
+            </div>
+          </template>
+        </el-card>
+      </div>
+    </div>
+  </el-scrollbar>
+</template>
+
+<style scoped>
+.password-card {
+  margin: 6px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 12px);
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.password-strength {
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  float: left;
+  margin-right: 10px;
+  position: relative;
+  top: 6px;
+}
+
+.card-opt-icon {
+  font-size: 140%;
+}
+
+.card-label {
+  margin: 0 10px 5px 0;
+}
+
+.password-field-ul {
+  padding: 0;
+  margin: 0;
+}
+
+.password-field-ul li {
+  list-style: none;
+  margin-bottom: 10px;
+}
+
+.password-field-ul li:last-child {
+  margin-bottom: 0;
+}
+
+.password-field-name {
+  width: 55px;
+  text-align: right;
+  float: left;
+  font-size: 15px;
+  color: #909399;
+}
+
+.password-field-value {
+  float: left;
+  margin-left: 15px;
+  font-size: 15px;
+}
+
+.copy-username {
+  margin-left: 10px;
+}
+
+.card-password-span {
+  word-wrap: break-word;
+  word-break: normal;
+}
+
+.password-card-icon, .copy-username {
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+.password-card-icon:hover, .copy-username:hover {
+  background-color: rgba(200, 200, 200, 0.3);
+  color: #409eff;
+}
+
+.password-header-div {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.clear {
+  clear: both;
+}
+
+.password-card-icon.icon-hide {
+  font-size: 118%;
+  margin-left: 5px
+}
+
+.password-card-icon.icon-show {
+  font-size: 120%;
+  margin-left: 5px
+}
+
+.card-opt-icon.icon-delete {
+  font-size: 150%;
+}
+
+.empty-card {
+  display: flex;
+  height: 100%;
+  justify-content: center;
+}
+
+:deep(.password-card .el-card__body), :deep(.password-card .el-card__footer) {
+  padding: 14px 16px;
+}
+
+:deep(.password-card .el-card__header) {
+  padding: 0;
+  border-bottom: 0
+}
+</style>

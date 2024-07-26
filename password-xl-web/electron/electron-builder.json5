@@ -1,0 +1,59 @@
+{
+  "appId": "password-XL",
+  "productName": "password-XL",
+  "directories": {
+    "output": "build"
+  },
+  "files": [
+    "dist",
+    "dist-electron",
+    "electron",
+  ],
+  "win": {
+    "icon": "dist/icons/1024x1024.png",
+    "artifactName": "${productName}-Windows-${version}-Setup.${ext}",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "zip"
+      }
+    ]
+  },
+  "mac": {
+    "target": [
+      {
+        "target": "dmg"
+      },
+      {
+        "target": "zip"
+      }
+    ],
+    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+  },
+  "linux": {
+    "icon": "dist/icons/1024x1024.png",
+    "artifactName": "${productName}-Linux-${version}.${ext}",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "zip"
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}

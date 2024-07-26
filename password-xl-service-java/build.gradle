@@ -1,0 +1,41 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.1'
+    id 'io.spring.dependency-management' version '1.1.5'
+    id 'org.graalvm.buildtools.native' version '0.10.2'
+}
+
+group = 'com'
+version = '1.0.3'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'cn.hutool:hutool-all:5.8.27'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.51'
+    implementation 'io.hotmoka:toml4j:0.7.3'
+}
+
+tasks.bootBuildImage {
+    imageName = "${project.name}:latest"
+    docker {
+        host = "//./pipe/dockerDesktopLinuxEngine"
+    }
+}
