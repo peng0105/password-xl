@@ -1,0 +1,33 @@
+name: build web to Docker Image
+ 
+on:
+  push:
+    branches:
+      - master
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+ 
+      - name: Set up node using nvm
+        uses: dcodeIO/setup-node-nvm@v5
+        with:
+          node-version: 20.16.x
+
+      - name: Install yarn
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+ 
+      - name: Install dependencies
+        run: yarn install
+ 
+      - name: Build Vue
+        run: yarn run build
+ 
+      - name: Build Docker Image
+        run: docker build . --file Dockerfile --tag ${{env.IMAGE_NAME}}
