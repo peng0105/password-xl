@@ -53,8 +53,8 @@ jobs:
       - name: Get Meta
         id: meta
         run: |
-          echo REPO_NAME=$(echo ${GITHUB_REPOSITORY} | awk -F"/" '{print $2}') >> $GITHUB_OUTPUT
-          echo REPO_VERSION=$(echo ${{ github.ref }} | awk -F"/" '{print $3}' | awk -F"v" '{print $2}') >> $GITHUB_OUTPUT
+          echo REPO_NAME=$(echo ${GITHUB_REPOSITORY} | awk -F"/" '{print $2}')
+          echo REPO_VERSION=$(echo ${{ github.ref }} | awk -F"/" '{print $3}' | awk -F"v" '{print $2}')
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -63,5 +63,5 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            docker.io/huangypeng/password-xl-web2:latest
-            docker.io/huangypeng/password-xl-web2:${{ steps.meta.outputs.REPO_VERSION }}
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{ steps.meta.outputs.REPO_VERSION }}
