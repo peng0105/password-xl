@@ -14,7 +14,7 @@ jobs:
       volumes:
         - ubuntu_dockercache:/opt/dockercache
     env:
-      DOCKER_REGISTRY: huangypeng
+      DOCKER_REGISTRY: docker.io
       REPO_NAME: password-xl-web
     steps:
       - name: Checkout
