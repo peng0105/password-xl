@@ -55,6 +55,7 @@ jobs:
         run: |
           echo REPO_NAME=$(echo ${GITHUB_REPOSITORY} | awk -F"/" '{print $2}') >> $GITHUB_ENV
           echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+        working-directory: ./password-xl-web
 
       - name: Build and push
         uses: docker/build-push-action@v6
