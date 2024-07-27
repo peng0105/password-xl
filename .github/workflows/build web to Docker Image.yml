@@ -14,6 +14,7 @@ jobs:
       volumes:
         - ubuntu_dockercache:/opt/dockercache
     env:
+      DOCKER_REGISTRY: huangypeng
       REPO_NAME: password-xl-web
     steps:
       - name: Checkout
@@ -62,5 +63,5 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:latest
-            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:${{ steps.meta.outputs.REPO_VERSION }}
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:latest
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:${{ steps.meta.outputs.REPO_VERSION }}
