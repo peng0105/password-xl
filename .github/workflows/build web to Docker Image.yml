@@ -13,7 +13,8 @@ jobs:
       image: catthehacker/ubuntu:act-latest
       volumes:
         - ubuntu_dockercache:/opt/dockercache
-
+    env:
+      REPO_NAME: password-xl-web
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,5 +62,5 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USERNAME }}/${{ steps.meta.outputs.REPO_NAME }}:latest
-            ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USERNAME }}/${{ steps.meta.outputs.REPO_NAME }}:${{ steps.meta.outputs.REPO_VERSION }}
+            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:latest
+            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:${{ steps.meta.outputs.REPO_VERSION }}
