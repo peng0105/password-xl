@@ -53,8 +53,8 @@ jobs:
       - name: Get Meta
         id: meta
         run: |
-          echo REPO_NAME=$(echo ${GITHUB_REPOSITORY} | awk -F"/" '{print $2}')
-          echo REPO_VERSION=$(echo ${{ github.ref }} | awk -F"/" '{print $3}' | awk -F"v" '{print $2}')
+          echo REPO_NAME=$(echo ${GITHUB_REPOSITORY} | awk -F"/" '{print $2}') >> $GITHUB_ENV
+          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
 
       - name: Build and push
         uses: docker/build-push-action@v6
