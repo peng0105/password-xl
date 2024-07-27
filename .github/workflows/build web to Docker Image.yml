@@ -63,5 +63,5 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            ${{ env.DOCKER_REGISTRY }}/huangypeng/${{ env.REPO_NAME }}:latest
-            ${{ env.DOCKER_REGISTRY }}/huangypeng/${{ env.REPO_NAME }}:${{ steps.meta.outputs.REPO_VERSION }}
+            docker.io/huangypeng/password-xl-web2:latest
+            docker.io/huangypeng/password-xl-web2:${{ steps.meta.outputs.REPO_VERSION }}
