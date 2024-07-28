@@ -1,10 +1,10 @@
-name: build service to Docker Image
+name: Build and Publish Docker Image
 
 on:
   push:
     branches:
-      - master
-  workflow_dispatch:
+      - main
+      - 'release/*'
 
 jobs:
   build:
@@ -12,25 +12,38 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Set up JDK 21
+      - name: Set up JDK 21 (GraalVM)
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
-          java-version: '21'
+          distribution: graalvm
+          graalvm-version: '21'
+          java-package: jdk
+          cache: gradle
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./password-xl-service/gradlew
+
+      - name: Build native image using GraalVM
+        working-directory: ./password-xl-service
+        run: ./gradlew nativeCompile
 
       - name: Extract version from build.gradle
-        id: get_version
+        id: extract_version
+        working-directory: ./password-xl-service
         run: |
-          VERSION=$(grep '^version =' password-xl-service/build.gradle | awk '{ print $3 }' | tr -d '"')
+          VERSION=$(./gradlew -q printVersion)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Build Docker image
-        run: |
-          cd password-xl-service
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:${{ env.VERSION }} .
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:${{ env.VERSION }} ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:latest
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -38,7 +51,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Push Docker image to DockerHub
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:${{ env.VERSION }} -t ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:latest ./password-xl-service
+
+      - name: Push Docker image to Docker Hub
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:${{ env.VERSION }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:latest
