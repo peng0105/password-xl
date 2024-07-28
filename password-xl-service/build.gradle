@@ -37,7 +37,7 @@ tasks.bootBuildImage {
     imageName = "${project.name}"
 }
 
-tasks.printVersion {
+tasks.register('printVersion') {
     doLast {
         println project.version
     }
