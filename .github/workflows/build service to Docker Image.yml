@@ -1,10 +1,10 @@
-name: Build and Publish Docker Image
+name: build service to Docker Image
 
 on:
   push:
     branches:
-      - main
-      - 'release/*'
+      - master
+  workflow_dispatch:
 
 jobs:
   build:
