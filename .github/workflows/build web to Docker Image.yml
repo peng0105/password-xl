@@ -53,8 +53,7 @@ jobs:
       - name: Get Meta
         id: meta
         run: |
-          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
-        working-directory: ./password-xl-web
+          echo REPO_VERSION=$(node -p "require('./password-xl-web/package.json').version") >> $GITHUB_ENV
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -64,4 +63,5 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{env.REPO_VERSION}}
         
