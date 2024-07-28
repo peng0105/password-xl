@@ -36,3 +36,9 @@ dependencies {
 tasks.bootBuildImage {
     imageName = "${project.name}"
 }
+
+tasks.printVersion {
+    doLast {
+        println project.version
+    }
+}
