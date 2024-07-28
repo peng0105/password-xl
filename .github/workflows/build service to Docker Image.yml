@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'graalvm'
-          java-version: '21'
+          java-version: '21.0.2'
           cache: gradle
 
       - name: Install native-image component
