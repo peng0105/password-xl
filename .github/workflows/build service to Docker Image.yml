@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      DOCKER_REGISTRY: docker.io
       REPO_NAME: password-xl-service
 
     steps:
