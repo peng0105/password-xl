@@ -20,8 +20,8 @@ jobs:
           tar -xzf graalvm.tar.gz
           sudo mv graalvm-jdk-21* graalvm-jdk-21
           sudo mv graalvm-jdk-21 /opt/
-          sudo ln -s /opt/graalvm-jdk-21/bin/java /usr/bin/java
-          sudo ln -s /opt/graalvm-jdk-21/bin/gu /usr/bin/gu
+          sudo ln -sf /opt/graalvm-jdk-21/bin/java /usr/bin/java
+          sudo ln -sf /opt/graalvm-jdk-21/bin/gu /usr/bin/gu
           java -version
           gu --version
 
