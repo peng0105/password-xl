@@ -27,8 +27,8 @@ jobs:
           gradle-version: '8.4'
 
       - name: Build with Gradle
-        run: ./gradlew build
-        working-directory: password-xl-service
+        run: sudo ./gradlew build
+        working-directory: ./password-xl-service
 
       - name: Get version from build.gradle
         id: get_version
