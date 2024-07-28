@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com'
-version = '1.0.3'
+version = '1.1.5'
 
 java {
     toolchain {
@@ -34,8 +34,5 @@ dependencies {
 }
 
 tasks.bootBuildImage {
-    imageName = "${project.name}:latest"
-    docker {
-        host = "//./pipe/dockerDesktopLinuxEngine"
-    }
+    imageName = "${project.name}"
 }
