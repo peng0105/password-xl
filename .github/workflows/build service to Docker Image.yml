@@ -14,15 +14,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up GraalVM
-        uses: actions/setup-java@v3
+      - uses: graalvm/setup-graalvm@v1
         with:
+          java-version: '21'
           distribution: 'graalvm'
-          java-version: '21.0.2'
-          cache: gradle
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install native-image component
-        run: gu install native-image
+      - name: Example step
+        run: |
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
 
 
       - name: Cache Gradle packages
