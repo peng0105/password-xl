@@ -1,10 +1,8 @@
 # Use a minimal base image for the native executable
-FROM busybox:latest
+FROM debian:stable-slim
 
 # Set the working directory
 WORKDIR /app
-
-RUN apk add --no-cache libstdc++ zlib
 
 # Copy the native executable from the build context to the container
 COPY password-xl-service/build/native/nativeCompile/password-xl-service .
