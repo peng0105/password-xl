@@ -44,6 +44,10 @@ jobs:
         working-directory: ./password-xl-service
         run: ./gradlew nativeCompile
 
+      - name: List build output
+        run: |
+          ls -R ./password-xl-service/build
+
       - name: Extract version from build.gradle
         id: extract_version
         working-directory: ./password-xl-service
