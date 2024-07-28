@@ -18,7 +18,7 @@ jobs:
         uses: ayltai/setup-graalvm@v1
         with:
           java-version: 21
-          graalvm-version: 21.0.4
+          graalvm-version: 21.0.2
           native-image: true
 
       - name: Install Native Image
