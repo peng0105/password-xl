@@ -14,13 +14,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up GraalVM JDK 21
-        uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '21'
-          distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image-job-reports: 'true'
+      - name: Set up GraalVM with Java 21
+        run: |
+          GRAALVM_VERSION="21.0.4"
+          JAVA_VERSION="21"
+          curl -L -o graalvm.tar.gz https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-$GRAALVM_VERSION/graalvm-ce-java$JAVA_VERSION-linux-amd64-$GRAALVM_VERSION.tar.gz
+          tar -xzf graalvm.tar.gz
+          sudo mv graalvm-ce-java$JAVA_VERSION-$GRAALVM_VERSION /opt/
+          sudo ln -s /opt/graalvm-ce-java$JAVA_VERSION-$GRAALVM_VERSION/bin/java /usr/bin/java
+          sudo ln -s /opt/graalvm-ce-java$JAVA_VERSION-$GRAALVM_VERSION/bin/gu /usr/bin/gu
+          java -version
+          gu --version
 
       - name: Example step
         run: |
