@@ -16,14 +16,14 @@ jobs:
 
       - name: Set up GraalVM with Java 21
         run: |
-          GRAALVM_VERSION="21.3.3"
+          GRAALVM_VERSION="22.3.0" # 使用最新的GraalVM版本
           GRAALVM_JAVA_VERSION="java21"
           GRAALVM_HOME="/usr/local/graalvm-ce-$GRAALVM_JAVA_VERSION-$GRAALVM_VERSION"
           curl -L https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-$GRAALVM_VERSION/graalvm-ce-$GRAALVM_JAVA_VERSION-linux-amd64-$GRAALVM_VERSION.tar.gz -o graalvm.tar.gz
           sudo tar -xzf graalvm.tar.gz -C /usr/local/
           echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
           echo "JAVA_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
-          echo "PATH=$GRAALVM_HOME/bin:$PATH" >> $GITHUB_ENV
+          echo "$GRAALVM_HOME/bin" >> $GITHUB_PATH
 
       - name: Example step
         run: |
