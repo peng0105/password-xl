@@ -9,8 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      REPO_NAME: password-xl-service
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -18,34 +17,28 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
+          distribution: 'temurin'
           java-version: '21'
-          distribution: 'zulu'
 
-      - name: Set up Gradle
-        uses: gradle/gradle-build-action@v3
-        with:
-          gradle-version: '8.4'
-
-      - name: Build with Gradle
-        run: sudo ./gradlew build
-        working-directory: ./password-xl-service
-
-      - name: Get version from build.gradle
+      - name: Extract version from build.gradle
         id: get_version
-        run: echo "VERSION=$(./password-xl-service/gradlew -q printVersion)" >> $GITHUB_ENV
+        run: |
+          VERSION=$(grep '^version =' password-xl-service/build.gradle | awk '{ print $3 }' | tr -d '"')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/${{env.REPO_NAME}}:${{ env.VERSION }} -t ${{ secrets.DOCKERHUB_USERNAME }}/${{env.REPO_NAME}}:latest .
-        working-directory: password-xl-service
+          cd password-xl-service
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:${{ env.VERSION }} .
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:${{ env.VERSION }} ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:latest
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Push Docker image
+      - name: Push Docker image to DockerHub
         run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{env.REPO_NAME}}:${{ env.VERSION }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{env.REPO_NAME}}:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:${{ env.VERSION }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/password-xl-service:latest
