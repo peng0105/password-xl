@@ -18,9 +18,10 @@ jobs:
         run: |
           curl -L -o graalvm.tar.gz https://download.oracle.com/graalvm/21/latest/graalvm-jdk-21_linux-x64_bin.tar.gz
           tar -xzf graalvm.tar.gz
-          sudo mv graalvm-ce-java21 /opt/
-          sudo ln -s /opt/graalvm-ce-java21/bin/java /usr/bin/java
-          sudo ln -s /opt/graalvm-ce-java21/bin/gu /usr/bin/gu
+          sudo mv graalvm-jdk-21* graalvm-jdk-21
+          sudo mv graalvm-jdk-21 /opt/
+          sudo ln -s /opt/graalvm-jdk-21/bin/java /usr/bin/java
+          sudo ln -s /opt/graalvm-jdk-21/bin/gu /usr/bin/gu
           java -version
           gu --version
 
