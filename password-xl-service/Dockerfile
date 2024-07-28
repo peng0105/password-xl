@@ -1,14 +1,14 @@
-# Base image
-FROM ghcr.io/graalvm/native-image:ol7-java21-22.1.0
+# Use a minimal base image for the native executable
+FROM busybox:latest
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
 # Copy the native executable from the build context to the container
-COPY ./build/native/nativeCompile/password-xl-service .
+COPY password-xl-service/build/native/nativeCompile/password-xl-service .
 
-# Set the executable permission
-RUN chmod +x password-xl-service
+# Expose port 8080 (or the port your application uses)
+EXPOSE 8080
 
-# Define the command to run the application
+# Run the application
 CMD ["./password-xl-service"]
