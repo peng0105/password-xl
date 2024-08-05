@@ -238,6 +238,13 @@
 #          asset_content_type: application/gzip
 #
 
+name: Build Releases
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   buildProject:
