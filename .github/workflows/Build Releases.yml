@@ -14,6 +14,7 @@ jobs:
       image: catthehacker/ubuntu:act-latest
       volumes:
         - ubuntu_dockercache:/opt/dockercache
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,62 +74,26 @@ jobs:
 
       - name: Build exe
         working-directory: ./password-xl-web
-        run: |
-          yarn run dist-to-windows
+        run: yarn run dist-to-windows
 
       - name: zip package
         run: |
-          && zip -r password-xl-web/dist.zip password-xl-web/dist
-          && tar -zcvf password-xl-web/dist.tar.gz password-xl-web/dist
+          zip -r password-xl-web/dist.zip password-xl-web/dist
+          tar -zcvf password-xl-web/dist.tar.gz password-xl-web/dist
 
       - name: Create Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            tag_name: ${{env.REPO_VERSION}}
-            release_name: Release ${{env.REPO_VERSION}}
-            draft: false
-            prerelease: false
+        with:
+          tag_name: ${{ env.REPO_VERSION }}
+          release_name: Release ${{ env.REPO_VERSION }}
+          draft: false
+          prerelease: false
 
       - name: Upload Release Asset 1
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-web/dist.zip
-          asset_name: password-xl-web-dist-${{env.REPO_VERSION}}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Asset 2
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-web/dist.tar.gz
-          asset_name: password-xl-web-dist-${{env.REPO_VERSION}}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Release Asset 3
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-web/build/password-XL-Windows-${{env.REPO_VERSION}}-Setup.exe
-          asset_name: password-xl-win-${{env.REPO_VERSION}}.exe
-          asset_content_type: application/octet-stream
-
-      - name: Upload Release Asset 4
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-service/build/password-xl-service-${{env.REPO_VERSION}}-plain.jar
-          asset_name: password-xl-service-${{env.REPO_VERSION}}.jar
-          asset_content_type: application/octet-stream
-
-          
+          upload_url
