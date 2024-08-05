@@ -133,6 +133,8 @@ jobs:
       - env:
           UPLOAD_URL: ${{needs.buildProject.outputs.UPLOAD_URL}}
           REPO_VERSION: ${{needs.buildProject.outputs.REPO_VERSION}}
+        run: echo "$UPLOAD_URL $REPO_VERSION"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -171,6 +173,8 @@ jobs:
       - env:
           UPLOAD_URL: ${{needs.buildProject.outputs.UPLOAD_URL}}
           REPO_VERSION: ${{needs.buildProject.outputs.REPO_VERSION}}
+        run: echo "$UPLOAD_URL $REPO_VERSION"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -209,6 +213,8 @@ jobs:
       - env:
           UPLOAD_URL: ${{needs.buildProject.outputs.UPLOAD_URL}}
           REPO_VERSION: ${{needs.buildProject.outputs.REPO_VERSION}}
+        run: echo "$UPLOAD_URL $REPO_VERSION"
+
       - name: Checkout
         uses: actions/checkout@v4
 
