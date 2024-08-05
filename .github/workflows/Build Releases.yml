@@ -85,10 +85,13 @@ jobs:
           git commit -m "发布前版本号更新：$NEW_VERSION"
           git push
 
-      - name: 获取本次发布的版本信息
-        run: |
-          echo REPO_VERSION=$(node -p "require('./password-xl-web/package.json').version") >> $GITHUB_ENV
-          echo REPO_SERVER_VERSION=$(./password-xl-service/gradlew -q printVersion) >> $GITHUB_ENV
+      - name: 获取本次发布的版本信息web
+        working-directory: ./password-xl-web
+        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+
+      - name: 获取本次发布的版本信息service
+        working-directory: ./password-xl-service
+        run: echo REPO_SERVER_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
 
       - name: 编译前端项目
         run: yarn run build
