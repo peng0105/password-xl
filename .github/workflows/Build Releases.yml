@@ -60,13 +60,11 @@ jobs:
 
       - name: Get Meta 1
         working-directory: ./password-xl-web
-        run: |
-          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
 
       - name: Get Meta 2
         working-directory: ./password-xl-service
-        run: |
-          echo REPO_SERVER_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
+        run: echo REPO_SERVER_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
 
       - name: Build vue
         run: yarn run build
@@ -92,12 +90,16 @@ jobs:
           draft: false
           prerelease: false
 
+      - name: Output upload URL
+        id: output_upload_url
+        run: echo "::set-output name=upload_url::${{ steps.create_release.outputs.upload_url }}"
+
       - name: Upload Release Asset 1
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.output_upload_url.outputs.upload_url }}
           asset_path: password-xl-web/dist.zip
           asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.zip
           asset_content_type: application/zip
@@ -107,7 +109,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.output_upload_url.outputs.upload_url }}
           asset_path: password-xl-web/dist.tar.gz
           asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.tar.gz
           asset_content_type: application/gzip
@@ -122,14 +124,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.output_upload_url.outputs.upload_url }}
           asset_path: password-xl-service/build/libs/password-xl-service-${{ env.REPO_SERVER_VERSION }}.jar
-          asset_name: password-xl-service-${{ env.REPO_VERSION }}.jar
+          asset_name: password-xl-service-${{ env.REPO_SERVER_VERSION }}.jar
           asset_content_type: application/octet-stream
-
-      - name: Output upload URL
-        id: outputs
-        run: echo "::set-output name=upload_url::${{ steps.create_release.outputs.upload_url }}"
 
   build-windows:
     runs-on: windows-latest
@@ -150,8 +148,7 @@ jobs:
 
       - name: Get Meta 1
         working-directory: ./password-xl-web
-        run: |
-          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
 
       - name: Build exe
         working-directory: ./password-xl-web
@@ -186,8 +183,7 @@ jobs:
 
       - name: Get Meta 1
         working-directory: ./password-xl-web
-        run: |
-          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
 
       - name: Build macOS app
         working-directory: ./password-xl-web
@@ -222,8 +218,7 @@ jobs:
 
       - name: Get Meta 1
         working-directory: ./password-xl-web
-        run: |
-          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
 
       - name: Build Linux app
         working-directory: ./password-xl-web
@@ -238,4 +233,3 @@ jobs:
           asset_path: password-xl-web/build/password-XL-Linux-${{ env.REPO_VERSION }}.tar.gz
           asset_name: password-xl-linux-${{ env.REPO_VERSION }}.tar.gz
           asset_content_type: application/gzip
-
