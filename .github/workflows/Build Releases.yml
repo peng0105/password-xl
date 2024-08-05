@@ -1,10 +1,9 @@
-name: Build Releases
+name: 发布版本
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build-project:
@@ -25,6 +24,17 @@ jobs:
         uses: dcodeIO/setup-node-nvm@v5
         with:
           node-version: 20.16.x
+
+      - name: 缓存 yarn 模块
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            ~/.yarn/unplugged
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
       - name: 安装 yarn
         uses: borales/actions-yarn@v4
@@ -138,6 +148,17 @@ jobs:
         with:
           node-version: 20.16.x
 
+      - name: 缓存 yarn 模块
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            ~/.yarn/unplugged
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
       - name: 安装 yarn
         uses: borales/actions-yarn@v4
         with:
@@ -178,6 +199,17 @@ jobs:
         with:
           node-version: 20.16.x
 
+      - name: 缓存 yarn 模块
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            ~/.yarn/unplugged
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
       - name: 安装 yarn
         uses: borales/actions-yarn@v4
         with:
@@ -217,6 +249,17 @@ jobs:
         uses: dcodeIO/setup-node-nvm@v5
         with:
           node-version: 20.16.x
+
+      - name: 缓存 yarn 模块
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            ~/.yarn/unplugged
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
       - name: 安装 yarn
         uses: borales/actions-yarn@v4
