@@ -122,7 +122,7 @@ jobs:
 
       - name: Set output for upload_url
         id: set_output
-        run: echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_ENV
+        run: echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
 
   build-windows:
     runs-on: windows-latest
@@ -154,7 +154,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.upload_url }}
+          upload_url: ${{ needs.build-project.outputs.upload_url }}
           asset_path: password-xl-web/build/password-XL-Windows-${{ env.REPO_VERSION }}.exe
           asset_name: password-xl-win-${{ env.REPO_VERSION }}.exe
           asset_content_type: application/octet-stream
@@ -189,7 +189,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.upload_url }}
+          upload_url: ${{ needs.build-project.outputs.upload_url }}
           asset_path: password-xl-web/build/password-XL-Mac-${{ env.REPO_VERSION }}.dmg
           asset_name: password-xl-mac-${{ env.REPO_VERSION }}.dmg
           asset_content_type: application/octet-stream
@@ -224,7 +224,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.upload_url }}
+          upload_url: ${{ needs.build-project.outputs.upload_url }}
           asset_path: password-xl-web/build/password-XL-Linux-${{ env.REPO_VERSION }}.tar.gz
           asset_name: password-xl-linux-${{ env.REPO_VERSION }}.tar.gz
           asset_content_type: application/gzip
