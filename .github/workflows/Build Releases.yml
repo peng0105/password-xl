@@ -127,9 +127,9 @@ jobs:
           asset_name: password-xl-service-${{ env.REPO_VERSION }}.jar
           asset_content_type: application/octet-stream
 
-      - name: Set upload URL
-        id: set_upload_url
-        run: echo "UPLOAD_URL=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_ENV
+      - name: Output upload URL
+        id: output_upload_url
+        run: echo "::set-output name=upload_url::${{ steps.create_release.outputs.upload_url }}"
 
   build-windows:
     runs-on: windows-latest
@@ -148,6 +148,11 @@ jobs:
         run: yarn install
         working-directory: ./password-xl-web
 
+      - name: Get Meta 1
+        working-directory: ./password-xl-web
+        run: |
+          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+
       - name: Build exe
         working-directory: ./password-xl-web
         run: yarn run dist-to-windows
@@ -157,7 +162,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.UPLOAD_URL }}
+          upload_url: ${{ needs.build-project.outputs.upload_url }}
           asset_path: password-xl-web/build/password-XL-Windows-${{ env.REPO_VERSION }}.exe
           asset_name: password-xl-win-${{ env.REPO_VERSION }}.exe
           asset_content_type: application/octet-stream
@@ -179,6 +184,11 @@ jobs:
         run: yarn install
         working-directory: ./password-xl-web
 
+      - name: Get Meta 1
+        working-directory: ./password-xl-web
+        run: |
+          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+
       - name: Build macOS app
         working-directory: ./password-xl-web
         run: yarn run dist-to-mac
@@ -188,7 +198,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.UPLOAD_URL }}
+          upload_url: ${{ needs.build-project.outputs.upload_url }}
           asset_path: password-xl-web/build/password-XL-Mac-${{ env.REPO_VERSION }}.dmg
           asset_name: password-xl-mac-${{ env.REPO_VERSION }}.dmg
           asset_content_type: application/octet-stream
@@ -210,6 +220,11 @@ jobs:
         run: yarn install
         working-directory: ./password-xl-web
 
+      - name: Get Meta 1
+        working-directory: ./password-xl-web
+        run: |
+          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+
       - name: Build Linux app
         working-directory: ./password-xl-web
         run: yarn run dist-to-linux
@@ -219,7 +234,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.UPLOAD_URL }}
+          upload_url: ${{ needs.build-project.outputs.upload_url }}
           asset_path: password-xl-web/build/password-XL-Linux-${{ env.REPO_VERSION }}.tar.gz
           asset_name: password-xl-linux-${{ env.REPO_VERSION }}.tar.gz
           asset_content_type: application/gzip
