@@ -293,14 +293,34 @@ jobs:
       - name: 显示编译后的文件
         run: ls -la password-xl-web/build/
 
-      - name: 上传Linux应用程序
+      - name: 上传Linux应用程序 AppImage
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
-          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.tar.gz
-          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.tar.gz
+          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.AppImage
+          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.AppImage
+          asset_content_type: application/gzip
+
+      - name: 上传Linux应用程序 rpm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.rpm
+          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.rpm
+          asset_content_type: application/gzip
+
+      - name: 上传Linux应用程序 snap
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.snap
+          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.snap
           asset_content_type: application/gzip
 
   build-docker-service:
