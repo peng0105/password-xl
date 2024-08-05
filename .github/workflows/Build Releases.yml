@@ -32,13 +32,6 @@ jobs:
         run: yarn install
         working-directory: ./password-xl-web
 
-      - name: Get Meta
-        id: meta
-        run: |
-          echo REPO_VERSION=$(node -p "require('./password-xl-web/package.json').version") >> $GITHUB_ENV
-          echo REPO_SERVER_VERSION=$(./password-xl-service/gradlew -q printVersion) >> $GITHUB_ENV
-          echo REPO_SERVER_VERSION = ${{ env.REPO_SERVER_VERSION }}
-
       - name: Set up Jdk21
         uses: graalvm/setup-graalvm@v1
         with:
@@ -64,6 +57,13 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./password-xl-service/gradlew
+
+      - name: Get Meta
+        id: meta
+        run: |
+          echo REPO_VERSION=$(node -p "require('./password-xl-web/package.json').version") >> $GITHUB_ENV
+          echo REPO_SERVER_VERSION=$(./password-xl-service/gradlew -q printVersion) >> $GITHUB_ENV
+          echo REPO_SERVER_VERSION = ${{ env.REPO_SERVER_VERSION }}
 
       - name: Build vue
         run: yarn run build
