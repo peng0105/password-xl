@@ -323,6 +323,7 @@ jobs:
           asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.snap
           asset_content_type: application/gzip
 
+
   build-docker-service:
     runs-on: ubuntu-latest
     needs: build-project
