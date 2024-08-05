@@ -1,244 +1,4 @@
-#name: Build Releases
-#
-#on:
-#  push:
-#    branches:
-#      - main
-#  workflow_dispatch:
-#
-#jobs:
-#  buildProject:
-#    runs-on: ubuntu-latest
-#    container:
-#      image: catthehacker/ubuntu:act-latest
-#      volumes:
-#        - ubuntu_dockercache:/opt/dockercache
-#
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#
-#      - name: Set up node using nvm
-#        uses: dcodeIO/setup-node-nvm@v5
-#        with:
-#          node-version: 20.16.x
-#
-#      - name: Install yarn
-#        uses: borales/actions-yarn@v4
-#        with:
-#          cmd: install
-#
-#      - name: Install dependencies
-#        run: yarn install
-#        working-directory: ./password-xl-web
-#
-#      - name: Set up Jdk21
-#        uses: graalvm/setup-graalvm@v1
-#        with:
-#          java-version: '21'
-#          distribution: 'graalvm'
-#          github-token: ${{ secrets.GITHUB_TOKEN }}
-#
-#      - name: Example step
-#        run: |
-#          echo "GRAALVM_HOME: $GRAALVM_HOME"
-#          echo "JAVA_HOME: $JAVA_HOME"
-#          java --version
-#          native-image --version
-#
-#      - name: Cache Gradle packages
-#        uses: actions/cache@v3
-#        with:
-#          path: |
-#            ~/.gradle/caches
-#            ~/.gradle/wrapper
-#          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-#          restore-keys: gradle-${{ runner.os }}-
-#
-#      - name: Grant execute permission for gradlew
-#        run: chmod +x ./password-xl-service/gradlew
-#
-#      - name: Get Meta 1
-#        working-directory: ./password-xl-web
-#        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
-#
-#      - name: Get Meta 2
-#        working-directory: ./password-xl-service
-#        run: echo REPO_SERVER_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
-#
-#      - name: Build vue
-#        run: yarn run build
-#        working-directory: ./password-xl-web
-#
-#      - name: Build jar
-#        working-directory: ./password-xl-service
-#        run: ./gradlew bootJar
-#
-#      - name: zip package
-#        run: |
-#          zip -r password-xl-web/dist.zip password-xl-web/dist
-#          tar -zcvf password-xl-web/dist.tar.gz password-xl-web/dist
-#
-#      - name: Create Release
-#        id: create_release
-#        uses: actions/create-release@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          tag_name: ${{ env.REPO_VERSION }}
-#          release_name: Release ${{ env.REPO_VERSION }}
-#          draft: false
-#          prerelease: false
-#
-#      - name: Upload Release Asset 1
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          upload_url: ${{ steps.create_release.outputs.upload_url }}
-#          asset_path: password-xl-web/dist.zip
-#          asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.zip
-#          asset_content_type: application/zip
-#
-#      - name: Upload Release Asset 2
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          upload_url: ${{ steps.create_release.outputs.upload_url }}
-#          asset_path: password-xl-web/dist.tar.gz
-#          asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.tar.gz
-#          asset_content_type: application/gzip
-#
-#      - name: Upload Release Asset 4
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          upload_url: ${{ steps.create_release.outputs.upload_url }}
-#          asset_path: password-xl-service/build/libs/password-xl-service-${{ env.REPO_SERVER_VERSION }}.jar
-#          asset_name: password-xl-service-${{ env.REPO_SERVER_VERSION }}.jar
-#          asset_content_type: application/octet-stream
-#
-#      - name: Set output for upload_url
-#        id: set_output
-#        run: |
-#          echo "upload_url1=Hello1" >> $GITHUB_ENV
-#          echo "upload_url2=Hello2" >> $GITHUB_ENV
-#          echo "::set-output name=upload_url4::Hello4"
-#
-#  build-windows:
-#    runs-on: windows-latest
-#    needs: buildProject
-#
-#    steps:
-#      - name: output url
-#        run: |
-#          echo "upload_url1: ${{ needs.buildProject.outputs.upload_url1 }}"
-#          echo "upload_url2: ${{ needs.buildProject.outputs.upload_url2 }}"
-#          echo "upload_url4: ${{ needs.buildProject.outputs.upload_url4 }}"
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#
-#      - name: Set up node
-#        uses: actions/setup-node@v3
-#        with:
-#          node-version: 20.16.x
-#
-#      - name: Install dependencies
-#        run: yarn install
-#        working-directory: ./password-xl-web
-#
-#      - name: Get Meta 1
-#        working-directory: ./password-xl-web
-#        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
-#
-#      - name: Build exe
-#        working-directory: ./password-xl-web
-#        run: yarn run dist-to-windows
-#
-#      - name: Upload Release Asset 3
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          upload_url: ${{ needs.buildProject.outputs.upload_url }}
-#          asset_path: password-xl-web/build/password-XL-Windows-${{ env.REPO_VERSION }}.exe
-#          asset_name: password-xl-win-${{ env.REPO_VERSION }}.exe
-#          asset_content_type: application/octet-stream
-#
-#  build-macos:
-#    runs-on: macos-latest
-#    needs: buildProject
-#
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#
-#      - name: Set up node
-#        uses: actions/setup-node@v3
-#        with:
-#          node-version: 20.16.x
-#
-#      - name: Install dependencies
-#        run: yarn install
-#        working-directory: ./password-xl-web
-#
-#      - name: Get Meta 1
-#        working-directory: ./password-xl-web
-#        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
-#
-#      - name: Build macOS app
-#        working-directory: ./password-xl-web
-#        run: yarn run dist-to-mac
-#
-#      - name: Upload Release Asset macOS
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          upload_url: ${{ needs.buildProject.outputs.upload_url }}
-#          asset_path: password-xl-web/build/password-XL-Mac-${{ env.REPO_VERSION }}.dmg
-#          asset_name: password-xl-mac-${{ env.REPO_VERSION }}.dmg
-#          asset_content_type: application/octet-stream
-#
-#  build-linux-app:
-#    runs-on: ubuntu-latest
-#    needs: buildProject
-#
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#
-#      - name: Set up node using nvm
-#        uses: dcodeIO/setup-node-nvm@v5
-#        with:
-#          node-version: 20.16.x
-#
-#      - name: Install dependencies
-#        run: yarn install
-#        working-directory: ./password-xl-web
-#
-#      - name: Get Meta 1
-#        working-directory: ./password-xl-web
-#        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
-#
-#      - name: Build Linux app
-#        working-directory: ./password-xl-web
-#        run: yarn run dist-to-linux
-#
-#      - name: Upload Release Asset Linux
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          upload_url: ${{ needs.buildProject.outputs.upload_url }}
-#          asset_path: password-xl-web/build/password-XL-Linux-${{ env.REPO_VERSION }}.tar.gz
-#          asset_name: password-xl-linux-${{ env.REPO_VERSION }}.tar.gz
-#          asset_content_type: application/gzip
-#
-
-name: Build Releases
+name: Data Transfer Demo
 
 on:
   push:
@@ -247,38 +7,46 @@ on:
   workflow_dispatch:
 
 jobs:
-  buildProject:
+  set-data:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 其他步骤...
+      - name: Set output using set-output
+        id: set_output_example
+        run: echo "::set-output name=output_variable::HelloOutput"
 
-      - name: Set output for upload_url
-        id: set_output
+      - name: Set environment variable using GITHUB_ENV
+        run: echo "env_variable=HelloEnv" >> $GITHUB_ENV
+
+      - name: Set environment variable for subsequent steps
         run: |
-          echo "upload_url1=Hello1" >> $GITHUB_ENV
-          echo "upload_url2=Hello2" >> $GITHUB_ENV
-          echo "upload_url4=Hello4" >> $GITHUB_ENV
+          echo "env_variable_step=HelloStepEnv" >> $GITHUB_ENV
+          echo "::set-output name=output_step_variable::HelloStepOutput"
 
-  build-windows:
-    runs-on: windows-latest
-    needs: buildProject
-    steps:
-      - name: Output URLs
+      - name: Print outputs to verify
         run: |
-          echo "upload_url1: ${{ env.upload_url1 }}"
-          echo "upload_url2: ${{ env.upload_url2 }}"
-          echo "upload_url4: ${{ env.upload_url4 }}"
+          echo "Output Variable: ${{ steps.set_output_example.outputs.output_variable }}"
+          echo "Environment Variable: ${{ env.env_variable }}"
+          echo "Environment Variable Step: ${{ env.env_variable_step }}"
+          echo "Output Step Variable: ${{ steps.set_output_example.outputs.output_step_variable }}"
 
-
-  build-ubuntu:
+  use-data:
     runs-on: ubuntu-latest
-    needs: buildProject
+    needs: set-data
+
     steps:
-      - name: Output URLs
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print received outputs
         run: |
-          echo "upload_url1: ${{ env.upload_url1 }}"
-          echo "upload_url2: ${{ env.upload_url2 }}"
-          echo "upload_url4: ${{ env.upload_url4 }}"
+          echo "Output Variable: ${{ needs.set-data.outputs.output_variable }}"
+          echo "Environment Variable: ${{ env.env_variable }}"
+          echo "Environment Variable Step: ${{ env.env_variable_step }}"
+          echo "Output Step Variable: ${{ needs.set-data.outputs.output_step_variable }}"
+
+      - name: Use environment variables in subsequent steps
+        run: |
+          echo "Environment Variable in step: ${{ env.env_variable_step }}"
