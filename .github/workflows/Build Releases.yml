@@ -96,4 +96,37 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: password-xl-web/dist.zip
+          asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset 2
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: password-xl-web/dist.tar.gz
+          asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Release Asset 3
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: password-xl-web/build/password-XL-Windows-${{ env.REPO_VERSION }}-Setup.exe
+          asset_name: password-xl-win-${{ env.REPO_VERSION }}.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset 4
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: password-xl-service/build/password-xl-service-${{ env.REPO_VERSION }}-plain.jar
+          asset_name: password-xl-service-${{ env.REPO_VERSION }}.jar
+          asset_content_type: application/octet-stream
