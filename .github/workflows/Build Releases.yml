@@ -25,7 +25,7 @@ jobs:
           echo "env_variable_step=HelloStepEnv" >> $GITHUB_ENV
           echo "::set-output name=output_step_variable::HelloStepOutput"
 
-      - name: Print outputs to verify
+      - name: Print outputs to verify in set-data
         run: |
           echo "Output Variable: ${{ steps.set_output_example.outputs.output_variable }}"
           echo "Environment Variable: ${{ env.env_variable }}"
@@ -40,13 +40,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Print received outputs
+      - name: Print received outputs in use-data
         run: |
           echo "Output Variable: ${{ needs.set-data.outputs.output_variable }}"
           echo "Environment Variable: ${{ env.env_variable }}"
           echo "Environment Variable Step: ${{ env.env_variable_step }}"
           echo "Output Step Variable: ${{ needs.set-data.outputs.output_step_variable }}"
-
-      - name: Use environment variables in subsequent steps
-        run: |
-          echo "Environment Variable in step: ${{ env.env_variable_step }}"
