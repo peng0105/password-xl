@@ -16,6 +16,8 @@ jobs:
     outputs:
       UPLOAD_URL: ${{ steps.set_output.outputs.UPLOAD_URL }}
       REPO_VERSION: ${{ steps.set_output.outputs.REPO_VERSION }}
+      output1: ${{ steps.step1.outputs.test }}
+      output2: ${{ steps.step2.outputs.test }}
 
     steps:
       - name: Checkout
@@ -129,6 +131,11 @@ jobs:
           echo "UPLOAD_URL=${{ steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
           echo "REPO_VERSION=${{ env.REPO_VERSION }}" >> "$GITHUB_OUTPUT"
 
+      - id: step1
+        run: echo "test=hello" >> "$GITHUB_OUTPUT"
+      - id: step2
+        run: echo "test=world" >> "$GITHUB_OUTPUT"
+
   build-windows:
     runs-on: windows-latest
     needs: buildProject
@@ -136,7 +143,9 @@ jobs:
       - env:
           UPLOAD_URL: ${{needs.buildProject.outputs.UPLOAD_URL}}
           REPO_VERSION: ${{needs.buildProject.outputs.REPO_VERSION}}
-        run: echo "$UPLOAD_URL $REPO_VERSION"
+          OUTPUT1: ${{needs.job1.outputs.output1}}
+          OUTPUT2: ${{needs.job1.outputs.output2}}
+        run: echo "$UPLOAD_URL $REPO_VERSION $OUTPUT1 $OUTPUT2"
 
       - name: Checkout
         uses: actions/checkout@v4
