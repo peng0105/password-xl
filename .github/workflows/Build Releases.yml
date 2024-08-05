@@ -211,3 +211,4 @@ jobs:
           asset_path: password-xl-web/build/password-XL-Linux-${{ env.REPO_VERSION }}.tar.gz
           asset_name: password-xl-linux-${{ env.REPO_VERSION }}.tar.gz
           asset_content_type: application/gzip
+
