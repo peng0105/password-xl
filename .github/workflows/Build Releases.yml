@@ -123,10 +123,10 @@ jobs:
       - name: Set output for upload_url
         id: set_output
         run: |
-          echo "upload_url1=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
-          echo "upload_url2=${{ steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
-          echo "upload_url3=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_ENV
-          echo "::set-output name=upload_url4::${{ steps.create_release.outputs.upload_url }}"
+          echo "upload_url1=Hello1" >> $GITHUB_OUTPUT
+          echo "upload_url2=Hello2" >> "$GITHUB_OUTPUT"
+          echo "upload_url3=Hello3" >> $GITHUB_ENV
+          echo "::set-output name=upload_url4::Hello4"
           echo $GITHUB_OUTPUT: ${{ steps.create_release.outputs.upload_url }}
 
   build-windows:
