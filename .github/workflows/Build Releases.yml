@@ -123,11 +123,9 @@ jobs:
       - name: Set output for upload_url
         id: set_output
         run: |
-          echo "upload_url1=Hello1" >> $GITHUB_OUTPUT
-          echo "upload_url2=Hello2" >> "$GITHUB_OUTPUT"
-          echo "upload_url3=Hello3" >> $GITHUB_ENV
+          echo "upload_url1=Hello1" >> $GITHUB_ENV
+          echo "upload_url2=Hello2" >> $GITHUB_ENV
           echo "::set-output name=upload_url4::Hello4"
-          echo $GITHUB_OUTPUT: ${{ steps.create_release.outputs.upload_url }}
 
   build-windows:
     runs-on: windows-latest
@@ -138,7 +136,6 @@ jobs:
         run: |
           echo "upload_url1: ${{ needs.buildProject.outputs.upload_url1 }}"
           echo "upload_url2: ${{ needs.buildProject.outputs.upload_url2 }}"
-          echo "upload_url3: ${{ env.upload_url }}"
           echo "upload_url4: ${{ needs.buildProject.outputs.upload_url4 }}"
       - name: Checkout
         uses: actions/checkout@v4
