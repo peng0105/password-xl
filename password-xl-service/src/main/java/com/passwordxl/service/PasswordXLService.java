@@ -3,10 +3,7 @@ package com.passwordxl.service;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.http.HttpStatus;
 import com.alibaba.fastjson2.JSONObject;
-import com.passwordxl.bean.DeleteContentParam;
-import com.passwordxl.bean.GetContentParam;
-import com.passwordxl.bean.LoginParam;
-import com.passwordxl.bean.PutContentParam;
+import com.passwordxl.bean.*;
 import com.passwordxl.common.RestResult;
 import com.passwordxl.util.JwtUtil;
 import com.passwordxl.util.UserContent;
@@ -31,9 +28,20 @@ public class PasswordXLService {
     public RestResult<String> login(LoginParam loginParam) {
         String username = loginParam.getUsername();
         log.info("user login request: {}", username);
-        if (!DataService.users.containsKey(username) || !Objects.equals(DataService.users.get(username).getPassword(), loginParam.getPassword())) {
+        User user = DataService.users.get(username);
+        if (user == null) {
+            log.info("username not exist: {}", loginParam.getUsername());
+            return RestResult.genErrorResult(HttpStatus.HTTP_UNAUTHORIZED, "用户名或密码错误");
+        }
+
+        if (!Objects.equals(user.getPassword(), loginParam.getPassword())) {
             log.info("username or password incorrect: {}", loginParam.getUsername());
             return RestResult.genErrorResult(HttpStatus.HTTP_UNAUTHORIZED, "用户名或密码错误");
+        }
+
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            log.info("user was disabled: {}", loginParam.getUsername());
+            return RestResult.genErrorResult(HttpStatus.HTTP_UNAUTHORIZED, "该用户已被禁用");
         }
 
         String token = JwtUtil.generateToken(username);
