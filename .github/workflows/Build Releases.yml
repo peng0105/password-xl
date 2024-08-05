@@ -114,11 +114,6 @@ jobs:
           asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.tar.gz
           asset_content_type: application/gzip
 
-      - name: List files in directory
-        run: |
-          echo "Listing files in directory:"
-          ls -R password-xl-service/build/
-
       - name: Upload Release Asset 4
         uses: actions/upload-release-asset@v1
         env:
@@ -128,6 +123,10 @@ jobs:
           asset_path: password-xl-service/build/libs/password-xl-service-${{ env.REPO_SERVER_VERSION }}.jar
           asset_name: password-xl-service-${{ env.REPO_SERVER_VERSION }}.jar
           asset_content_type: application/octet-stream
+
+      - name: Set output for upload_url
+        id: set_output
+        run: echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_ENV
 
   build-windows:
     runs-on: windows-latest
