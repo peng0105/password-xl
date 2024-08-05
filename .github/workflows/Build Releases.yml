@@ -133,7 +133,7 @@ jobs:
     steps:
       - name: output url
         run: |
-          echo ${{ needs.build-project.outputs.upload_url }}
+          echo "${{ needs.build-project.outputs.upload_url }}"
       - name: Checkout
         uses: actions/checkout@v4
 
