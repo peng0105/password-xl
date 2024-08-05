@@ -22,9 +22,9 @@
     "start": "vite",
     "preview": "vite preview",
     "build": "vue-tsc -b && vite build",
-    "dist-to-windows": "electron-builder build --win --config electron/electron-builder.json5",
-    "dist-to-mac": "electron-builder build --mac --config electron/electron-builder.json5",
-    "dist-to-linux": "electron-builder build --linux --config electron/electron-builder.json5",
+    "dist-to-windows": "vue-tsc -b && vite build && electron-builder build --win --config electron/electron-builder.json5",
+    "dist-to-mac": "vue-tsc -b && vite build && electron-builder build --mac --config electron/electron-builder.json5",
+    "dist-to-linux": "vue-tsc -b && vite build && electron-builder build --linux --config electron/electron-builder.json5",
     "start-exe": "electron ."
   },
   "dependencies": {

@@ -6,9 +6,8 @@ on:
       - main
   workflow_dispatch:
 
-
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     container:
       image: catthehacker/ubuntu:act-latest
@@ -72,10 +71,6 @@ jobs:
         working-directory: ./password-xl-service
         run: ./gradlew bootJar
 
-      - name: Build exe
-        working-directory: ./password-xl-web
-        run: yarn run dist-to-windows
-
       - name: zip package
         run: |
           zip -r password-xl-web/dist.zip password-xl-web/dist
@@ -111,16 +106,6 @@ jobs:
           asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.tar.gz
           asset_content_type: application/gzip
 
-      - name: Upload Release Asset 3
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-web/build/password-XL-Windows-${{ env.REPO_VERSION }}-Setup.exe
-          asset_name: password-xl-win-${{ env.REPO_VERSION }}.exe
-          asset_content_type: application/octet-stream
-
       - name: Upload Release Asset 4
         uses: actions/upload-release-asset@v1
         env:
@@ -130,3 +115,96 @@ jobs:
           asset_path: password-xl-service/build/password-xl-service-${{ env.REPO_VERSION }}-plain.jar
           asset_name: password-xl-service-${{ env.REPO_VERSION }}.jar
           asset_content_type: application/octet-stream
+
+  build-windows:
+    runs-on: windows-latest
+    needs: build-linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.16.x
+
+      - name: Install dependencies
+        run: yarn install
+        working-directory: ./password-xl-web
+
+      - name: Build exe
+        working-directory: ./password-xl-web
+        run: yarn run dist-to-windows
+
+      - name: Upload Release Asset 3
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.build-linux.outputs.upload_url }}
+          asset_path: password-xl-web/build/password-XL-Windows-${{ env.REPO_VERSION }}-Setup.exe
+          asset_name: password-xl-win-${{ env.REPO_VERSION }}.exe
+          asset_content_type: application/octet-stream
+
+  build-macos:
+    runs-on: macos-latest
+    needs: build-linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.16.x
+
+      - name: Install dependencies
+        run: yarn install
+        working-directory: ./password-xl-web
+
+      - name: Build macOS app
+        working-directory: ./password-xl-web
+        run: yarn run dist-to-mac
+
+      - name: Upload Release Asset macOS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.build-linux.outputs.upload_url }}
+          asset_path: password-xl-web/build/password-XL-Mac-${{ env.REPO_VERSION }}.dmg
+          asset_name: password-xl-mac-${{ env.REPO_VERSION }}.dmg
+          asset_content_type: application/octet-stream
+
+  build-linux-app:
+    runs-on: ubuntu-latest
+    needs: build-linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up node using nvm
+        uses: dcodeIO/setup-node-nvm@v5
+        with:
+          node-version: 20.16.x
+
+      - name: Install dependencies
+        run: yarn install
+        working-directory: ./password-xl-web
+
+      - name: Build Linux app
+        working-directory: ./password-xl-web
+        run: yarn run dist-to-linux
+
+      - name: Upload Release Asset Linux
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.build-linux.outputs.upload_url }}
+          asset_path: password-xl-web/build/password-XL-Linux-${{ env.REPO_VERSION }}.tar.gz
+          asset_name: password-xl-linux-${{ env.REPO_VERSION }}.tar.gz
+          asset_content_type: application/gzip
