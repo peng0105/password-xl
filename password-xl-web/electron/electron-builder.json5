@@ -13,12 +13,9 @@
     "icon": "dist/icons/1024x1024.png",
     "artifactName": "${productName}-Windows-${version}.${ext}",
     "target": [
-      {
-        "target": "nsis",
-        "arch": [
-          "x64"
-        ]
-      }
+      "nsis",
+      "squirrel",
+      "zip"
     ]
   },
   "mac": {
@@ -33,12 +30,9 @@
     "icon": "dist/icons/1024x1024.png",
     "artifactName": "${productName}-Linux-${version}.${ext}",
     "target": [
-      {
-        "target": "nsis",
-        "arch": [
-          "x64"
-        ]
-      }
+      "AppImage",
+      "snap",
+      "rpm"
     ]
   },
   "nsis": {

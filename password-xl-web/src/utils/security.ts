@@ -8,11 +8,8 @@ export const browserFingerprint = (): string => {
     } catch (e) {
     }
     try {
-        param += (window.navigator.userAgent || '') + ','
-        param += (window.navigator.language || '') + ','
+        param += (window.navigator.languages.join(',') || '') + ','
         param += (window.navigator.hardwareConcurrency || '') + ','
-        param += (window.screen.width || '') + ','
-        param += (window.screen.height || '') + ','
     } catch (e) {
     }
     try {
