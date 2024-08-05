@@ -314,4 +314,3 @@ jobs:
           asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.tar.gz
           asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.tar.gz
           asset_content_type: application/gzip
-
