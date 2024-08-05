@@ -244,6 +244,9 @@ jobs:
         working-directory: ./password-xl-web
         run: yarn run dist-to-mac
 
+      - name: showFile
+        run: ls -la password-xl-web/build/
+
       - name: 上传mac应用程序
         uses: actions/upload-release-asset@v1
         env:
@@ -304,7 +307,7 @@ jobs:
           asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.tar.gz
           asset_content_type: application/gzip
 
-  buildServiceDockerImage:
+  build-docker-service:
     runs-on: ubuntu-latest
     needs: build-project
     env:
@@ -344,12 +347,6 @@ jobs:
         working-directory: ./password-xl-service
         run: ./gradlew nativeCompile
 
-      - name: 获取版本信息
-        id: extract_version
-        working-directory: ./password-xl-service
-        run: |
-          echo REPO_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
-
       - name: 登录 Docker Hub
         uses: docker/login-action@v3
         with:
@@ -364,8 +361,8 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
-            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{env.REPO_VERSION}}
-  buildWebDockerImage:
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{needs.build-project.outputs.REPO_VERSION}}
+  build-docker-web:
     runs-on: ubuntu-latest
     needs: build-project
     container:
@@ -433,5 +430,5 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
-            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{env.REPO_VERSION}}
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{needs.build-project.outputs.REPO_VERSION}}
 
