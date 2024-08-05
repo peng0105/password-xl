@@ -71,6 +71,33 @@ jobs:
       - name: 设置gradlew可执行权限
         run: chmod +x ./password-xl-service/gradlew
 
+      - name: 更新 package.json 版本
+        run: |
+          yarn version --new-version $(node -p "require('./package.json').version.split('-')[0] + '-'+ (parseInt(require('./package.json').version.split('-')[1] || '0') + 1).toString().padStart(4, '0')")
+        working-directory: ./password-xl-web
+
+      - name: 提交更新
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add package.json
+          git commit -m "发布前版本号更新"
+          git push
+
+      - name: 更新 package.json 版本
+        run: |
+          NEW_VERSION=$(node -p "require('/package.json').version.split('.').map((v, i) => i === 2 ? parseInt(v) + 1 : v).join('.')") # 更新为新的版本号
+          jq --arg version "$NEW_VERSION" '.version = $version' ./package.json > ./package.tmp.json && mv ./package.tmp.json ./package.json
+        working-directory: ./password-xl-web
+
+      - name: 提交版本更新
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add ./password-xl-web/package.json
+          git commit -m "发布前版本号更新：$NEW_VERSION"
+          git push
+
       - name: 获取本次发布的版本信息
         run: |
           echo REPO_VERSION=$(node -p "require('./password-xl-web/package.json').version") >> $GITHUB_ENV
