@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
+  build-project:
     runs-on: ubuntu-latest
     container:
       image: catthehacker/ubuntu:act-latest
@@ -143,7 +143,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.build-linux.outputs.upload_url }}
-          asset_path: password-xl-web/build/password-XL-Windows-${{ env.REPO_VERSION }}-Setup.exe
+          asset_path: password-xl-web/build/password-XL-Windows-${{ env.REPO_VERSION }}.exe
           asset_name: password-xl-win-${{ env.REPO_VERSION }}.exe
           asset_content_type: application/octet-stream
 

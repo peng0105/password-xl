@@ -11,16 +11,13 @@
   ],
   "win": {
     "icon": "dist/icons/1024x1024.png",
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}",
+    "artifactName": "${productName}-Windows-${version}.${ext}",
     "target": [
       {
         "target": "nsis",
         "arch": [
           "x64"
         ]
-      },
-      {
-        "target": "zip"
       }
     ]
   },
@@ -28,12 +25,9 @@
     "target": [
       {
         "target": "dmg"
-      },
-      {
-        "target": "zip"
       }
     ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+    "artifactName": "${productName}-Mac-${version}.${ext}"
   },
   "linux": {
     "icon": "dist/icons/1024x1024.png",
@@ -44,9 +38,6 @@
         "arch": [
           "x64"
         ]
-      },
-      {
-        "target": "zip"
       }
     ]
   },
