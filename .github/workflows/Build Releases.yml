@@ -18,38 +18,38 @@ jobs:
       REPO_VERSION: ${{ steps.set_output.outputs.REPO_VERSION }}
 
     steps:
-      - name: Checkout
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Set up node using nvm
+      - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
           node-version: 20.16.x
 
-      - name: Install yarn
+      - name: 安装 yarn
         uses: borales/actions-yarn@v4
         with:
           cmd: install
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: yarn install
         working-directory: ./password-xl-web
 
-      - name: Set up Jdk21
+      - name: 安装 Jdk21
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: '21'
           distribution: 'graalvm'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Example step
+      - name: 版本输出
         run: |
           echo "GRAALVM_HOME: $GRAALVM_HOME"
           echo "JAVA_HOME: $JAVA_HOME"
           java --version
           native-image --version
 
-      - name: Cache Gradle packages
+      - name: 获取gradle缓存
         uses: actions/cache@v3
         with:
           path: |
@@ -58,29 +58,29 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      - name: Grant execute permission for gradlew
+      - name: 设置gradlew可执行权限
         run: chmod +x ./password-xl-service/gradlew
 
-      - name: Get Meta
+      - name: 获取本次发布的版本信息
         working-directory: ./password-xl-web
         run: |
           echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
           echo REPO_SERVER_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
 
-      - name: Build vue
+      - name: 编译前端项目
         run: yarn run build
         working-directory: ./password-xl-web
 
-      - name: Build jar
+      - name: 编译后端项目
         working-directory: ./password-xl-service
         run: ./gradlew bootJar
 
-      - name: zip package
+      - name: 压缩前端编译结果
         run: |
           zip -r password-xl-web/dist.zip password-xl-web/dist
           tar -zcvf password-xl-web/dist.tar.gz password-xl-web/dist
 
-      - name: Create Release
+      - name: 创建发布版本
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -91,7 +91,7 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset webZip
+      - name: 上传前端Zip包
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -101,7 +101,7 @@ jobs:
           asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.zip
           asset_content_type: application/zip
 
-      - name: Upload Release Asset webGzip
+      - name: 上传前端Gzip包
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -111,7 +111,7 @@ jobs:
           asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.tar.gz
           asset_content_type: application/gzip
 
-      - name: Upload Release Asset serviceJar
+      - name: 上传后端Jar包
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -121,7 +121,7 @@ jobs:
           asset_name: password-xl-service-${{ env.REPO_VERSION }}.jar
           asset_content_type: application/octet-stream
 
-      - name: Set output for upload_url
+      - name: 设置发布版本上传url
         id: set_output
         run: |
           echo "UPLOAD_URL=${{ steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
