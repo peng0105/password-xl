@@ -122,13 +122,18 @@ jobs:
 
       - name: Set output for upload_url
         id: set_output
-        run: echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
+        run: |
+          echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
+          echo $GITHUB_OUTPUT: ${{ steps.create_release.outputs.upload_url }}
 
   build-windows:
     runs-on: windows-latest
     needs: build-project
 
     steps:
+      - name: output url
+        run: |
+          echo ${{ needs.build-project.outputs.upload_url }}
       - name: Checkout
         uses: actions/checkout@v4
 
