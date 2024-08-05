@@ -36,6 +36,7 @@ jobs:
         id: meta
         run: |
           echo REPO_VERSION=$(node -p "require('./password-xl-web/package.json').version") >> $GITHUB_ENV
+          echo REPO_SERVER_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
 
       - name: Set up Jdk21
         uses: graalvm/setup-graalvm@v1
@@ -113,7 +114,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-service/build/password-xl-service-${{ env.REPO_VERSION }}.jar
+          asset_path: password-xl-service/build/password-xl-service-${{ env.REPO_SERVER_VERSION }}.jar
           asset_name: password-xl-service-${{ env.REPO_VERSION }}.jar
           asset_content_type: application/octet-stream
 
