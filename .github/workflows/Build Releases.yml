@@ -62,10 +62,9 @@ jobs:
         run: chmod +x ./password-xl-service/gradlew
 
       - name: 获取本次发布的版本信息
-        working-directory: ./password-xl-web
         run: |
-          echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
-          echo REPO_SERVER_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
+          echo REPO_VERSION=$(node -p "require('./password-xl-web/package.json').version") >> $GITHUB_ENV
+          echo REPO_SERVER_VERSION=$(./password-xl-service/gradlew -q printVersion) >> $GITHUB_ENV
 
       - name: 编译前端项目
         run: yarn run build
@@ -131,27 +130,32 @@ jobs:
     runs-on: windows-latest
     needs: build-project
     steps:
-      - name: Checkout
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Set up node
-        uses: actions/setup-node@v3
+      - name: 安装 nvm
+        uses: dcodeIO/setup-node-nvm@v5
         with:
           node-version: 20.16.x
 
-      - name: Install dependencies
+      - name: 安装 yarn
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+
+      - name: 安装依赖
         run: yarn install
         working-directory: ./password-xl-web
 
-      - name: Get Meta 1
+      - name: 获取本次发布的版本信息
         working-directory: ./password-xl-web
         run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
 
-      - name: Build exe
+      - name: 编译Windows应用
         working-directory: ./password-xl-web
         run: yarn run dist-to-windows
 
-      - name: Upload Release Asset 3
+      - name: 上传Windows应用
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -166,32 +170,32 @@ jobs:
     needs: build-project
 
     steps:
-      - env:
-          UPLOAD_URL: ${{needs.build-project.outputs.UPLOAD_URL}}
-          REPO_VERSION: ${{needs.build-project.outputs.REPO_VERSION}}
-        run: echo "$UPLOAD_URL $REPO_VERSION"
-
-      - name: Checkout
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Set up node
-        uses: actions/setup-node@v3
+      - name: 安装 nvm
+        uses: dcodeIO/setup-node-nvm@v5
         with:
           node-version: 20.16.x
 
-      - name: Install dependencies
+      - name: 安装 yarn
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+
+      - name: 安装依赖
         run: yarn install
         working-directory: ./password-xl-web
 
-      - name: Get Meta 1
+      - name: 获取本次发布的版本信息
         working-directory: ./password-xl-web
         run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
 
-      - name: Build macOS app
+      - name: 编译mac应用程序
         working-directory: ./password-xl-web
         run: yarn run dist-to-mac
 
-      - name: Upload Release Asset macOS
+      - name: 上传mac应用程序
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -206,32 +210,32 @@ jobs:
     needs: build-project
 
     steps:
-      - env:
-          UPLOAD_URL: ${{needs.build-project.outputs.UPLOAD_URL}}
-          REPO_VERSION: ${{needs.build-project.outputs.REPO_VERSION}}
-        run: echo "$UPLOAD_URL $REPO_VERSION"
-
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Set up node using nvm
+      - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
           node-version: 20.16.x
 
-      - name: Install dependencies
+      - name: 安装 yarn
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+
+      - name: 安装依赖
         run: yarn install
         working-directory: ./password-xl-web
 
-      - name: Get Meta 1
+      - name: 获取本次发布的版本信息
         working-directory: ./password-xl-web
         run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
 
-      - name: Build Linux app
+      - name: 编译Linux应用程序
         working-directory: ./password-xl-web
         run: yarn run dist-to-linux
 
-      - name: Upload Release Asset Linux
+      - name: 上传Linux应用程序
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
