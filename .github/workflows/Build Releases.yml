@@ -16,8 +16,6 @@ jobs:
     outputs:
       UPLOAD_URL: ${{ steps.set_output.outputs.UPLOAD_URL }}
       REPO_VERSION: ${{ steps.set_output.outputs.REPO_VERSION }}
-      output1: ${{ steps.step1.outputs.test }}
-      output2: ${{ steps.step2.outputs.test }}
 
     steps:
       - name: Checkout
@@ -131,22 +129,10 @@ jobs:
           echo "UPLOAD_URL=${{ steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
           echo "REPO_VERSION=${{ env.REPO_VERSION }}" >> "$GITHUB_OUTPUT"
 
-      - id: step1
-        run: echo "test=hello" >> "$GITHUB_OUTPUT"
-      - id: step2
-        run: echo "test=world" >> "$GITHUB_OUTPUT"
-
   build-windows:
     runs-on: windows-latest
     needs: buildProject
     steps:
-      - env:
-          UPLOAD_URL: ${{needs.buildProject.outputs.UPLOAD_URL}}
-          REPO_VERSION: ${{needs.buildProject.outputs.REPO_VERSION}}
-          OUTPUT1: ${{needs.job1.outputs.output1}}
-          OUTPUT2: ${{needs.job1.outputs.output2}}
-        run: echo "$UPLOAD_URL $REPO_VERSION $OUTPUT1 $OUTPUT2"
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -172,9 +158,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.UPLOAD_URL }}
-          asset_path: password-xl-web/build/password-XL-Windows-${{ env.REPO_VERSION }}.exe
-          asset_name: password-xl-win-${{ env.REPO_VERSION }}.exe
+          upload_url: ${{needs.buildProject.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Windows-${{needs.buildProject.outputs.REPO_VERSION}}.exe
+          asset_name: password-xl-win-${{needs.buildProject.outputs.REPO_VERSION}}.exe
           asset_content_type: application/octet-stream
 
   build-macos:
@@ -212,9 +198,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.UPLOAD_URL }}
-          asset_path: password-xl-web/build/password-XL-Mac-${{ env.REPO_VERSION }}.dmg
-          asset_name: password-xl-mac-${{ env.REPO_VERSION }}.dmg
+          upload_url: ${{needs.buildProject.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Mac-${{needs.buildProject.outputs.REPO_VERSION}}.dmg
+          asset_name: password-xl-mac-${{needs.buildProject.outputs.REPO_VERSION}}.dmg
           asset_content_type: application/octet-stream
 
   build-linux-app:
@@ -252,8 +238,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.UPLOAD_URL }}
-          asset_path: password-xl-web/build/password-XL-Linux-${{ env.REPO_VERSION }}.tar.gz
-          asset_name: password-xl-linux-${{ env.REPO_VERSION }}.tar.gz
+          upload_url: ${{needs.buildProject.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Linux-${{needs.buildProject.outputs.REPO_VERSION}}.tar.gz
+          asset_name: password-xl-linux-${{needs.buildProject.outputs.REPO_VERSION}}.tar.gz
           asset_content_type: application/gzip
 
