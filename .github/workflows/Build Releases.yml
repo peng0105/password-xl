@@ -191,9 +191,6 @@ jobs:
         working-directory: ./password-xl-web
         run: yarn run dist-to-windows
 
-      - name: 显示编译后的文件
-        run: dir /s /b password-xl-web\build\
-
       - name: 上传Windows应用
         uses: actions/upload-release-asset@v1
         env:
