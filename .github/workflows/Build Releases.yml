@@ -63,14 +63,10 @@ jobs:
         run: |
           echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
 
-      - name: Debug Gradle Version Command
-        working-directory: ./password-xl-service
-        run: ./gradlew -q printVersion
-
       - name: Get Meta 2
         working-directory: ./password-xl-service
         run: |
-          echo REPO_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
+          echo REPO_SERVER_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
 
       - name: Build vue
         run: yarn run build
