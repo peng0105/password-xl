@@ -113,7 +113,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-service/build/password-xl-service-${{ env.REPO_VERSION }}-plain.jar
+          asset_path: password-xl-service/build/password-xl-service-${{ env.REPO_VERSION }}.jar
           asset_name: password-xl-service-${{ env.REPO_VERSION }}.jar
           asset_content_type: application/octet-stream
 
