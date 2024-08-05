@@ -250,20 +250,35 @@ jobs:
   buildProject:
     runs-on: ubuntu-latest
     steps:
-      # 其他步骤
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 其他步骤...
+
       - name: Set output for upload_url
         id: set_output
         run: |
-          echo "::set-output name=upload_url1::Hello1"
-          echo "::set-output name=upload_url2::Hello2"
-          echo "::set-output name=upload_url4::Hello4"
+          echo "upload_url1=Hello1" >> $GITHUB_ENV
+          echo "upload_url2=Hello2" >> $GITHUB_ENV
+          echo "upload_url4=Hello4" >> $GITHUB_ENV
 
   build-windows:
     runs-on: windows-latest
     needs: buildProject
     steps:
-      - name: output url
+      - name: Output URLs
         run: |
-          echo "upload_url1: ${{ needs.buildProject.outputs.upload_url1 }}"
-          echo "upload_url2: ${{ needs.buildProject.outputs.upload_url2 }}"
-          echo "upload_url4: ${{ needs.buildProject.outputs.upload_url4 }}"
+          echo "upload_url1: ${{ env.upload_url1 }}"
+          echo "upload_url2: ${{ env.upload_url2 }}"
+          echo "upload_url4: ${{ env.upload_url4 }}"
+
+
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    needs: buildProject
+    steps:
+      - name: Output URLs
+        run: |
+          echo "upload_url1: ${{ env.upload_url1 }}"
+          echo "upload_url2: ${{ env.upload_url2 }}"
+          echo "upload_url4: ${{ env.upload_url4 }}"
