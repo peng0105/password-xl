@@ -3,7 +3,7 @@ name: Build Web To Docker Image
 on:
   push:
     branches:
-      - main
+      - main2
   workflow_dispatch:
 
 jobs:
