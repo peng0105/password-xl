@@ -192,7 +192,7 @@ jobs:
         run: yarn run dist-to-windows
 
       - name: 显示编译后的文件
-        run: ls -la password-xl-web/build/
+        run: dir /s /b password-xl-web\build\
 
       - name: 上传Windows应用
         uses: actions/upload-release-asset@v1
