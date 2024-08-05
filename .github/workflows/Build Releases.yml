@@ -128,7 +128,7 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Output upload URL
-        id: output_upload_url
+        id: outputs
         run: echo "::set-output name=upload_url::${{ steps.create_release.outputs.upload_url }}"
 
   build-windows:
