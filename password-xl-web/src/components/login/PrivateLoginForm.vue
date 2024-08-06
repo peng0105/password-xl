@@ -130,7 +130,7 @@ initForm()
         </el-form-item>
       </el-form>
       <div class="register-guide">
-        <el-link :underline="false" type="primary">私有部署说明文档</el-link>
+        <el-link :underline="false" target="_blank" href="https://github.com/peng0105/password-xl/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker" type="primary">私有部署说明文档</el-link>
       </div>
     </el-col>
   </el-row>
