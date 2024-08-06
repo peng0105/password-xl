@@ -1,6 +1,8 @@
 {
   "appId": "password-XL",
   "productName": "password-XL",
+  // 阻止自动发布构建到仓库
+  "publish": null,
   "directories": {
     "output": "build"
   },

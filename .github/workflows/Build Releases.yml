@@ -237,8 +237,6 @@ jobs:
       - name: 编译mac应用程序
         working-directory: ./password-xl-web
         run: yarn run dist-to-mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 显示编译后的文件
         run: ls -la password-xl-web/build/
