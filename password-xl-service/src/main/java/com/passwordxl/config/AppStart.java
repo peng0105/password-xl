@@ -52,13 +52,6 @@ public class AppStart implements ApplicationRunner {
             }
         }
 
-        if(configPath == null) {
-            for (int i = 0; i < 10000; i++) {
-                log.info("配置不存在");
-                ThreadUtil.sleep(100000);
-            }
-        }
-
         if (configPath == null) {
             throw new RuntimeException("配置文件不存在. 请参考官方部署说明文档：" + deployDoc);
         }
@@ -68,7 +61,7 @@ public class AppStart implements ApplicationRunner {
             throw new RuntimeException("配置文件不存在. 请参考官方部署说明文档：" + deployDoc);
         }
 
-        log.info("start read config file: {}", configPath);
+        log.info("开始读取用户配置文件: {}", configPath);
         Toml toml = new Toml().read(configFile);
         List<Map<String, Object>> maps = toml.getList("user");
         if (maps == null || maps.isEmpty()) {
