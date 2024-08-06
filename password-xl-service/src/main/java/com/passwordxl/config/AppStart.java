@@ -33,12 +33,17 @@ public class AppStart implements ApplicationRunner {
 
         String configPath = null;
 
-        List<String> nonOptionArgs = args.getNonOptionArgs();
+        String[] nonOptionArgs = args.getSourceArgs();
         for (String arg : nonOptionArgs) {
             String[] configParams = arg.split("=");
-            if (configParams[0].equals("config") && configParams.length > 1 && configParams[1].endsWith(".toml")) {
+            if (configParams[0].equals("--config") && configParams.length > 1 && configParams[1].endsWith(".toml")) {
                 configPath = configParams[1];
-                break;
+            }
+            if (configParams[0].equals("--data") && configParams.length > 1) {
+                DataService.dataPath = configParams[1];
+                if (DataService.dataPath.endsWith("/")) {
+                    DataService.dataPath = DataService.dataPath.substring(0, DataService.dataPath.length() - 1);
+                }
             }
         }
 
@@ -62,6 +67,7 @@ public class AppStart implements ApplicationRunner {
         }
 
         log.info("开始读取用户配置文件: {}", configPath);
+        log.info("数据存储目录: {}", DataService.dataPath);
         Toml toml = new Toml().read(configFile);
         List<Map<String, Object>> maps = toml.getList("user");
         if (maps == null || maps.isEmpty()) {
