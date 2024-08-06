@@ -1,9 +1,11 @@
 package com.passwordxl.config;
 
+import cn.hutool.core.thread.ThreadUtil;
 import com.moandjiezana.toml.Toml;
 import com.passwordxl.bean.User;
 import com.passwordxl.service.DataService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -16,10 +18,18 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class AppStart implements ApplicationRunner {
+
+    @Value("${doc.deploy}")
+    private String deployDoc;
+    @Value("${doc.openSource}")
+    private String openSource;
+
     private final static String[] configPaths = {"password-xl.toml", "/data/password-xl.toml", "/password-xl.toml"};
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(ApplicationArguments args) {
+
+        log.info("欢迎使用password-xl，项目开源地址：{}", openSource);
 
         String configPath = null;
 
@@ -42,28 +52,34 @@ public class AppStart implements ApplicationRunner {
             }
         }
 
-        if (configPath == null) {
-            throw new RuntimeException("config file does not exist. Please check the official configuration description");
+        if(configPath == null) {
+            for (int i = 0; i < 10000; i++) {
+                log.info("配置不存在");
+                ThreadUtil.sleep(100000);
+            }
         }
 
+        if (configPath == null) {
+            throw new RuntimeException("配置文件不存在. 请参考官方部署说明文档：" + deployDoc);
+        }
 
         File configFile = new File(configPath);
         if (!configFile.exists()) {
-            throw new RuntimeException("config file does not exist. Please check the official configuration description");
+            throw new RuntimeException("配置文件不存在. 请参考官方部署说明文档：" + deployDoc);
         }
 
         log.info("start read config file: {}", configPath);
         Toml toml = new Toml().read(configFile);
         List<Map<String, Object>> maps = toml.getList("user");
         if (maps == null || maps.isEmpty()) {
-            throw new RuntimeException("config file is empty, please check the official configuration description");
+            throw new RuntimeException("未配置用户. 请参考官方部署说明文档：" + deployDoc);
         }
         List<User> users = maps.stream().map(this::mapToUser).toList();
 
-        log.info("config user count: {}", users.size());
+        log.info("配置用户数: {}", users.size());
         Map<String, User> userMap = users.stream().collect(Collectors.toMap(User::getUsername, user -> user));
         DataService.users.putAll(userMap);
-        log.info("service started!!!");
+        log.info("服务启动成功!!! ");
     }
 
     private User mapToUser(Map<String, Object> map) {
