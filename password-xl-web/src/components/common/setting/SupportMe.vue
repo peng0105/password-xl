@@ -1,5 +1,7 @@
 <!--支持项目-->
 <script setup lang="ts">
+import packageJson from '../../../../package.json'
+
 const donateArray = [
   {name: 'Ching', money: 10, time: '2024-07-13'},
   {name: '李春雨', money: 5, time: '2024-07-12'},
@@ -17,20 +19,30 @@ const donateArray = [
       <el-text size="large">
         <span class="iconfont icon-praise support-icon" style="color: #E6A23C;"></span>
         在项目
-        <el-link href="https://gitee.com/huanyp/password-xl" style="font-size: 16px;position: relative;top: -2px" :underline="false" target="_blank" type="primary">开源地址</el-link>
+        <el-link :href="packageJson.repository.url" style="font-size: 16px;position: relative;top: -2px"
+                 :underline="false" target="_blank" type="primary">开源地址
+        </el-link>
         中为项目点赞，增加项目的曝光度。
       </el-text>
     </li>
     <li>
       <el-text size="large">
         <span class="iconfont icon-report support-icon" style="color: #F56C6C;"></span>
-        在Gitee上 <el-link href="https://gitee.com/huanyp/password-xl/issues" style="font-size: 16px;position: relative;top: -2px" :underline="false" target="_blank" type="primary">报告您遇到的错误</el-link>，帮助我们持续改进。
+        在Github上
+        <el-link :href="packageJson.repository.url+'/issues'" style="font-size: 16px;position: relative;top: -2px"
+                 :underline="false" target="_blank" type="primary">报告您遇到的错误
+        </el-link>
+        ，帮助我们持续改进。
       </el-text>
     </li>
     <li>
       <el-text size="large">
         <span class="iconfont icon-idea support-icon" style="color: #67C23A;"></span>
-        提出您的 <el-link href="https://gitee.com/huanyp/password-xl/issues" style="font-size: 16px;position: relative;top: -2px" :underline="false" target="_blank" type="primary">建议和想法</el-link>，帮助我们更好地满足用户需求。
+        提出您的
+        <el-link :href="packageJson.repository.url+'/issues'" style="font-size: 16px;position: relative;top: -2px"
+                 :underline="false" target="_blank" type="primary">建议和想法
+        </el-link>
+        ，帮助我们更好地满足用户需求。
       </el-text>
     </li>
     <li>
@@ -46,7 +58,9 @@ const donateArray = [
         </el-text>
       </div>
       <div style="float:left;width: calc(100% - 40px);padding-left: 5px">
-        <el-text size="large">如果您认可我们的努力，请考虑给予一些经济上的支持，以帮助我们为您提供更加优质的密码管理体验。</el-text>
+        <el-text size="large">
+          如果您认可我们的努力，请考虑给予一些经济上的支持，以帮助我们为您提供更加优质的密码管理体验。
+        </el-text>
       </div>
       <div style="clear: both"></div>
     </li>

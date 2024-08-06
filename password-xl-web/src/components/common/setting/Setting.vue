@@ -10,6 +10,8 @@ import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useLoginStore} from "@/stores/LoginStore.ts";
 import {TabPaneName} from "element-plus";
 
+import packageJson from '../../../../package.json'
+
 const passwordStore = usePasswordStore()
 const settingStore = useSettingStore()
 const loginStore = useLoginStore()
@@ -110,7 +112,7 @@ const switchTab = (activeName: TabPaneName): Promise<boolean> => {
   if (authenticated.value) {
     return Promise.resolve(true);
   }
-  if (activeName === 'loginInfo' && !['local','electron'].includes(loginStore.loginType)) {
+  if (activeName === 'loginInfo' && !['local', 'electron'].includes(loginStore.loginType)) {
     console.log('设置，切换登录信息，验证密码')
     return new Promise((resolve, reject) => {
       refStore.verifyPasswordRef.getAndVerify((mainPassword: string) => passwordStore.passwordManager.verifyPassword(mainPassword)).then(() => {
@@ -235,10 +237,10 @@ watch(() => settingStore.setting.autoLogin, (newValue: boolean) => {
         console.log('自动登录设置变更 同步后')
         sessionStorage.removeItem('loginInfo')
         localStorage.removeItem('loginInfo')
-        ElNotification.success({title: '已关闭自动登录',message: '自动登录信息已清除！'})
+        ElNotification.success({title: '已关闭自动登录', message: '自动登录信息已清除！'})
         settingStore.setting.autoUnlock = false
       } else {
-        ElNotification.success({title: '已开启自动登录',message: '在您下次登录时将系统将记住登录信息！'})
+        ElNotification.success({title: '已开启自动登录', message: '在您下次登录时将系统将记住登录信息！'})
       }
     }
   })
@@ -312,7 +314,7 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
     clearTimeout(generateRuleChangeDelay)
   }
   generateRuleChangeDelay = setTimeout(() => {
-    console.log('默认密码生成规则设置变更:', newValue)
+        console.log('默认密码生成规则设置变更:', newValue)
         passwordStore.passwordManager.syncSetting()
       },
       300);
@@ -397,14 +399,19 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
                 <div>
                   <el-row>
                     <el-col :sm="{span:24}" :md="{span:10}" style="margin-bottom: 10px;text-align: center;">
-                      <el-checkbox size="small" style="margin: 5px 15px;" border label="大写" v-model="settingStore.setting.generateRule.uppercase"/>
-                      <el-checkbox size="small" style="margin: 5px 15px;" border label="小写" v-model="settingStore.setting.generateRule.lowercase"/>
-                      <el-checkbox size="small" style="margin: 5px 15px;" border label="数字" v-model="settingStore.setting.generateRule.number"/>
-                      <el-checkbox size="small" style="margin: 5px 15px;" border label="符号" v-model="settingStore.setting.generateRule.symbol"/>
+                      <el-checkbox size="small" style="margin: 5px 15px;" border label="大写"
+                                   v-model="settingStore.setting.generateRule.uppercase"/>
+                      <el-checkbox size="small" style="margin: 5px 15px;" border label="小写"
+                                   v-model="settingStore.setting.generateRule.lowercase"/>
+                      <el-checkbox size="small" style="margin: 5px 15px;" border label="数字"
+                                   v-model="settingStore.setting.generateRule.number"/>
+                      <el-checkbox size="small" style="margin: 5px 15px;" border label="符号"
+                                   v-model="settingStore.setting.generateRule.symbol"/>
                     </el-col>
                     <el-col :sm="{span:24}" :md="{span:10}" style="text-align: center">
                       <span>密码长度</span>
-                      <el-slider style="margin-top: 10px" size="small" v-model="settingStore.setting.generateRule.length" :min="4" :max="32"/>
+                      <el-slider style="margin-top: 10px" size="small"
+                                 v-model="settingStore.setting.generateRule.length" :min="4" :max="32"/>
                     </el-col>
                   </el-row>
                 </div>
@@ -457,13 +464,18 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
               </div>
               <el-divider class="function-line"/>
               <el-text type="info" tag="p" style="text-indent: 10px">
-                锁定/解锁：<el-tag type="primary" style="text-indent:0;margin-right: 10px;" size="small">Alt + L</el-tag>
-                搜索：<el-tag type="primary" style="text-indent:0;margin-right: 10px;" size="small">Ctrl + F</el-tag>
-                创建：<el-tag type="primary" style="text-indent:0;margin-right: 10px;" size="small">Alt + N</el-tag>
-                保存：<el-tag type="primary" style="text-indent:0;margin-right: 10px;" size="small">Ctrl + S</el-tag>
+                锁定/解锁：
+                <el-tag type="primary" style="text-indent:0;margin-right: 10px;" size="small">Alt + L</el-tag>
+                搜索：
+                <el-tag type="primary" style="text-indent:0;margin-right: 10px;" size="small">Ctrl + F</el-tag>
+                创建：
+                <el-tag type="primary" style="text-indent:0;margin-right: 10px;" size="small">Alt + N</el-tag>
+                保存：
+                <el-tag type="primary" style="text-indent:0;margin-right: 10px;" size="small">Ctrl + S</el-tag>
               </el-text>
             </div>
-            <el-alert show-icon :closable="false" type="info" title="若您需要更多密码显示空间，可以选择关闭标签和收藏卡片并在更多功能中使用。"></el-alert>
+            <el-alert show-icon :closable="false" type="info"
+                      title="若您需要更多密码显示空间，可以选择关闭标签和收藏卡片并在更多功能中使用。"></el-alert>
           </el-scrollbar>
         </el-tab-pane>
         <el-tab-pane>
@@ -560,7 +572,9 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">超时锁定</el-text>
-                <el-select :disabled="settingStore.setting.autoUnlock" :title="settingStore.setting.autoUnlock?'已开启自动解锁无法设置自动锁定':''" v-model="settingStore.setting.timeoutLock" size="small" style="width: 100px;">
+                <el-select :disabled="settingStore.setting.autoUnlock"
+                           :title="settingStore.setting.autoUnlock?'已开启自动解锁无法设置自动锁定':''"
+                           v-model="settingStore.setting.timeoutLock" size="small" style="width: 100px;">
                   <el-option :value="0" label="永不超时"/>
                   <el-option :value="30" label="30秒"/>
                   <el-option :value="60" label="1分钟"/>
@@ -638,17 +652,21 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">备份密码</el-text>
-                <el-button plain type="primary" @click="refStore.backupAndRecoveryRef.backup(false)" size="small">备份</el-button>
+                <el-button plain type="primary" @click="refStore.backupAndRecoveryRef.backup(false)" size="small">备份
+                </el-button>
               </div>
               <el-divider class="function-line"/>
               <el-text type="info" tag="p" style="text-indent: 10px">
-                密码备份功能可以安全的将加密后的密码文件导出，在需要时通过<el-text>恢复备份密码</el-text>功能还原。
+                密码备份功能可以安全的将加密后的密码文件导出，在需要时通过
+                <el-text>恢复备份密码</el-text>
+                功能还原。
               </el-text>
             </div>
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">恢复备份密码</el-text>
-                <el-button plain type="primary" @click="refStore.backupAndRecoveryRef.recovery" size="small">恢复</el-button>
+                <el-button plain type="primary" @click="refStore.backupAndRecoveryRef.recovery" size="small">恢复
+                </el-button>
               </div>
               <el-divider class="function-line"/>
               <el-text type="info" tag="p" style="text-indent: 10px">
@@ -659,7 +677,8 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">导出密码</el-text>
-                <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(false)" size="small">导出</el-button>
+                <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(false)" size="small">导出
+                </el-button>
               </div>
               <el-divider class="function-line"/>
               <el-text type="info" tag="p" style="text-indent: 10px">
@@ -669,7 +688,8 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">导入密码</el-text>
-                <el-button plain type="primary" @click="refStore.importExcelRef.importExcel" size="small">导入</el-button>
+                <el-button plain type="primary" @click="refStore.importExcelRef.importExcel" size="small">导入
+                </el-button>
               </div>
               <el-divider class="function-line"/>
               <el-text type="info" tag="p" style="text-indent: 10px">
@@ -679,11 +699,14 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">下载导入模板</el-text>
-                <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(true)" size="small">下载</el-button>
+                <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(true)" size="small">下载
+                </el-button>
               </div>
               <el-divider class="function-line"/>
               <el-text type="info" tag="p" style="text-indent: 10px">
-                您可在下载的Excel模板中按照要求填写您的密码列表（<el-text type="danger">密码名称为必填</el-text>），然后使用密码导入功能导入您的密码。
+                您可在下载的Excel模板中按照要求填写您的密码列表（
+                <el-text type="danger">密码名称为必填</el-text>
+                ），然后使用密码导入功能导入您的密码。
               </el-text>
             </div>
           </el-scrollbar>
@@ -704,7 +727,9 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
               <div style="margin-top: 10px">
                 <el-text tag="p" style="text-indent: 10px">
                   您的建议是我们不断进步的动力，您可以在此项目
-                  <el-link type="primary" style="position: relative;top: -2px" target="_blank" href="https://gitee.com/huanyp/password-xl/issues">开源地址</el-link>
+                  <el-link type="primary" style="position: relative;top: -2px" target="_blank"
+                           :href="packageJson.repository.url+'/issues'">开源地址
+                  </el-link>
                   中留下您遇到的问题或提出宝贵的建议。
                 </el-text>
               </div>
@@ -767,11 +792,13 @@ watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
 :deep(.el-tabs__item) {
   padding: 0 15px 0 5px;
 }
+
 .icon-setting {
   font-size: 110%;
   color: #409EFF;
   margin-right: 5px;
 }
+
 .el-alert {
   padding: 2px 10px;
   margin-top: 10px;

@@ -19,7 +19,7 @@
   "homepage": "https://password-xl.cn",
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/huanyp/password-xl"
+    "url": "https://github.com/peng0105/password-xl"
   },
   "scripts": {
     "start": "vite",

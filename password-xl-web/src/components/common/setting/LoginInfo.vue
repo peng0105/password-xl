@@ -4,6 +4,10 @@ import {copyText, getFastLoginLink} from "@/utils/global.ts";
 import {useLoginStore} from "@/stores/LoginStore.ts";
 
 const loginStore = useLoginStore()
+
+const isElectron = () => {
+  return window.env && window.env.electron
+}
 </script>
 
 <template>
@@ -51,7 +55,7 @@ const loginStore = useLoginStore()
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item label="快速登录链接">
+        <el-form-item label="快速登录链接" v-if="!isElectron()">
           <el-input :model-value="getFastLoginLink(loginStore.loginForm)" :readonly="true">
             <template #append>
               <el-button @click="copyText(getFastLoginLink(loginStore.loginForm))" class="copy-btn">
@@ -105,7 +109,7 @@ const loginStore = useLoginStore()
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item label="快速登录链接">
+        <el-form-item label="快速登录链接" v-if="!isElectron()">
           <el-input :model-value="getFastLoginLink(loginStore.loginForm)" :readonly="true">
             <template #append>
               <el-button @click="copyText(getFastLoginLink(loginStore.loginForm))" class="copy-btn">
@@ -150,7 +154,7 @@ const loginStore = useLoginStore()
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item label="快速登录链接">
+        <el-form-item label="快速登录链接" v-if="!isElectron()">
           <el-input :model-value="getFastLoginLink(loginStore.loginForm)" :readonly="true">
             <template #append>
               <el-button @click="copyText(getFastLoginLink(loginStore.loginForm))" class="copy-btn">
