@@ -1,0 +1,443 @@
+name: 发布版本
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**/package.json'
+
+jobs:
+  build-project:
+    runs-on: ubuntu-latest
+    container:
+      image: catthehacker/ubuntu:act-latest
+      volumes:
+        - ubuntu_dockercache:/opt/dockercache
+    outputs:
+      UPLOAD_URL: ${{ steps.set_output.outputs.UPLOAD_URL }}
+      REPO_VERSION: ${{ steps.set_output.outputs.REPO_VERSION }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 nvm
+        uses: dcodeIO/setup-node-nvm@v5
+        with:
+          node-version: 20.16.x
+
+      - name: 缓存 yarn 模块
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            ~/.yarn/unplugged
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: 安装 yarn
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+
+      - name: 安装依赖
+        run: yarn install
+        working-directory: ./password-xl-web
+
+      - name: 安装 Jdk21
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 版本输出
+        run: |
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
+
+      - name: 获取gradle缓存
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: 设置gradlew可执行权限
+        run: chmod +x ./password-xl-service/gradlew
+
+      - name: 获取本次发布的版本信息web
+        working-directory: ./password-xl-web
+        run: echo REPO_VERSION=$(node -p "require('./package.json').version") >> $GITHUB_ENV
+
+      - name: 获取本次发布的版本信息service
+        working-directory: ./password-xl-service
+        run: echo REPO_SERVER_VERSION=$(./gradlew -q printVersion) >> $GITHUB_ENV
+
+      - name: 编译前端项目
+        run: yarn run build
+        working-directory: ./password-xl-web
+
+      - name: 编译后端项目
+        working-directory: ./password-xl-service
+        run: ./gradlew bootJar
+
+      - name: 压缩前端编译结果
+        run: |
+          zip -r password-xl-web/dist.zip password-xl-web/dist
+          tar -zcvf password-xl-web/dist.tar.gz password-xl-web/dist
+
+      - name: 创建发布版本
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.REPO_VERSION }}
+          release_name: Release ${{ env.REPO_VERSION }}
+          draft: false
+          prerelease: false
+
+      - name: 上传前端Zip包
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: password-xl-web/dist.zip
+          asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.zip
+          asset_content_type: application/zip
+
+      - name: 上传前端Gzip包
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: password-xl-web/dist.tar.gz
+          asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: 上传后端Jar包
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: password-xl-service/build/libs/password-xl-service-${{ env.REPO_SERVER_VERSION }}.jar
+          asset_name: password-xl-service-${{ env.REPO_VERSION }}.jar
+          asset_content_type: application/octet-stream
+
+      - name: 更新 package.json 版本
+        run: |
+          NEW_VERSION=$(node -p "require('./package.json').version.split('.').map((v, i) => i === 2 ? parseInt(v) + 1 : v).join('.')") # 更新为新的版本号
+          jq --arg version "$NEW_VERSION" '.version = $version' ./package.json > ./package.tmp.json && mv ./package.tmp.json ./package.json
+        working-directory: ./password-xl-web
+
+      - name: 提交版本更新
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add ./password-xl-web/package.json
+          git commit -m "发布前版本号更新"
+          git push
+
+      - name: 设置发布版本上传url
+        id: set_output
+        run: |
+          echo "UPLOAD_URL=${{ steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
+          echo "REPO_VERSION=${{ env.REPO_VERSION }}" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    runs-on: windows-latest
+    needs: build-project
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 nvm
+        uses: dcodeIO/setup-node-nvm@v5
+        with:
+          node-version: 20.16.x
+
+      - name: 缓存 yarn 模块
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            ~/.yarn/unplugged
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: 安装 yarn
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+
+      - name: 安装依赖
+        run: yarn install
+        working-directory: ./password-xl-web
+
+      - name: 编译Windows应用
+        working-directory: ./password-xl-web
+        run: yarn run dist-to-windows
+
+      - name: 上传Windows应用
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Windows-${{needs.build-project.outputs.REPO_VERSION}}.exe
+          asset_name: password-xl-win-${{needs.build-project.outputs.REPO_VERSION}}.exe
+          asset_content_type: application/octet-stream
+
+  build-macos:
+    runs-on: macos-latest
+    needs: build-project
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 nvm
+        uses: dcodeIO/setup-node-nvm@v5
+        with:
+          node-version: 20.16.x
+
+      - name: 缓存 yarn 模块
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            ~/.yarn/unplugged
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: 安装 yarn
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+
+      - name: 安装依赖
+        run: yarn install
+        working-directory: ./password-xl-web
+
+      - name: 编译mac应用程序
+        working-directory: ./password-xl-web
+        run: yarn run dist-to-mac
+
+      - name: 显示编译后的文件
+        run: ls -la password-xl-web/build/
+
+      - name: 上传mac应用程序
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Mac-${{needs.build-project.outputs.REPO_VERSION}}.dmg
+          asset_name: password-xl-mac-${{needs.build-project.outputs.REPO_VERSION}}.dmg
+          asset_content_type: application/octet-stream
+
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: build-project
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 nvm
+        uses: dcodeIO/setup-node-nvm@v5
+        with:
+          node-version: 20.16.x
+
+      - name: 缓存 yarn 模块
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            ~/.yarn/unplugged
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: 安装 yarn
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+
+      - name: 安装依赖
+        run: yarn install
+        working-directory: ./password-xl-web
+
+      - name: 编译Linux应用程序
+        working-directory: ./password-xl-web
+        run: yarn run dist-to-linux
+
+      - name: 显示编译后的文件
+        run: ls -la password-xl-web/build/
+
+      - name: 上传Linux应用程序 AppImage
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.AppImage
+          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.AppImage
+          asset_content_type: application/gzip
+
+      - name: 上传Linux应用程序 rpm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.rpm
+          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.rpm
+          asset_content_type: application/gzip
+
+      - name: 上传Linux应用程序 snap
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
+          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.snap
+          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.snap
+          asset_content_type: application/gzip
+
+
+  build-docker-service:
+    runs-on: ubuntu-latest
+    needs: build-project
+    env:
+      DOCKER_REGISTRY: docker.io
+      REPO_NAME: password-xl-service
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Jdk21
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 版本输出
+        run: |
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
+
+      - name: 获取gradle缓存
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: 设置gradlew可执行权限
+        run: chmod +x ./password-xl-service/gradlew
+
+      - name: 编译原生镜像
+        working-directory: ./password-xl-service
+        run: ./gradlew nativeCompile
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 发布镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: password-xl-service/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{needs.build-project.outputs.REPO_VERSION}}
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
+
+  build-docker-web:
+    runs-on: ubuntu-latest
+    needs: build-project
+    container:
+      image: catthehacker/ubuntu:act-latest
+      volumes:
+        - ubuntu_dockercache:/opt/dockercache
+    env:
+      DOCKER_REGISTRY: docker.io
+      REPO_NAME: password-xl-web
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 nvm
+        uses: dcodeIO/setup-node-nvm@v5
+        with:
+          node-version: 20.16.x
+
+      - name: 缓存 yarn 模块
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            ~/.yarn/unplugged
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: 安装 yarn
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+
+      - name: 安装依赖
+        run: yarn install
+        working-directory: ./password-xl-web
+
+      - name: 编译前端项目
+        run: yarn run build
+        working-directory: ./password-xl-web
+
+      - name: 安装 QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 安装 Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 发布镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: password-xl-web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{needs.build-project.outputs.REPO_VERSION}}
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest

@@ -1,0 +1,69 @@
+{
+  "compilerOptions": {
+    // 基础路径，相对于 tsconfig.json 文件所在的位置
+    "baseUrl": "./",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./types/types.ts"
+    ],
+    // 路径别名配置，@/* 映射到 ./src/*，用于简化模块导入路径
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    // 启用项目引用支持，允许跨项目进行增量构建
+    "composite": true,
+    // TypeScript 构建信息文件的输出路径
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    // 编译目标为 ECMAScript 2022
+    "target": "ES2022",
+    // 使用 ECMAScript 类字段定义语法
+    "useDefineForClassFields": true,
+    // 模块输出规范为 ECMAScript 下一代
+    "module": "ESNext",
+    // 编译时需要包含的标准库文件
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    // 跳过引用文件的类型检查，可加快编译速度
+    "skipLibCheck": true,
+    // 模块解析策略设为 bundler，用于打包工具处理模块路径解析
+    "moduleResolution": "bundler",
+    // 允许导入 TypeScript 扩展名的文件（.ts 和 .tsx）
+    "allowImportingTsExtensions": true,
+    // 启用 JSON 模块的解析，允许导入 JSON 文件作为模块
+    "resolveJsonModule": true,
+    // 将每个文件视为独立的模块，禁止文件间的隐式依赖
+    "isolatedModules": true,
+    // 强制启用模块检测，确保模块的类型和依赖分析正确
+    "moduleDetection": "force",
+    // 禁止输出编译后的文件，适用于只进行类型检查的场景
+    "noEmit": true,
+    // 保留 JSX 语法原始形式，不进行转换
+    "jsx": "preserve",
+    // 启用所有严格类型检查选项，确保代码质量和类型安全
+    "strict": true,
+    // 禁止未使用的局部变量
+    "noUnusedLocals": true,
+    // 禁止未使用的函数参数
+    "noUnusedParameters": true,
+    // 禁止在 switch 语句中落空
+    "noFallthroughCasesInSwitch": true,
+    "allowSyntheticDefaultImports": true
+  },
+  // 包含的 TypeScript 文件
+  "include": [
+    "vite.config.ts",
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue"
+  ],
+  // 排除编译的目录，避免处理第三方模块
+  "exclude": [
+    "node_modules"
+  ]
+}

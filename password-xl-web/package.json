@@ -1,0 +1,63 @@
+{
+  "name": "password-xl",
+  "private": true,
+  "version": "1.2.1",
+  "type": "module",
+  "main": "electron/main.mjs",
+  "author": {
+    "name": "黄艳鹏",
+    "email": "hyp0105@qq.com"
+  },
+  "contributors": [
+    {
+      "name": "黄艳鹏",
+      "email": "hyp0105@qq.com",
+      "weChat": "huangyanpeng1864"
+    }
+  ],
+  "description": "开源免费的密码管理项目",
+  "homepage": "https://password-xl.cn",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/peng0105/password-xl"
+  },
+  "scripts": {
+    "start": "vite",
+    "preview": "vite preview",
+    "build": "vue-tsc -b && vite build",
+    "dist-to-windows": "vue-tsc -b && vite build && electron-builder build --win --config electron/electron-builder.json5",
+    "dist-to-mac": "vue-tsc -b && vite build && electron-builder build --mac --config electron/electron-builder.json5",
+    "dist-to-linux": "vue-tsc -b && vite build && electron-builder build --linux --config electron/electron-builder.json5",
+    "start-exe": "electron ."
+  },
+  "dependencies": {
+    "ali-oss": "^6.20.0",
+    "axios": "^1.7.2",
+    "buffer": "^6.0.3",
+    "cos-js-sdk-v5": "^1.8.1",
+    "crypto-js": "^4.2.0",
+    "element-plus": "^2.7.6",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.29",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/ali-oss": "^6.16.11",
+    "@types/crypto-js": "^4.2.2",
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^20.14.8",
+    "@vitejs/plugin-legacy": "^5.4.1",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "electron": "^31.2.1",
+    "electron-builder": "^24.13.3",
+    "terser": "^5.31.1",
+    "typescript": "^5.2.2",
+    "unplugin-auto-import": "^0.18.2",
+    "unplugin-icons": "^0.19.0",
+    "unplugin-vue-components": "^0.27.1",
+    "vite": "^5.3.1",
+    "vue-tsc": "^2.0.21"
+  }
+}

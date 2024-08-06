@@ -1,0 +1,50 @@
+{
+  "appId": "password-XL",
+  "productName": "password-XL",
+  // 阻止自动发布构建到仓库
+  "publish": null,
+  "directories": {
+    "output": "build"
+  },
+  "files": [
+    "dist",
+    "dist-electron",
+    "electron",
+  ],
+  "win": {
+    "icon": "dist/icons/1024x1024.png",
+    "artifactName": "${productName}-Windows-${version}.${ext}",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      },
+      "zip"
+    ]
+  },
+  "mac": {
+    "target": [
+      {
+        "target": "dmg"
+      }
+    ],
+    "artifactName": "${productName}-Mac-${version}.${ext}"
+  },
+  "linux": {
+    "icon": "dist/icons/1024x1024.png",
+    "artifactName": "${productName}-Linux-${version}.${ext}",
+    "target": [
+      "AppImage",
+      "snap",
+      "rpm"
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}
