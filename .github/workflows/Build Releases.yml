@@ -374,8 +374,8 @@ jobs:
           file: password-xl-service/Dockerfile
           push: true
           tags: |
-            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
             ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{needs.build-project.outputs.REPO_VERSION}}
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
 
   build-docker-web:
     runs-on: ubuntu-latest
@@ -439,5 +439,5 @@ jobs:
           file: password-xl-web/Dockerfile
           push: true
           tags: |
-            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
             ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{needs.build-project.outputs.REPO_VERSION}}
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:latest
