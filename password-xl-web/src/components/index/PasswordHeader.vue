@@ -318,8 +318,8 @@ const openRecycleBin = () => {
 }
 
 :deep(.search-input) {
-  max-width: 350px;
-  min-width: 220px;
+  max-width: 360px;
+  min-width: 150px;
   width: 22vw;
 }
 

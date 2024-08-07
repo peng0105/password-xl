@@ -274,6 +274,7 @@ const cardStyle = (password: Password) => {
   float: left;
   margin-left: 15px;
   font-size: 15px;
+  word-break: break-all;
 }
 
 .copy-username {
