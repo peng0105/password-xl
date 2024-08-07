@@ -60,7 +60,7 @@ public class PasswordXLService {
         String contentName = putContentParam.getKey();
         String content = putContentParam.getContent();
         log.info("put username: {} key: {} size: {}", username, contentName, content.length());
-        File file = new File(DataService.dataPath + "/" + username + "/" + contentName);
+        File file = new File(DataService.workPath + "/password-xl-data/" + username + "/" + contentName);
         FileUtil.writeUtf8String(content, file);
         log.info("put succeed username: {} key: {}", username, contentName);
         JSONObject result = new JSONObject();
@@ -78,7 +78,7 @@ public class PasswordXLService {
         String username = UserContent.getUser().getUsername();
         String contentName = getContentParam.getKey();
         log.info("get username: {} key: {}", username, contentName);
-        File file = new File(DataService.dataPath + "/" + username + "/" + contentName);
+        File file = new File(DataService.workPath + "/password-xl-data/" + username + "/" + contentName);
         if (!file.exists()) {
             log.info("get not found username: {} key: {}", username, contentName);
             return RestResult.genErrorResult(HttpStatus.HTTP_NOT_FOUND, "内容不存在");
@@ -102,7 +102,7 @@ public class PasswordXLService {
         String username = UserContent.getUser().getUsername();
         String contentName = deleteContentParam.getKey();
         log.info("delete username: {} key: {}", username, contentName);
-        File file = new File(DataService.dataPath + "/" + username + "/" + contentName);
+        File file = new File(DataService.workPath + "/password-xl-data/" + username + "/" + contentName);
         if (!file.exists()) {
             log.info("delete file not exist username: {} key: {}", username, contentName);
             return RestResult.genSuccessResult();
@@ -111,7 +111,7 @@ public class PasswordXLService {
         if (!delete) {
             return RestResult.genErrorResult(HttpStatus.HTTP_INTERNAL_ERROR, "删除失败");
         }
-        File fileDir = new File(DataService.dataPath + "/" + username);
+        File fileDir = new File(DataService.workPath + "/password-xl-data/" + username);
         File[] files = fileDir.listFiles();
         if (files != null && files.length == 0) {
             boolean deleteResult = fileDir.delete();
@@ -132,7 +132,7 @@ public class PasswordXLService {
         String username = UserContent.getUser().getUsername();
         String contentName = getContentParam.getKey();
         log.info("getEtag username: {} key: {}", username, contentName);
-        File file = new File(DataService.dataPath + "/" + username + "/" + contentName);
+        File file = new File(DataService.workPath + "/password-xl-data/" + username + "/" + contentName);
         if (!file.exists()) {
             return RestResult.genSuccessResult();
         }

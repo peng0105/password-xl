@@ -1,6 +1,5 @@
 package com.passwordxl.config;
 
-import cn.hutool.core.thread.ThreadUtil;
 import com.moandjiezana.toml.Toml;
 import com.passwordxl.bean.User;
 import com.passwordxl.service.DataService;
@@ -24,50 +23,41 @@ public class AppStart implements ApplicationRunner {
     @Value("${doc.openSource}")
     private String openSource;
 
-    private final static String[] configPaths = {"password-xl.toml", "/data/password-xl.toml", "/password-xl.toml"};
+    private final static String[] configPaths = {"password-xl.toml", "/data/password-xl.toml", "/password-xl.toml", "/password-xl-service/password-xl.toml"};
 
     @Override
     public void run(ApplicationArguments args) {
 
         log.info("欢迎使用password-xl，项目开源地址：{}", openSource);
 
-        String configPath = null;
-
         String[] nonOptionArgs = args.getSourceArgs();
         for (String arg : nonOptionArgs) {
             String[] configParams = arg.split("=");
-            if (configParams[0].equals("--config") && configParams.length > 1 && configParams[1].endsWith(".toml")) {
-                configPath = configParams[1];
-            }
-            if (configParams[0].equals("--data") && configParams.length > 1) {
-                DataService.dataPath = configParams[1];
-                if (DataService.dataPath.endsWith("/")) {
-                    DataService.dataPath = DataService.dataPath.substring(0, DataService.dataPath.length() - 1);
+            if (configParams[0].equals("--work-path") && configParams.length > 1) {
+                DataService.workPath = configParams[1];
+                if (DataService.workPath.endsWith("/")) {
+                    DataService.workPath = DataService.workPath.substring(0, DataService.workPath.length() - 1);
                 }
             }
         }
 
-        if (configPath == null) {
+        String configPath = DataService.workPath + "/password-xl.toml";
+        File configFile = new File(configPath);
+        if (!configFile.exists()) {
             for (String path : configPaths) {
-                File file = new File(path);
-                if (file.exists()) {
-                    configPath = file.getPath();
+                configFile = new File(path);
+                if (configFile.exists()) {
                     break;
                 }
             }
         }
 
-        if (configPath == null) {
-            throw new RuntimeException("配置文件不存在. 请参考官方部署说明文档：" + deployDoc);
-        }
-
-        File configFile = new File(configPath);
-        if (!configFile.exists()) {
+        if (configFile.exists()) {
             throw new RuntimeException("配置文件不存在. 请参考官方部署说明文档：" + deployDoc);
         }
 
         log.info("开始读取用户配置文件: {}", configPath);
-        log.info("数据存储目录: {}", DataService.dataPath);
+        log.info("数据存储目录: {}", DataService.workPath);
         Toml toml = new Toml().read(configFile);
         List<Map<String, Object>> maps = toml.getList("user");
         if (maps == null || maps.isEmpty()) {
