@@ -52,7 +52,7 @@ public class AppStart implements ApplicationRunner {
             }
         }
 
-        if (configFile.exists()) {
+        if (!configFile.exists()) {
             throw new RuntimeException("配置文件不存在. 请参考官方部署说明文档：" + deployDoc);
         }
 
