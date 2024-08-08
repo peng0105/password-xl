@@ -4,8 +4,20 @@ import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
 import {ElementPlusResolver} from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
+import legacy from "@vitejs/plugin-legacy";
 
 const srcPath = path.resolve(__dirname, './src')
+
+const noAttrCrossorigin = () => {
+    return {
+        name: "no-attribute-crossorigin",
+        enforce:'post',
+        apply: 'build',
+        transformIndexHtml(html: string) {
+            return html.replace(/ crossorigin /g, ' ');
+        }
+    }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -35,6 +47,12 @@ export default defineConfig({
 
             dts: path.resolve(srcPath, 'components.d.ts'),
         }),
+        // 本地index.html直接打开需要使用的插件
+        legacy({
+            renderModernChunks: false,
+            targets: ['ie>=11'],
+        }),
+        noAttrCrossorigin()
     ],
     build: {
         chunkSizeWarningLimit: 1500,
@@ -56,7 +74,7 @@ export default defineConfig({
         }
     },
     // 屏蔽控制台
-    // esbuild: {
-    //     drop: ['console', 'debugger'],
-    // }
+    esbuild: {
+        drop: ['console', 'debugger'],
+    }
 })
