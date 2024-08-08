@@ -97,7 +97,7 @@ const tableRowStyle = (data: { row: any, rowIndex: number }): CSSProperties => {
     <el-table
         :data="passwordStore.visPasswordArray"
         ref="passwordTableRef"
-        height="calc(100vh - 120px)"
+          height="calc(100vh - 120px)"
         style="background-color: rgba(0,0,0,0);"
         :header-row-style="{'background-color':'rgba(0,0,0,0)'}"
         :header-cell-style="{'background-color':'rgba(0,0,0,0)'}"

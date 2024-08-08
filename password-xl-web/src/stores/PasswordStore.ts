@@ -90,7 +90,7 @@ export const usePasswordStore = defineStore('passwordStore', {
             return array
         },
         // 收藏的密码列表
-        favoritePasswordArray(): Array<Password>{
+        favoritePasswordArray(): Array<Password> {
             console.log('获取收藏的密码列表')
             let array = this.passwordArray.filter(p => p.favorite)
                 .sort((a: Password, b: Password) => {
@@ -195,21 +195,18 @@ export const usePasswordStore = defineStore('passwordStore', {
                 let isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)")
                 useDark().value = isDarkTheme.matches
                 this.topicMode = isDarkTheme.matches ? TopicMode.DARK : TopicMode.LIGHT
-                if (window.env && window.env.electron) {
-                    window.electronAPI.setTopic('system');
-                }
+                window.electronAPI?.setTopic('system');
+                window.androidAPI?.setTopic('system');
             } else if (topic === TopicMode.DARK) {
                 useDark().value = true
                 this.topicMode = TopicMode.DARK
-                if (window.env && window.env.electron) {
-                    window.electronAPI.setTopic(this.topicMode);
-                }
+                window.electronAPI?.setTopic(this.topicMode);
+                window.androidAPI?.setTopic(this.topicMode);
             } else if (topic === TopicMode.LIGHT) {
                 useDark().value = false
                 this.topicMode = TopicMode.LIGHT
-                if (window.env && window.env.electron) {
-                    window.electronAPI.setTopic(this.topicMode);
-                }
+                window.electronAPI?.setTopic(this.topicMode);
+                window.androidAPI?.setTopic(this.topicMode);
             }
         },
         // 全局加载

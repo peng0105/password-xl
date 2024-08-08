@@ -75,7 +75,7 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
   </div>
 
   <!-- 手机版 -->
-  <div v-else style="backdrop-filter: blur(50px);height: calc(100vh - 70px)"
+  <div v-else style="backdrop-filter: blur(50px);height: 100vh"
        :style="{'background-color': passwordStore.isDark?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'}">
     <!-- 密码表头 -->
     <PasswordHeader></PasswordHeader>

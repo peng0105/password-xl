@@ -93,7 +93,7 @@ const cardStyle = (password: Password) => {
 <template>
   <EmptyList v-if="!passwordStore.visPasswordArray.length"></EmptyList>
   <el-scrollbar
-      height="calc(100vh - 90px)"
+      height="calc(100vh - 85px)"
       v-if="passwordStore.visPasswordArray.length">
     <div
         style="display: grid;padding: 6px;"
@@ -138,7 +138,7 @@ const cardStyle = (password: Password) => {
             </li>
             <li v-if="password.address">
               <el-text class="password-field-name">地址:</el-text>
-              <el-text class="password-field-value" style="max-width: 20vw">
+              <el-text class="password-field-value">
                 <el-link v-if="isUrl(password.address)" type="primary" :href="password.address" target="_blank">
                   {{ password.address }}
                 </el-link>

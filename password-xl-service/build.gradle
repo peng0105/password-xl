@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.3.1'
-    id 'io.spring.dependency-management' version '1.1.5'
+    id 'org.springframework.boot' version '3.3.2'
+    id 'io.spring.dependency-management' version '1.1.6'
     id 'org.graalvm.buildtools.native' version '0.10.2'
 }
 
@@ -26,15 +26,18 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'cn.hutool:hutool-all:5.8.27'
+    implementation 'cn.hutool:hutool-all:5.8.29'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    implementation 'com.alibaba.fastjson2:fastjson2:2.0.51'
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.52'
     implementation 'io.hotmoka:toml4j:0.7.3'
 }
 
 tasks.bootBuildImage {
     imageName = "${project.name}"
+    docker {
+        host = "////./pipe/dockerDesktopLinuxEngine"
+    }
 }
 
 tasks.register('printVersion') {

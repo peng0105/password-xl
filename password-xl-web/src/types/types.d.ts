@@ -31,16 +31,17 @@ interface FileSystemWritableFileStream extends WritableStream {
     close(): Promise<void>;
 }
 
-export interface Env {
-    electron: true
-}
-
 declare global {
     interface Window {
-        env: Env;
         showOpenFilePicker: (options?: FilePickerOptions) => Promise<FileHandle[]>;
         showSaveFilePicker: (options?: SaveFilePickerOptions) => Promise<FileHandle>;
         electronAPI: {
+            getFile(fileName: string): Promise<string>;
+            uploadFile(fileName: string, content: string): Promise<RespData>;
+            deleteFile(fileName: string): Promise<RespData>;
+            setTopic(topic: string): void;
+        }
+        androidAPI: {
             getFile(fileName: string): Promise<string>;
             uploadFile(fileName: string, content: string): Promise<RespData>;
             deleteFile(fileName: string): Promise<RespData>;

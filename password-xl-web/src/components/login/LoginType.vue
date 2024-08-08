@@ -1,18 +1,29 @@
 <!--登录类型选择组件-->
 <script setup lang="ts">
 import ElectronLoginForm from "@/components/login/ElectronLoginForm.vue";
+import AndroidLoginForm from "@/components/login/AndroidLoginForm.vue";
 
 const electronLoginFormRef = ref()
+const androidLoginFormRef = ref()
 const emits = defineEmits(['loginTypeChange'])
 
 const isElectron = () => {
-  return window.env && window.env.electron
+  return !!window.electronAPI
+}
+const isAndroid = () => {
+  return !!window.androidAPI
 }
 
 const electronStore = () => {
   console.log('使用本地存储electron')
-  emits('loginTypeChange','electrons')
+  emits('loginTypeChange','electron')
   electronLoginFormRef.value.useLocalLogin()
+}
+
+const androidStore = () => {
+  console.log('使用本地存储android')
+  emits('loginTypeChange','android')
+  androidLoginFormRef.value.useLocalLogin()
 }
 
 </script>
@@ -45,7 +56,13 @@ const electronStore = () => {
         </div>
       </el-col>
       <el-col :span="12" v-if="isElectron()">
-        <div class="login-type-item electron" @click="electronStore">
+        <div class="login-type-item local" @click="electronStore">
+          <img alt="" src="../../assets/images/login/local.png">
+          <div><el-text>本地存储</el-text></div>
+        </div>
+      </el-col>
+      <el-col :span="12" v-if="isAndroid()">
+        <div class="login-type-item local" @click="androidStore">
           <img alt="" src="../../assets/images/login/local.png">
           <div><el-text>本地存储</el-text></div>
         </div>
@@ -60,6 +77,7 @@ const electronStore = () => {
       </el-col>
     </el-row>
     <ElectronLoginForm ref="electronLoginFormRef"></ElectronLoginForm>
+    <AndroidLoginForm ref="androidLoginFormRef"></AndroidLoginForm>
   </div>
 </template>
 
@@ -137,12 +155,5 @@ const electronStore = () => {
   background: rgba(40, 193, 39, 0.4);
   box-shadow: 0 0 10px #bbb;
 }
-.login-type-item.electron {
-  background: rgba(40, 193, 39, 0.3);
-}
 
-.login-type-item.electron:hover {
-  background: rgba(40, 193, 39, 0.4);
-  box-shadow: 0 0 10px #bbb;
-}
 </style>

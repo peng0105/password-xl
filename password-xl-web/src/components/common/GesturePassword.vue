@@ -46,9 +46,9 @@ const config = {
   // 每行/每列手势点数量
   pointCellSize: 3,
   // 手势点在其所在区域的占比
-  cellPointRadio: 0.3,
+  cellPointRadio: 0.33,
   // 手势点颜色
-  gesturePointColor: '#d5d5d5',
+  gesturePointColor: '#cacaca',
   // 手势点错误时的颜色
   gesturePointErrorColor: '#F56C6C',
   // 圆心占比
@@ -289,7 +289,7 @@ const mousemove = (e: MouseEvent) => {
 
 // 鼠标抬起
 const mouseup = () => {
-  if(!pressed.value) return
+  if (!pressed.value) return
   pressed.value = false
   hoverPoint.value = null
   canvasUp()
@@ -297,7 +297,7 @@ const mouseup = () => {
 
 // 鼠标离开
 const mouseleave = () => {
-  if(!pressed.value) return
+  if (!pressed.value) return
   pressed.value = false
   hoverPoint.value = null
   canvasUp()
@@ -330,10 +330,21 @@ const touchmove = (e: TouchEvent) => {
 
 // 手指抬起
 const touchend = () => {
-  if(!pressed.value) return
+  if (!pressed.value) return
   pressed.value = false
   hoverPoint.value = null
   canvasUp()
+}
+
+function createHDCanvas(canvas: any, w: number, h: number) {
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = w * ratio; // 实际渲染像素
+  canvas.height = h * ratio; // 实际渲染像素
+  canvas.style.width = `${w}px`; // 控制显示大小
+  canvas.style.height = `${h}px`; // 控制显示大小
+  const ctx = canvas.getContext('2d')
+  ctx.scale(ratio, ratio)
+  return ctx;
 }
 
 // 初始化画板
@@ -344,7 +355,8 @@ const initCanvas = () => {
   console.log('画板大小：', size)
   canvasRef.value.width = size
   canvasRef.value.height = size
-  ctx = canvasRef.value.getContext('2d') as CanvasRenderingContext2D
+
+  ctx =  createHDCanvas(canvasRef.value, size, size) as CanvasRenderingContext2D
 
   let incrId = 0
   allPointArray.length = 0

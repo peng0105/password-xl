@@ -12,7 +12,7 @@ const loginStep = ref(1)
 const loginTypeChange = (type: string) => {
   console.log('登录，选择了登录方式：', type)
   loginStore.loginType = type;
-  if (type === 'electron') {
+  if (type === 'electron' || type === 'android') {
     return
   }
 

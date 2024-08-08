@@ -8,6 +8,7 @@ import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {DatabaseForPrivate} from "@/database/DatabaseForPrivate.ts";
 import {DatabaseForElectron} from "@/database/DatabaseForElectron.ts";
+import {DatabaseForAndroid} from "@/database/DatabaseForAndroid.ts";
 
 
 export const useLoginStore = defineStore('loginStore', {
@@ -30,8 +31,10 @@ export const useLoginStore = defineStore('loginStore', {
                     database = new DatabaseForCOS()
                 } else if (loginForm.loginType === 'private') {
                     database = new DatabaseForPrivate()
-                }  else if (loginForm.loginType === 'electron') {
+                } else if (loginForm.loginType === 'electron') {
                     database = new DatabaseForElectron()
+                }  else if (loginForm.loginType === 'android') {
+                    database = new DatabaseForAndroid()
                 } else {
                     console.error('未知的登录类型，无法自动登录：', loginForm.loginType)
                     resolve(false)

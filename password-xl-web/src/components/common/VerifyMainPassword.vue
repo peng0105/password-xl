@@ -194,6 +194,7 @@ defineExpose({
 
 <template>
   <el-dialog
+      top="20vh"
       :width="['xs', 'sm'].includes(displaySize().value)?'95%':'400px'"
       v-model="visVerify"
       :close-on-click-modal="passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
