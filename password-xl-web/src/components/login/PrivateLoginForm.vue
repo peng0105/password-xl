@@ -121,7 +121,7 @@ initForm()
           <el-input v-model="form.username" placeholder="用户名" clearable></el-input>
         </el-form-item>
         <el-form-item prop="password" label="密码">
-          <el-input type="password" :show-password="showPassword()" v-model="form.password" placeholder="密码"></el-input>
+          <el-input type="password" :show-password="showPassword()" @keyup.enter.native="login(formRef)" v-model="form.password" placeholder="密码"></el-input>
         </el-form-item>
         <el-form-item >
           <el-button @click="login(formRef)" class="login-btn" plain round type="primary">
