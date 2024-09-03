@@ -127,7 +127,7 @@ initForm()
           <el-input type="password" :show-password="showPassword()" v-model="form.secretKey" placeholder="secretKey" clearable></el-input>
         </el-form-item>
         <el-form-item prop="bucket">
-          <el-input v-model="form.bucket" placeholder="bucket" clearable></el-input>
+          <el-input v-model="form.bucket" @keyup.enter.native="login(formRef)" placeholder="bucket" clearable></el-input>
         </el-form-item>
       </el-form>
       <el-button @click="login(formRef)" class="login-btn" plain round type="primary">
