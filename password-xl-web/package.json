@@ -1,7 +1,7 @@
 {
   "name": "password-xl",
   "private": true,
-  "version": "1.2.7",
+  "version": "1.2.8",
   "type": "module",
   "main": "electron/main.mjs",
   "author": {
