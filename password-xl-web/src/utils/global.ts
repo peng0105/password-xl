@@ -50,6 +50,7 @@ export async function copyText(text: string, silent: boolean = false) {
 export const searchStr = (searchText: string, value: string): boolean => {
     if (!value) return false;
 
+
     const lowerSearchText = searchText.toLowerCase();
     const lowerValue = value.toLowerCase();
 
