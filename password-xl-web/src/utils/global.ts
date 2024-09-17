@@ -3,7 +3,6 @@ import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {GenerateRule, Label, Password} from "@/types";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {encryptAES} from "@/utils/security.ts";
-import pinyin from "pinyin";
 
 // 判断字符串是否为url
 export const isUrl = (str: string) => {
@@ -51,7 +50,7 @@ export async function copyText(text: string, silent: boolean = false) {
 export const searchStr = (searchText: string, value: string): boolean => {
     if (!value) return false;
 
-    // 将搜索文本和目标文本都转换为小写
+
     const lowerSearchText = searchText.toLowerCase();
     const lowerValue = value.toLowerCase();
 
@@ -59,22 +58,7 @@ export const searchStr = (searchText: string, value: string): boolean => {
     if (lowerValue.includes(lowerSearchText)) {
         return true;
     }
-
-    // 拼音首字母搜索
-    const firstLetterPinyin = pinyin(value, {
-        style: pinyin.STYLE_FIRST_LETTER // 仅获取首字母
-    }).flat().join(''); // 拼接成字符串
-
-    if (firstLetterPinyin.includes(lowerSearchText)) {
-        return true;
-    }
-
-    // 全拼搜索
-    const fullPinyin = pinyin(value, {
-        style: pinyin.STYLE_NORMAL // 获取全拼
-    }).flat().join(''); // 拼接成字符串
-
-    return fullPinyin.includes(lowerSearchText);
+    return false;
 };
 
 // 获取密码强度

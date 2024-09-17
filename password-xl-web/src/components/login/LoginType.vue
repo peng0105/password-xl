@@ -61,7 +61,7 @@ const androidStore = () => {
           <div><el-text>本地存储</el-text></div>
         </div>
       </el-col>
-      <el-col :span="12" v-if="isAndroid()">
+      <el-col :span="12" v-else-if="isAndroid()">
         <div class="login-type-item local" @click="androidStore">
           <img alt="" src="../../assets/images/login/local.png">
           <div><el-text>本地存储</el-text></div>

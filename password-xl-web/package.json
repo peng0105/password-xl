@@ -1,7 +1,7 @@
 {
   "name": "password-xl",
   "private": true,
-  "version": "1.2.6",
+  "version": "1.2.7",
   "type": "module",
   "main": "electron/main.mjs",
   "author": {
@@ -40,8 +40,6 @@
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "pinia": "^2.1.7",
-    "pinyin": "^4.0.0-alpha.2",
-    "segmentit": "^2.0.3",
     "vue": "^3.4.29",
     "vue-router": "^4.4.0"
   },
