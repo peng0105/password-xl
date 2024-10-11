@@ -166,6 +166,9 @@ const getDefaultExpandedKeys = (): number[] => {
 }
 
 const addField = () => {
+  if(!(passwordForm.value.customFields instanceof Array)){
+    passwordForm.value.customFields = []
+  }
   passwordForm.value.customFields.push({
     key: '',
     val: '',
@@ -384,7 +387,7 @@ onBeforeUnmount(() => {
             </el-button>
           </el-row>
         </el-card>
-        <el-button v-else @click="addField()" type="primary" plain>添加自定义信息</el-button>
+        <el-button @click="addField()" style="margin-top: 10px" type="primary" plain>添加自定义信息</el-button>
       </el-form-item>
     </el-form>
     <div style="display: flex;justify-content: end">
