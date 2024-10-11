@@ -44,7 +44,7 @@ const initPasswordForm = (): Password => {
     // 是否收藏
     favorite: false,
     // 自定义字段
-    customFields: {},
+    customFields: [],
     // 标签id列表
     labels: [],
     // 密码状态 正常 or 已删除
@@ -165,6 +165,13 @@ const getDefaultExpandedKeys = (): number[] => {
   return passwordStore.labelArray.map(label => label.id);
 }
 
+const addField = () => {
+  passwordForm.value.customFields.push({
+    key: '',
+    val: '',
+  })
+}
+
 // 保存密码
 const savePassword = async (passwordFormFormRef: any) => {
   console.log('保存密码')
@@ -217,6 +224,10 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 };
 
+const delField = (index) => {
+  passwordForm.value.customFields.splice(index, 1)
+}
+
 onMounted(() => {
   document.addEventListener('keydown', handleKeyDown);
 });
@@ -247,7 +258,7 @@ onBeforeUnmount(() => {
         <el-input :ref="(el: any) => refStore.passwordFormTitleRef = el" v-model="passwordForm.title" autocomplete="new-password" clearable></el-input>
       </el-form-item>
       <el-form-item label="地址" prop="address">
-        <el-input v-model="passwordForm.address" autocomplete="new-password" clearable></el-input>
+        <el-input placeholder="https://" v-model="passwordForm.address" autocomplete="new-password" clearable></el-input>
       </el-form-item>
       <el-form-item label="用户名" prop="username">
         <el-autocomplete
@@ -361,10 +372,22 @@ onBeforeUnmount(() => {
             class="bg-color-item">
           <span class="iconfont icon-check-mark" style="font-size: 14px" v-show="passwordForm.bgColor === color"></span>
         </div>
-
+      </el-form-item>
+      <el-form-item label="自定义">
+        <el-card v-if="passwordForm.customFields && passwordForm.customFields.length > 0">
+          <el-row v-for="(field,index) in passwordForm.customFields"
+                  :style="{'margin-bottom': index !== passwordForm.customFields.length - 1?'15px':'0'}">
+            <el-input style="width: 30%" v-model="field.key" placeholder="名称"></el-input>
+            <el-input style="width: 54%;margin-left: 3%" v-model="field.val" placeholder="内容"></el-input>
+            <el-button style="width: 10%;margin-left: 3%;" @click="delField(index)" type="danger" plain>
+              <span class="iconfont icon-clean"></span>
+            </el-button>
+          </el-row>
+        </el-card>
+        <el-button v-else @click="addField()" type="primary" plain>添加自定义信息</el-button>
       </el-form-item>
     </el-form>
-    <div style="text-align: right">
+    <div style="display: flex;justify-content: end">
       <el-button @click="savePassword(refStore.passwordFormFormRef)" :ref="(el: any) => refStore.passwordFormSaveBtnRef = el" type="primary">保存</el-button>
     </div>
   </el-drawer>
@@ -446,4 +469,5 @@ onBeforeUnmount(() => {
   text-align: center;
   line-height: 25px;
 }
+
 </style>

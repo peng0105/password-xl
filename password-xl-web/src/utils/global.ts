@@ -49,8 +49,6 @@ export async function copyText(text: string, silent: boolean = false) {
 // 文本搜索
 export const searchStr = (searchText: string, value: string): boolean => {
     if (!value) return false;
-
-
     const lowerSearchText = searchText.toLowerCase();
     const lowerValue = value.toLowerCase();
 
@@ -170,8 +168,9 @@ export const sharePassword = (password: Password) => {
     }
     // 自定义字段
     if (password.customFields) {
-        for (let field in password.customFields) {
-            text += field + ': ' + password.customFields[field] + '\r\n'
+        for (let i = 0; i < password.customFields.length; i++) {
+            let field = password.customFields[i];
+            text += field.key + ': ' + field.val + '\r\n'
         }
     }
     if (password.remark) {

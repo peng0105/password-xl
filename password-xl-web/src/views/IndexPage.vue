@@ -131,7 +131,6 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
 .password-card {
   margin: 10px;
   height: calc(100vh - 24px);
-  background-color: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(50px);
 }
 

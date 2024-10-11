@@ -133,7 +133,7 @@ export class PasswordManagerImpl implements PasswordManager {
             deleteTime: 0,
             favoriteTime: 0,
             favorite: true,
-            customFields: {},
+            customFields: [],
             labels: [label.id],
             status: PasswordStatus.NORMAL,
             bgColor: ''

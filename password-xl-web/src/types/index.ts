@@ -1,6 +1,12 @@
 // 密码
 import {Ref} from "vue";
 
+// 自定义字段
+export interface CustomField {
+    key: string;
+    val: string;
+}
+
 // 密码
 export interface Password {
     id: number,
@@ -14,7 +20,7 @@ export interface Password {
     deleteTime: number,
     favoriteTime: number,
     favorite: boolean,
-    customFields: { [key: string]: string },
+    customFields: CustomField[],
     labels: Array<number>,
     status: PasswordStatus,
     bgColor: string,
@@ -77,7 +83,7 @@ export interface Setting {
     autoGeneratePassword: boolean,// 添加密码时是否默认自动一次
     generateRule: GenerateRule, // 密码生成规则
     easyConfuseChat: string,// 易混淆字符
-    customFields: Array<string>, // 默认自定义字段
+    customFields: CustomField[], // 默认自定义字段
     timeoutLock: number, // 超时锁定（秒）
     passwordDisplayMode: PasswordDisplayMode, // 密码展示方式
     autoLogin: boolean,// 记住登录信息
