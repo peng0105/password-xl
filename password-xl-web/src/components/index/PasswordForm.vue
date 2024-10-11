@@ -227,7 +227,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 };
 
-const delField = (index) => {
+const delField = (index:number) => {
   passwordForm.value.customFields.splice(index, 1)
 }
 
