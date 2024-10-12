@@ -377,15 +377,15 @@ onBeforeUnmount(() => {
         </div>
       </el-form-item>
       <el-form-item label="自定义">
-        <el-card v-if="passwordForm.customFields && passwordForm.customFields.length > 0">
-          <el-row v-for="(field,index) in passwordForm.customFields"
+        <el-card style="width: 100%" v-if="passwordForm.customFields && passwordForm.customFields.length > 0">
+          <div style="display: flex" v-for="(field,index) in passwordForm.customFields"
                   :style="{'margin-bottom': index !== passwordForm.customFields.length - 1?'15px':'0'}">
-            <el-input style="width: 30%" v-model="field.key" placeholder="名称"></el-input>
-            <el-input style="width: 54%;margin-left: 3%" v-model="field.val" placeholder="内容"></el-input>
-            <el-button style="width: 10%;margin-left: 3%;" @click="delField(index)" type="danger" plain>
+            <el-input style="margin-right: 10px;flex: 1" v-model="field.key" placeholder="名称"></el-input>
+            <el-input style="margin-right: 10px;flex: 2" v-model="field.val" placeholder="内容"></el-input>
+            <el-button title="删除" @click="delField(index)" type="danger" plain>
               <span class="iconfont icon-clean"></span>
             </el-button>
-          </el-row>
+          </div>
         </el-card>
         <el-button @click="addField()" style="margin-top: 10px" type="primary" plain>添加自定义信息</el-button>
       </el-form-item>
