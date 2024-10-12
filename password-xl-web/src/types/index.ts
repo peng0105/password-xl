@@ -344,6 +344,8 @@ export interface LoginStore {
     loginType: string,
     // 登陆中
     logging: boolean,
+    // 登陆提示文本
+    loggingText: string,
     // 登录表单
     loginForm: any,
 }

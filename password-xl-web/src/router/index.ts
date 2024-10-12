@@ -18,6 +18,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     console.log('路由变化：', from.path, to.path)
     if (to.path === "/login" || to.path === "/test") {
+        useLoginStore().logging = false
         next()
         return
     }

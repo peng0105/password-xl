@@ -64,7 +64,7 @@ initForm()
                     <TextLine class="select-type-tip" text="请选择登录方式"></TextLine>
                     <LoginType @loginTypeChange="loginTypeChange"></LoginType>
                   </div>
-                  <div v-else class="sliding-element" v-loading="loginStore.logging" element-loading-text="正在登录...">
+                  <div v-else class="sliding-element" v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText">
                     <div style="padding: 8px">
                       <el-link v-if="loginStep === 2" @click="loginStep = 1" type="primary" :underline="false">
                         <span class="iconfont icon-back login-back"></span>返回
@@ -100,7 +100,7 @@ initForm()
             <TextLine style="margin-top: 20px;margin-bottom: 0" text="请选择登录方式"></TextLine>
             <LoginType @loginTypeChange="loginTypeChange"></LoginType>
           </div>
-          <div class="login-form-card" v-else v-loading="loginStore.logging" element-loading-text="正在登录...">
+          <div class="login-form-card" v-else v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText">
             <el-row style="margin-top: 20px">
               <el-col :span="22" :offset="1">
                 <OSSLoginForm v-if="loginStore.loginType === 'oss'"></OSSLoginForm>
