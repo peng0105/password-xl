@@ -57,8 +57,8 @@ const login = async (formRef: any) => {
       // 初始化密码管理器
       console.log('cos 登录 初始化密码管理器')
       passwordStore.passwordManager.login(database).then((resp: RespData) => {
-        loginStore.logging = false
         if (!resp.status) {
+          loginStore.logging = false
           console.log('cos 登录 登录失败: ', resp)
           ElNotification.error({title: '登录失败', message: resp.message})
           return

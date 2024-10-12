@@ -16,6 +16,7 @@ export const useLoginStore = defineStore('loginStore', {
         return {
             loginType: '',
             logging: false,
+            loggingText: '正在登录...',
             loginForm: null
         }
     },
