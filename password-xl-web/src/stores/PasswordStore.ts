@@ -128,9 +128,14 @@ export const usePasswordStore = defineStore('passwordStore', {
                         password.address,
                         password.username,
                         password.password,
-                        password.remark,
-                        ...Object.entries(password.customFields).flat()
+                        password.remark
                     ].filter(Boolean);
+                    if (password.customFields) {
+                        for (let i = 0; i < password.customFields.length; i++) {
+                            searchFields.push(password.customFields[i].key);
+                            searchFields.push(password.customFields[i].val);
+                        }
+                    }
                     for (const field of searchFields) {
                         if (searchStr(this.filterCondition.searchText.trim(), field)) {
                             textSearchResult = true

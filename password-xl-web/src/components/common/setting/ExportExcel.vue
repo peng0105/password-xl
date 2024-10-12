@@ -8,7 +8,7 @@ import {useRefStore} from "@/stores/RefStore.ts";
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
 
-const headers = ['名称', '地址', '用户名', '密码', '标签', '备注', '创建时间', '收藏'];
+const headers = ['名称', '地址', '用户名', '密码', '标签', '备注', '创建时间', '收藏', '自定义信息'];
 
 // 导出密码
 const exportExcel = async (downloadTemplate: boolean) => {
@@ -40,7 +40,16 @@ const startExportExcel = async (downloadTemplate: boolean) => {
         labels = getLabelNamesByIds(item.labels)
       }
       let createTime = formatterDate(item.addTime, 'YYYY-MM-DD HH:mm:ss');
-      return [item.title, item.address, item.username, item.password, labels, item.remark, createTime, item.favorite ? '是' : '否'];
+      let customFieldStr = ''
+      if (item.customFields && item.customFields.length) {
+        for (let i = 0; i < item.customFields.length; i++) {
+          customFieldStr += item.customFields[i].key + '：' + item.customFields[i].val
+          if (i !== item.customFields.length - 1) {
+            customFieldStr += '\r\n'
+          }
+        }
+      }
+      return [item.title, item.address, item.username, item.password, labels, item.remark, createTime, item.favorite ? '是' : '否', customFieldStr];
     });
     console.log('导出密码，导出数据：', contents.length)
     // 添加数据行
@@ -78,6 +87,9 @@ const startExportExcel = async (downloadTemplate: boolean) => {
         break;
       case 8: // 收藏
         worksheet.getColumn(index).width = 10;
+        break;
+      case 9: // 自定义信息
+        worksheet.getColumn(index).width = 20;
         break;
       default:
         break;

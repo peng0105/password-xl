@@ -3,6 +3,7 @@
 import packageJson from '../../../../package.json'
 
 const donateArray = [
+  {name: 'Seeking dream', money: 10, time: '2024-10-11'},
   {name: 'Ching', money: 10, time: '2024-07-13'},
   {name: '李春雨', money: 5, time: '2024-07-12'},
   {name: '张博文', money: 50, time: '2024-07-12'},
@@ -66,20 +67,20 @@ const donateArray = [
     </li>
   </ul>
   <el-row>
-    <el-col :xs="{span:24}" :sm="{span:24}" :md="{span:9}">
-      <div style="text-align: center;position: relative;left: -10px">
+    <el-col :xs="{span:24}" :sm="{span:24}" :md="{span:9}" style="text-align: center">
+      <div style="text-align: center;">
         <h3 style="margin-top: 4px">微信赞赏码</h3>
         <div style="padding: 5px 20px;text-align: center">
-          <img alt="" style="width: 80%;border-radius: 50%" src="../../../assets/images/donate.png">
+          <img alt="" style="width: 80%;max-width: 300px;border-radius: 50%" src="../../../assets/images/donate.png">
         </div>
       </div>
     </el-col>
-    <el-col :xs="{span:24}" :sm="{span:24}" :md="{span:15}" style="text-align: center">
+    <el-col :xs="{span:24}" :sm="{span:24}" :md="{span:15}" style="text-align: center;padding-right: 10px">
       <h3 style="margin-top: 4px">捐赠者列表</h3>
       <el-table :data="donateArray" border stripe>
         <el-table-column label="名称" prop="name"></el-table-column>
-        <el-table-column label="时间" min-width="120px" prop="time"></el-table-column>
-        <el-table-column label="金额" min-width="80px" prop="money"></el-table-column>
+        <el-table-column label="时间" min-width="60px" prop="time"></el-table-column>
+        <el-table-column label="金额" min-width="40px" prop="money"></el-table-column>
       </el-table>
     </el-col>
   </el-row>

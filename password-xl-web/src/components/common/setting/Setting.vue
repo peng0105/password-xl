@@ -680,7 +680,7 @@ const isAndroid = () => {
               <div class="function-div">
                 <div class="function-header" style="margin-bottom: 5px">
                   <el-text tag="b">导出密码</el-text>
-                  <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(false)" size="small">导出
+                  <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(false)" size="small">导出 Excel
                   </el-button>
                 </div>
                 <el-divider class="function-line"/>
@@ -691,7 +691,7 @@ const isAndroid = () => {
               <div class="function-div">
                 <div class="function-header" style="margin-bottom: 5px">
                   <el-text tag="b">导入密码</el-text>
-                  <el-button plain type="primary" @click="refStore.importExcelRef.importExcel" size="small">导入
+                  <el-button plain type="primary" @click="refStore.importExcelRef.importExcel" size="small">导入 Excel
                   </el-button>
                 </div>
                 <el-divider class="function-line"/>

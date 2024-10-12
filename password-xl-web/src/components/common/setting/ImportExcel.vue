@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import ExcelJS from 'exceljs';
 import {Label, Password, PasswordStatus} from "@/types";
-import {comparePassword, displaySize, formatterDate, getPasswordLabelNames, incrId, parseDate, parseLabels} from "@/utils/global.ts";
+import {
+  comparePassword,
+  displaySize,
+  formatterDate,
+  getPasswordLabelNames,
+  incrId,
+  parseDate,
+  parseLabels
+} from "@/utils/global.ts";
 import {Buffer} from "buffer";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
@@ -110,6 +118,7 @@ const importData = async (buffer: Buffer) => {
     addTime: headers.indexOf('创建时间'),
     favorite: headers.indexOf('收藏'),
     labels: headers.indexOf('标签'),
+    customFields: headers.indexOf('自定义信息'),
   };
 
   if (!columnIndex.title) {
@@ -139,6 +148,7 @@ const importData = async (buffer: Buffer) => {
     let addTime = columnIndex.addTime !== -1 ? row.getCell(columnIndex.addTime) : null
     let labels = columnIndex.labels !== -1 ? row.getCell(columnIndex.labels) : null
     let favorite = columnIndex.favorite !== -1 ? row.getCell(columnIndex.favorite) : null
+    let customFields = columnIndex.customFields !== -1 ? row.getCell(columnIndex.customFields) : null
 
     // 收藏
     let favoriteValue = favorite && favorite.value === '是'
@@ -176,11 +186,22 @@ const importData = async (buffer: Buffer) => {
       deleteTime: 0,
       favoriteTime: favoriteValue ? Date.now() : 0,
       favorite: favoriteValue,
-      customFields: {},
+      customFields: [],
       labels: passwordLabel,
       status: PasswordStatus.NORMAL,
       bgColor: '',
     };
+
+    if (customFields && customFields.value) {
+      let fieldStr = customFields.value.split('\r\n');
+      for (let j = 0; j < fieldStr.length; j++) {
+        let field = fieldStr[j].split("：")
+        password.customFields.push({
+          key: field[0],
+          val: field.length > 1 ? field[1] : ''
+        })
+      }
+    }
 
     // 将密码对象添加到数组中
     importPasswords.value.push(password);
@@ -401,6 +422,13 @@ defineExpose({
         <template #default="scope">
           <el-tag v-for="label in getPasswordLabelNames(scope.row, importLabels)" class="table-label">
             {{ label.name }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="自定义信息" min-width="150px" prop="customFields">
+        <template #default="scope">
+          <el-tag v-for="field in scope.row.customFields" class="table-label">
+            {{ field.key }}：{{ field.val }}
           </el-tag>
         </template>
       </el-table-column>

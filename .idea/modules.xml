@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/password-xl.iml" filepath="$PROJECT_DIR$/password-xl.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/password-xl-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/password-xl-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/password-xl-web.iml" filepath="$PROJECT_DIR$/password-xl-web.iml" />
     </modules>
   </component>

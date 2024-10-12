@@ -88,6 +88,14 @@ const cardStyle = (password: Password) => {
   };
 }
 
+const getBackStype = () =>{
+  if(settingStore.setting.dynamicBackground){
+    return {'background-color':passwordStore.isDark?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.1)'}
+  }else{
+    return {'background-color':passwordStore.isDark?'rgba(0,0,0,1)':'rgba(255,255,255,1)'}
+  }
+}
+
 </script>
 
 <template>
@@ -99,7 +107,7 @@ const cardStyle = (password: Password) => {
         style="display: grid;padding: 6px;"
         :style="{'grid-template-columns':'repeat('+getRowCount()+', 1fr)'}">
       <div v-for="password in passwordStore.visPasswordArray">
-        <el-card body-style="height: 100%;" :style="{'background-color':passwordStore.isDark?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.1)'}" class="password-card">
+        <el-card body-style="height: 100%;" :style="getBackStype" class="password-card">
           <template #header>
             <div class="password-header-div" :style="cardStyle(password)">
               <div>
@@ -131,7 +139,7 @@ const cardStyle = (password: Password) => {
             && !password.password
             && !password.remark
             && !password.labels.length
-            && !(password.customFields && Object.keys(password.customFields).length > 0)">
+            && !(password.customFields && password.customFields.length > 0)">
               <el-text style="margin: 20px 0">
                 空空如也！
               </el-text>
@@ -187,11 +195,13 @@ const cardStyle = (password: Password) => {
               </el-text>
               <div class="clear"></div>
             </li>
-            <li v-for="field in password.customFields">
-              <el-text class="password-field-name">{{ field }}:</el-text>
-              <el-text class="password-field-value">{{ password.customFields[field] }}</el-text>
-              <div class="clear"></div>
-            </li>
+            <template v-for="field in password.customFields">
+              <li v-if="field.key || field.val">
+                <el-text class="password-field-name">{{ field.key }}:</el-text>
+                <el-text class="password-field-value">{{ field.val }}</el-text>
+                <div class="clear"></div>
+              </li>
+            </template>
           </ul>
           <template #footer>
             <div style="display: flex;justify-content: space-between">
@@ -227,7 +237,6 @@ const cardStyle = (password: Password) => {
   display: flex;
   flex-direction: column;
   height: calc(100% - 12px);
-  background-color: rgba(255, 255, 255, 0.6);
 }
 
 .password-strength {

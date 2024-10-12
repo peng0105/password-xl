@@ -1,6 +1,13 @@
 <!--关于项目-->
 <script setup lang="ts">
 import packageJson from '../../../../package.json'
+
+const newFunctions = ref([
+  '密码支持自定义信息',
+  '导出、导入Excel',
+  '支持Windows、Android客户端',
+  '支持停用动态壁纸',
+])
 </script>
 
 <template>
@@ -20,6 +27,14 @@ import packageJson from '../../../../package.json'
       <el-descriptions-item label="作者邮箱:">{{ packageJson.contributors[0].email }}</el-descriptions-item>
       <el-descriptions-item label="作者微信:">{{ packageJson.contributors[0].weChat }}</el-descriptions-item>
     </el-descriptions>
+  </div>
+  <div>
+    <h2 style="margin-top: 0">最近更新</h2>
+  </div>
+  <div>
+    <ol style="padding-left: 25px;line-height: 26px">
+      <li v-for="item in newFunctions">{{ item }}</li>
+    </ol>
   </div>
 </template>
 
