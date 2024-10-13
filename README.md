@@ -10,13 +10,12 @@ password-XL 是一个开源的密码管理工具，项目功能丰富、安全�
 [点击查看完整文档](https://gitee.com/huanyp/password-xl/wikis/Home)
 
 ## 部分页面截图
-![](https://github.com/user-attachments/assets/9e408250-81df-48e9-909e-8cfa71330de8)
-![](https://github.com/user-attachments/assets/c808ea34-1206-478c-8b8c-9851e5a9bfc9)
-![](https://github.com/user-attachments/assets/d6b5b4cc-e476-40b8-825c-c4a5dc1a7910)
+![](https://foruda.gitee.com/images/1728815742844619519/0a6a5db5_9560465.png)
+![](https://foruda.gitee.com/images/1728815830764345058/c59661b7_9560465.png)
+![](https://foruda.gitee.com/images/1728816316794270637/9873c693_9560465.png)
+![](https://foruda.gitee.com/images/1728815887747602398/e12ce8f0_9560465.png)
 
-<img src="https://github.com/user-attachments/assets/ce9259c0-d926-4d90-9577-ae010112dcf5" width="20%" style="border-radius: 5px;margin: 2% 1%"/>
-<img src="https://github.com/user-attachments/assets/9c893756-597b-4676-98a1-05d46ed43b4b" width="20%" style="border-radius: 5px;margin: 2% 1%"/>
-<img src="https://github.com/user-attachments/assets/ee118324-caab-4e5f-8e30-4032f6a17e3b" width="20%" style="border-radius: 5px;margin: 2% 1%"/>
-<img src="https://github.com/user-attachments/assets/0c6ee4a3-c909-41c0-9237-c66204b3a2f6" width="20%" style="border-radius: 5px;margin: 2% 1%"/>
-
-![](https://github.com/user-attachments/assets/a754bd7a-7bd2-4cbc-8b4d-7c4751857653)
+<img src="https://foruda.gitee.com/images/1728815911358927599/96f672f9_9560465.png" width="20%" style="border-radius: 5px;margin: 2% 1%"/>
+<img src="https://foruda.gitee.com/images/1728815932705407802/be2d055d_9560465.png" width="20%" style="border-radius: 5px;margin: 2% 1%"/>
+<img src="https://foruda.gitee.com/images/1728815954389900406/f6548276_9560465.png" width="20%" style="border-radius: 5px;margin: 2% 1%"/>
+<img src="https://foruda.gitee.com/images/1728816020789272465/de4f3f1b_9560465.png" width="20%" style="border-radius: 5px;margin: 2% 1%"/>
