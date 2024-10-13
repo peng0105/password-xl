@@ -7,7 +7,7 @@ password-XL 是一个开源的密码管理工具，项目功能丰富、安全�
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;官方服务地址：[https://password-xl.cn](https://password-xl.cn)
 <br/><br/>
-[点击查看完整文档](https://github.com/peng0105/password-xl/wiki)
+[点击查看完整文档](https://gitee.com/huanyp/password-xl/wikis/Home)
 
 ## 部分页面截图
 ![](https://github.com/user-attachments/assets/9e408250-81df-48e9-909e-8cfa71330de8)
