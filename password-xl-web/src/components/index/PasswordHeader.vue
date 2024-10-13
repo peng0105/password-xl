@@ -130,6 +130,12 @@ const switchTopicMode = (topicMode: TopicMode) => {
 const openRecycleBin = () => {
   refStore.recycleBinRef.openRecycleBin()
 }
+
+// 介绍页
+const goAbout = () => {
+  location.href = 'https://password-xl.cn/about'
+}
+
 </script>
 
 <template>
@@ -151,8 +157,8 @@ const openRecycleBin = () => {
           没有保存的密码
         </template>
       </el-text>
-      <div v-else class="hidden-xs-only" style="height: 32px;">
-        <img alt="" style="height: 32px;" src="../../assets/images/logo.svg">
+      <div v-else class="hidden-xs-only" style="height: 32px" @click="goAbout">
+        <img alt="" style="height: 32px;cursor: pointer" src="../../assets/images/logo.svg">
       </div>
     </div>
     <div style="display: flex;">

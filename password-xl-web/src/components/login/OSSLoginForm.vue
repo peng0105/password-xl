@@ -61,8 +61,8 @@ const login = async (formRef: any) => {
       // 初始化密码管理器
       console.log('oss 登录 初始化密码管理器')
       passwordStore.passwordManager.login(database).then((resp: RespData) => {
-        loginStore.logging = false
         if (!resp.status) {
+          loginStore.logging = false
           console.log('oss 登录 登录失败: ', resp)
           ElNotification.error({title: '登录失败', message: resp.message})
           return
@@ -139,7 +139,7 @@ initForm()
         登 录
       </el-button>
       <div class="register-guide">
-        <el-link :underline="false" target="_blank" href="https://github.com/peng0105/password-xl/wiki/%E9%98%BF%E9%87%8C%E4%BA%91OSS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95" type="primary">阿里云OSS注册指引</el-link>
+        <el-link :underline="false" target="_blank" href="https://gitee.com/huanyp/password-xl/wikis/%E9%98%BF%E9%87%8C%E4%BA%91OSS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95" type="primary">阿里云OSS注册指引</el-link>
       </div>
     </el-col>
   </el-row>

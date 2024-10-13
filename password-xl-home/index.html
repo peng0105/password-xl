@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>Password-XL</title>
+    <link rel="icon" type="image/svg+xml" href="/images/logo.ico"/>
+    <style>
+        .back-img {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -2;
+            display: none
+        }
+
+        .title {
+            font-size: 100px;
+            color: #57beff;
+            display: flex;
+            justify-content: center;
+            margin-top: 15vh;
+            padding: 0;
+            white-space: nowrap;
+        }
+
+        .logo {
+            width: 150px;
+        }
+
+        .btn {
+            font-size: 26px;
+            color: white;
+            background-color: #409EFF;
+            border-radius: 10px;
+            width: fit-content;
+            padding: 10px 50px;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background-color: rgb(121, 187, 255);
+        }
+
+        .btn:active {
+            background-color: rgb(51, 126, 204);
+        }
+
+        .links {
+            margin-top: 5vh;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .links > a {
+            text-decoration: none;
+            color: #444;
+            font-size: 18px;
+            line-height: 18px;
+            position: relative;
+            top: -2px;
+            white-space: nowrap;
+        }
+
+        .links > a:hover {
+            text-decoration: underline;
+            color: rgb(121, 187, 255);
+        }
+
+        .links > img {
+            width: 25px;
+            margin-right: 5px;
+        }
+
+        .links > span {
+            color: #888;
+            font-size: 18px;
+            margin: 0 10px;
+            line-height: 18px;
+            position: relative;
+            top: -2px;
+            font-weight: 100;
+        }
+
+        .tags {
+            display: flex;
+            justify-content: center;
+            margin-top: 10vh;
+            flex-wrap: wrap;
+            padding: 0 2vw;
+        }
+
+        .tags > div {
+            border-radius: 40px;
+            padding: 15px 30px;
+            line-height: 40px;
+            text-align: center;
+            font-size: 20px;
+            color: white;
+            margin: 12px;
+            user-select: none;
+            transition: transform 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tags > div:hover {
+            transform: scale(1.2);
+        }
+
+        .desc {
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #666;
+            font-size: 20px;
+        }
+
+        .start {
+            margin-top: 3vh;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .about {
+            position: fixed;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .about > a {
+            color: #777;
+            text-decoration: none;
+        }
+
+        .about > a:hover {
+            text-decoration: underline;
+            color: rgb(121, 187, 255);
+        }
+    </style>
+
+</head>
+<body>
+<img alt="" id="back-w" class="back-img" src="./images/background.svg">
+<img alt="" id="back-h" class="back-img" src="./images/background-m.svg">
+<div class="title">
+    <img alt="" class="logo" src="./images/logo.svg">
+    <b>Password-XL</b>
+</div>
+<div class="desc" style="">
+    现代化密码管理工具
+</div>
+<div class="start">
+    <div class="btn" onclick="location.href = 'https://password-xl.cn'">立即体验</div>
+</div>
+<div class="links">
+    <img src="images/github.png" alt="">
+    <a href="https://github.com/peng0105/password-xl" target="_blank">
+        github
+    </a>
+    <span>|</span>
+    <img src="images/gitee.png" alt="">
+    <a href="https://gitee.com/huanyp/password-xl" target="_blank">
+        gitee
+    </a>
+    <span>|</span>
+    <img src="images/github.png" alt="">
+    <a href="https://github.com/peng0105/password-xl/wiki" target="_blank" style="font-size: 16px">
+        在线文档
+    </a>
+    <span>|</span>
+    <img src="images/gitee.png" alt="">
+    <a href="https://gitee.com/huanyp/password-xl/wikis/Home" target="_blank" style="font-size: 16px">
+        在线文档
+    </a>
+</div>
+<div class="tags"></div>
+<div class="about">
+    <a target="_blank" href="https://beian.miit.gov.cn">京ICP备2023032747号-2</a>
+</div>
+</body>
+<script>
+    let tags = [
+        '安全',
+        '开源',
+        '在线使用',
+        '美观',
+        '便捷',
+        '多客户端',
+        '第三方云存储',
+        '效率',
+        '私有部署',
+        '永久免费',
+        '稳定',
+        '实用',
+        'AES加密',
+        '积极维护中',
+        '手势密码',
+        '自定义密码',
+        'windows 客户端',
+        'web 客户端',
+        '安卓客户端',
+        '苹果客户端',
+        'linux 客户端',
+        '最新技术',
+        '全面测试',
+        '导入导出',
+        '暗黑主题',
+        '密码生成器',
+        '个性化设置',
+        '密码标签',
+        '自由',
+        '密码强度提示',
+        '卡片模式',
+        '表格模式',
+        '文档超全',
+        '5000+人使用',
+    ]
+
+    let colors = ['rgba(64,158,255,0.9)', 'rgba(103,194,58,0.9)', 'rgba(230,162,60,0.9)', 'rgba(245,108,108,0.9)']
+    let html = '';
+    let colorIndex = 0;
+    tags.forEach(tag => {
+        if (colorIndex > colors.length - 1) {
+            colorIndex = 0;
+        }
+        html += '<div style="background-color: ' + colors[colorIndex++] + '">' + tag + '</div>'
+
+    })
+    document.getElementsByClassName('tags')[0].innerHTML = html;
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+    if (w < h) {
+        document.getElementById('back-h').style.display = 'block';
+    } else {
+        document.getElementById('back-w').style.display = 'block';
+    }
+</script>
+</html>
