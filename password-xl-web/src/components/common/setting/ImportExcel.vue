@@ -150,6 +150,19 @@ const importData = async (buffer: Buffer) => {
     let favorite = columnIndex.favorite !== -1 ? row.getCell(columnIndex.favorite) : null
     let customFields = columnIndex.customFields !== -1 ? row.getCell(columnIndex.customFields) : null
 
+    if (address && typeof address.value === 'object') {
+      address.value = address.value.text
+    }
+    if (username && typeof username.value === 'object') {
+      username.value = username.value.text
+    }
+    if (passwordValue && typeof passwordValue.value === 'object') {
+      passwordValue.value = passwordValue.value.text
+    }
+    if (remark && typeof remark.value === 'object') {
+      remark.value = remark.value.text
+    }
+
     // 收藏
     let favoriteValue = favorite && favorite.value === '是'
 
