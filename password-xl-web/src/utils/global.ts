@@ -49,6 +49,8 @@ export async function copyText(text: string, silent: boolean = false) {
 // 文本搜索
 export const searchStr = (searchText: string, value: string): boolean => {
     if (!value) return false;
+    if (!searchText) return false;
+
     const lowerSearchText = searchText.toLowerCase();
     const lowerValue = value.toLowerCase();
 
