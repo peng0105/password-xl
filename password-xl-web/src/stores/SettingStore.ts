@@ -42,7 +42,7 @@ export const useSettingStore = defineStore('settingStore', {
                 // 验证主密码时显示手势
                 verifyShowGesture: true,
                 // 密码展示方式
-                passwordDisplayMode: PasswordDisplayMode.TABLE,
+                passwordDisplayMode: PasswordDisplayMode.CARD,
                 // 记住登录信息
                 autoLogin: true,
                 // 记住主密码
