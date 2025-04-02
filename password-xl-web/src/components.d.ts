@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     About: typeof import('./components/common/setting/About.vue')['default']
+    AiAddPassword: typeof import('./components/index/AiAddPassword.vue')['default']
     AndroidLoginForm: typeof import('./components/login/AndroidLoginForm.vue')['default']
     BackupAndRecovery: typeof import('./components/common/setting/BackupAndRecovery.vue')['default']
     CancelAccount: typeof import('./components/common/setting/CancelAccount.vue')['default']
