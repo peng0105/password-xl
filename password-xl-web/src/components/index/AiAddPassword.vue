@@ -41,7 +41,7 @@ defineExpose({
       title="AI创建密码"
       :width="['xs', 'sm'].includes(displaySize().value)?'95%':'550px'"
       v-model="alertInfo.vis">
-    <div v-loading="alertInfo.loading">
+    <div v-loading="alertInfo.loading" element-loading-text="正在处理...">
       <el-text type="info">
         你可以直接粘贴包含账号密码信息的字符串，Ai大模型将自动解析您的密码
       </el-text>
