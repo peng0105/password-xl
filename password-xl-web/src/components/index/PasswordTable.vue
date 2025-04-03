@@ -2,7 +2,17 @@
 <script setup lang="ts">
 import {Password, Sort} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
-import {copyText, formatterDate, getBgColor, getPasswordLabelNames, getPasswordStrength, getPasswordStrengthColor, getPasswordStrengthTip, isUrl, sharePassword} from "@/utils/global.ts";
+import {
+  copyText,
+  formatterDate,
+  getBgColor,
+  getPasswordLabelNames,
+  getPasswordStrength,
+  getPasswordStrengthColor,
+  getPasswordStrengthTip,
+  isUrl,
+  sharePassword
+} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {CSSProperties} from "vue";
@@ -13,6 +23,7 @@ const settingStore = useSettingStore()
 
 // 查看密码的id
 const showPasswordId = ref(0)
+const passwordTableRef = ref()
 
 // 查看密码
 const showLongPassword = (password: any) => {
@@ -43,9 +54,9 @@ const deletePassword = (password: Password) => {
   ).then(() => {
     console.log('table 确认删除：', password.id)
     passwordStore.passwordManager.deletePassword(password.id).then(resp => {
-      if (!resp.status){
+      if (!resp.status) {
         console.log('table 删除密码异常：', resp.message)
-        ElNotification.error({title: '系统异常',message: resp.message})
+        ElNotification.error({title: '系统异常', message: resp.message})
       }
     })
   }).catch(() => {
@@ -57,7 +68,7 @@ const favoritePassword = (password: Password) => {
   if (password.favorite) {
     console.log('取消收藏密码')
     password.favorite = false
-  }else{
+  } else {
     console.log('收藏密码')
     password.favorite = true
   }
@@ -84,30 +95,59 @@ const strengthSort = (a: Password, b: Password) => {
 const tableRowStyle = (data: { row: any, rowIndex: number }): CSSProperties => {
   if (settingStore.setting.passwordColor && data.row.bgColor) {
     return {'background-color': getBgColor(data.row.bgColor, '0.1')};
-  }else{
+  } else {
     return {'background-color': 'rgba(0,0,0,0)'};
   }
 }
 
+
+const pageIndex = ref(1)
+const pageSize = ref(Math.ceil(innerHeight / 62) + 5)
+const getPagePasswordArray = () => {
+  return passwordStore.visPasswordArray.slice(0, pageIndex.value * pageSize.value)
+}
+
+const scrollLoad = () => {
+  const scrollbarWrap = passwordTableRef.value?.$el.querySelector(".el-scrollbar__wrap");
+  if (scrollbarWrap.scrollTop + scrollbarWrap.clientHeight >= scrollbarWrap.scrollHeight - 200) {
+    if (pageIndex.value * pageSize.value < passwordStore.visPasswordArray.length) {
+      pageIndex.value++
+    }
+  }
+}
+
+const listenerScroll = () => {
+  const scrollbarWrap = passwordTableRef.value.$el.querySelector(".el-scrollbar__wrap");
+  scrollbarWrap.addEventListener("scroll", () => {
+    scrollLoad()
+  });
+}
+
+onMounted(() => {
+  scrollLoad()
+  listenerScroll()
+})
+
 </script>
 
 <template>
-  <EmptyList v-if="!passwordStore.visPasswordArray.length"></EmptyList>
   <div class="password-card-table" v-if="passwordStore.visPasswordArray.length">
     <el-table
-        :data="passwordStore.visPasswordArray"
+        :data="getPagePasswordArray()"
         ref="passwordTableRef"
-          height="calc(100vh - 120px)"
+        height="calc(100vh - 120px)"
         style="background-color: rgba(0,0,0,0);"
         :header-row-style="{'background-color':'rgba(0,0,0,0)'}"
         :header-cell-style="{'background-color':'rgba(0,0,0,0)'}"
         :row-style="tableRowStyle"
         :cell-style="{'background-color':'rgba(0,0,0,0)'}"
     >
-      <el-table-column v-if="settingStore.setting.showStrength" prop="strength" width="30px" :sort-method="strengthSort" sortable>
+      <el-table-column v-if="settingStore.setting.showStrength" prop="strength" width="30px" :sort-method="strengthSort"
+                       sortable>
         <template #default="scope">
           <el-tooltip :content="getPasswordStrengthTip(scope.row.password)" placement="top">
-            <div class="password-strength" :style="{'background-color':getPasswordStrengthColor(scope.row.password)}"></div>
+            <div class="password-strength"
+                 :style="{'background-color':getPasswordStrengthColor(scope.row.password)}"></div>
           </el-tooltip>
         </template>
       </el-table-column>
@@ -115,7 +155,8 @@ const tableRowStyle = (data: { row: any, rowIndex: number }): CSSProperties => {
       <el-table-column label="地址" min-width="200px" prop="address">
         <template #default="scope">
           <div>
-            <el-link v-if="isUrl(scope.row.address)" type="primary" class="address-link" :href="scope.row.address" target="_blank">
+            <el-link v-if="isUrl(scope.row.address)" type="primary" class="address-link" :href="scope.row.address"
+                     target="_blank">
               {{ scope.row.address }}
             </el-link>
             <el-text v-else>
@@ -131,7 +172,8 @@ const tableRowStyle = (data: { row: any, rowIndex: number }): CSSProperties => {
               {{ scope.row.username }}
             </div>
             <div>
-              <span class="iconfont icon-copy password-row-icon copy-username" @click="copyText(scope.row.username)"></span>
+              <span class="iconfont icon-copy password-row-icon copy-username"
+                    @click="copyText(scope.row.username)"></span>
             </div>
           </div>
         </template>
@@ -144,15 +186,22 @@ const tableRowStyle = (data: { row: any, rowIndex: number }): CSSProperties => {
               <span v-if="showPasswordId !== scope.row.id" class="table-password-symbol">*******</span>
             </div>
             <div>
-              <span v-if="showPasswordId === scope.row.id" class="iconfont icon-hide password-row-icon" @click="showPasswordId = 0"/>
-              <span v-if="showPasswordId !== scope.row.id" class="iconfont icon-show password-row-icon" @click="showLongPassword(scope.row)"/>
+              <span v-if="showPasswordId === scope.row.id" class="iconfont icon-hide password-row-icon"
+                    @click="showPasswordId = 0"/>
+              <span v-if="showPasswordId !== scope.row.id" class="iconfont icon-show password-row-icon"
+                    @click="showLongPassword(scope.row)"/>
               <span class="iconfont icon-copy password-row-icon" @click="copyText(scope.row.password)"></span>
             </div>
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="添加时间" min-width="150px" sortable :formatter="(row: any) => formatterDate(row.addTime,'YYYY-MM-DD HH:mm')" v-if="settingStore.setting.showTimeForTable === 'addTime'" prop="addTime"></el-table-column>
-      <el-table-column label="修改时间" min-width="150px" sortable :formatter="(row: any) => formatterDate(row.updateTime,'YYYY-MM-DD HH:mm')" v-if="settingStore.setting.showTimeForTable === 'updateTime'" prop="updateTime"></el-table-column>
+      <el-table-column label="添加时间" min-width="150px" sortable
+                       :formatter="(row: any) => formatterDate(row.addTime,'YYYY-MM-DD HH:mm')"
+                       v-if="settingStore.setting.showTimeForTable === 'addTime'" prop="addTime"></el-table-column>
+      <el-table-column label="修改时间" min-width="150px" sortable
+                       :formatter="(row: any) => formatterDate(row.updateTime,'YYYY-MM-DD HH:mm')"
+                       v-if="settingStore.setting.showTimeForTable === 'updateTime'"
+                       prop="updateTime"></el-table-column>
       <el-table-column label="标签" min-width="110px" v-if="settingStore.setting.showLabelForTable" prop="labels">
         <template #default="scope">
           <el-tag v-for="label in getPasswordLabelNames(scope.row)" class="table-label">
@@ -178,7 +227,8 @@ const tableRowStyle = (data: { row: any, rowIndex: number }): CSSProperties => {
               <el-link v-if="scope.row.favorite" type="primary" @click="favoritePassword(scope.row)" :underline="false">
                 <span class="iconfont icon-favorited table-opt-icon" style="color: #FF9700"/>
               </el-link>
-              <el-link v-if="!scope.row.favorite" type="primary" @click="favoritePassword(scope.row)" :underline="false">
+              <el-link v-if="!scope.row.favorite" type="primary" @click="favoritePassword(scope.row)"
+                       :underline="false">
                 <span class="iconfont icon-collect table-opt-icon" style="color: #FF9700"/>
               </el-link>
             </el-tooltip>
@@ -192,6 +242,7 @@ const tableRowStyle = (data: { row: any, rowIndex: number }): CSSProperties => {
       </el-table-column>
     </el-table>
   </div>
+  <EmptyList v-else></EmptyList>
 </template>
 
 <style scoped>
@@ -257,9 +308,11 @@ const tableRowStyle = (data: { row: any, rowIndex: number }): CSSProperties => {
   margin: 3px;
   cursor: default;
 }
-.address-link{
+
+.address-link {
   max-width: 100%;
 }
+
 :deep(.address-link .el-link__inner) {
   min-width: 0;
   display: block;
