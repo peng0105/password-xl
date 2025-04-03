@@ -56,7 +56,7 @@ export default defineConfig({
         }
     },
     // 屏蔽控制台
-    // esbuild: {
-    //     drop: ['console', 'debugger'],
-    // }
+    esbuild: {
+        drop: ['console', 'debugger'],
+    }
 })
