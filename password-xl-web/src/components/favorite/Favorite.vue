@@ -49,7 +49,7 @@ const tagEffect = (password: Password) => {
 </script>
 
 <template>
-  <el-scrollbar height="calc(50vh - 105px)">
+  <el-scrollbar height="calc(50vh - 106px)">
     <div v-if="!passwordStore.favoritePasswordArray.length" class="empty-favorite">
       暂无收藏
     </div>
