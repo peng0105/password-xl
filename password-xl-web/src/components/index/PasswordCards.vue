@@ -2,7 +2,17 @@
 <script setup lang="ts">
 
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
-import {copyText, displaySize, formatterDate, getBgColor, getPasswordLabelNames, getPasswordStrengthColor, getPasswordStrengthTip, isUrl, sharePassword} from "@/utils/global.ts";
+import {
+  copyText,
+  displaySize,
+  formatterDate,
+  getBgColor,
+  getPasswordLabelNames,
+  getPasswordStrengthColor,
+  getPasswordStrengthTip,
+  isUrl,
+  sharePassword
+} from "@/utils/global.ts";
 import {Password} from "@/types";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
@@ -12,6 +22,7 @@ const refStore = useRefStore()
 const settingStore = useSettingStore()
 
 const showPasswordId = ref(0)
+const passwordCardScrollbar = ref()
 
 
 // 收藏密码
@@ -53,9 +64,9 @@ const deletePassword = (password: Password) => {
   ).then(() => {
     console.log('card 确认删除：', password.id)
     passwordStore.passwordManager.deletePassword(password.id).then(resp => {
-      if (!resp.status){
+      if (!resp.status) {
         console.log('card 删除密码异常：', resp.message)
-        ElNotification.error({title: '系统异常',message: resp.message})
+        ElNotification.error({title: '系统异常', message: resp.message})
       }
     })
   }).catch(() => {
@@ -67,7 +78,7 @@ const getRowCount = (): number => {
     return 1
   } else if (['sm', 'md'].includes(displaySize().value)) {
     return 2
-  } else if(['lg'].includes(displaySize().value)){
+  } else if (['lg'].includes(displaySize().value)) {
     return 3
   } else {
     return 4
@@ -88,30 +99,60 @@ const cardStyle = (password: Password) => {
   };
 }
 
-const getBackStype = () =>{
-  if(settingStore.setting.dynamicBackground){
-    return {'background-color':passwordStore.isDark?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.1)'}
-  }else{
-    return {'background-color':passwordStore.isDark?'rgba(0,0,0,1)':'rgba(255,255,255,1)'}
+const getBackStype = () => {
+  if (settingStore.setting.dynamicBackground) {
+    return {'background-color': passwordStore.isDark ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}
+  } else {
+    return {'background-color': passwordStore.isDark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,1)'}
   }
 }
+
+const pageIndex = ref(1)
+const pageSize = ref(getRowCount() * 5)
+
+const getPagePasswordArray = () => {
+  return passwordStore.visPasswordArray.slice(0, pageIndex.value * pageSize.value)
+}
+
+const scrollLoad = () => {
+  const scrollbarWrap = passwordCardScrollbar.value.wrapRef;
+  if (scrollbarWrap.scrollTop + scrollbarWrap.clientHeight >= scrollbarWrap.scrollHeight - 200) {
+    if (pageIndex.value * pageSize.value < passwordStore.visPasswordArray.length) {
+      pageIndex.value++
+    }
+  }
+}
+
+const listenerScroll = () => {
+  const scrollbarWrap = passwordCardScrollbar.value.wrapRef;
+  scrollbarWrap.addEventListener("scroll", () => {
+    scrollLoad()
+  });
+}
+
+onMounted(() => {
+  scrollLoad()
+  listenerScroll()
+})
 
 </script>
 
 <template>
-  <EmptyList v-if="!passwordStore.visPasswordArray.length"></EmptyList>
   <el-scrollbar
       height="calc(100vh - 85px)"
-      v-if="passwordStore.visPasswordArray.length">
+      ref="passwordCardScrollbar"
+  >
     <div
+        v-if="passwordStore.visPasswordArray.length"
         style="display: grid;padding: 6px;"
         :style="{'grid-template-columns':'repeat('+getRowCount()+', 1fr)'}">
-      <div v-for="password in passwordStore.visPasswordArray">
+      <div v-for="password in getPagePasswordArray()">
         <el-card body-style="height: 100%;" :style="getBackStype" class="password-card">
           <template #header>
             <div class="password-header-div" :style="cardStyle(password)">
               <div>
-                <el-tooltip v-if="settingStore.setting.showStrength && password.password" :content="getPasswordStrengthTip(password.password)" placement="top">
+                <el-tooltip v-if="settingStore.setting.showStrength && password.password"
+                            :content="getPasswordStrengthTip(password.password)" placement="top">
                   <div
                       class="password-strength"
                       :style="{'background-color':getPasswordStrengthColor(password.password)}"
@@ -162,7 +203,8 @@ const getBackStype = () =>{
                 <div class="card-username-div">
                   {{ password.username }}
                   <el-tooltip content="复制用户名" placement="top" :show-after="300" :hide-after="0">
-                  <span class="iconfont icon-copy password-row-icon copy-username" @click="copyText(password.username)"></span>
+                    <span class="iconfont icon-copy password-row-icon copy-username"
+                          @click="copyText(password.username)"></span>
                   </el-tooltip>
                 </div>
               </el-text>
@@ -173,9 +215,11 @@ const getBackStype = () =>{
               <el-text class="password-field-value">
                 <span v-if="showPasswordId === password.id" class="card-password-span">{{ password.password }}</span>
                 <span v-else style="position: relative;top: 3px;">**********</span>
-                <span v-if="showPasswordId === password.id" class="iconfont icon-hide password-card-icon" @click="showPasswordId = 0"/>
+                <span v-if="showPasswordId === password.id" class="iconfont icon-hide password-card-icon"
+                      @click="showPasswordId = 0"/>
                 <span v-else class="iconfont icon-show password-card-icon" @click="showLongPassword(password)"/>
-                <span class="iconfont icon-copy password-card-icon" style="" @click="copyText(password.password)"></span>
+                <span class="iconfont icon-copy password-card-icon" style=""
+                      @click="copyText(password.password)"></span>
               </el-text>
               <div class="clear"></div>
             </li>
@@ -205,7 +249,8 @@ const getBackStype = () =>{
           </ul>
           <template #footer>
             <div style="display: flex;justify-content: space-between">
-              <el-text type="info" style="font-size: 80%">{{ formatterDate(password.updateTime,'YYYY-MM-DD HH:mm')}}</el-text>
+              <el-text type="info" style="font-size: 80%">{{ formatterDate(password.updateTime, 'YYYY-MM-DD HH:mm') }}
+              </el-text>
               <div>
                 <el-tooltip content="删除" placement="top">
                   <el-button type="danger" plain size="small" @click="deletePassword(password)">
@@ -213,7 +258,8 @@ const getBackStype = () =>{
                   </el-button>
                 </el-tooltip>
                 <el-tooltip content="修改" placement="top">
-                  <el-button type="primary" plain size="small" @click="refStore.passwordFormRef.editPasswordForm(password)">
+                  <el-button type="primary" plain size="small"
+                             @click="refStore.passwordFormRef.editPasswordForm(password)">
                     <span class="iconfont icon-edit card-opt-icon"/>
                   </el-button>
                 </el-tooltip>
@@ -228,6 +274,7 @@ const getBackStype = () =>{
         </el-card>
       </div>
     </div>
+    <EmptyList v-else></EmptyList>
   </el-scrollbar>
 </template>
 

@@ -77,7 +77,7 @@ const fileChange = () => {
 }
 
 // 开始解析数据
-const importData = async (buffer: Buffer) => {
+const importData = async (buffer: any) => {
   console.log('导入excel 解析excel')
   const workbook = new ExcelJS.Workbook();
 

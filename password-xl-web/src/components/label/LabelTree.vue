@@ -196,7 +196,7 @@ defineExpose({
 </script>
 
 <template>
-  <el-scrollbar height="calc(50vh - 103px)">
+  <el-scrollbar height="calc(50vh - 106px)">
     <el-tree
         :data="passwordStore.labelArray"
         node-key="id"

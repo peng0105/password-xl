@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     About: typeof import('./components/common/setting/About.vue')['default']
+    AiAddPassword: typeof import('./components/index/AiAddPassword.vue')['default']
     AndroidLoginForm: typeof import('./components/login/AndroidLoginForm.vue')['default']
     BackupAndRecovery: typeof import('./components/common/setting/BackupAndRecovery.vue')['default']
     CancelAccount: typeof import('./components/common/setting/CancelAccount.vue')['default']
@@ -91,6 +92,7 @@ declare module 'vue' {
     VerifyMainPassword: typeof import('./components/common/VerifyMainPassword.vue')['default']
   }
   export interface ComponentCustomProperties {
+    vInfiniteScroll: typeof import('element-plus/es')['ElInfiniteScroll']
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

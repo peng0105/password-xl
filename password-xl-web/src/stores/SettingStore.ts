@@ -13,6 +13,8 @@ export const useSettingStore = defineStore('settingStore', {
                 easyConfuseChat: '0OoIil',
                 // 启用标签
                 showLabelCard: true,
+                // 启用AI创建
+                enableAiAdd: true,
                 // 启用收藏模块
                 showFavoriteCard: true,
                 // 启用密码回收站

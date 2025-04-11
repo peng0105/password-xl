@@ -95,6 +95,34 @@ const addPasswordForm = (title?: string) => {
   }, 300)
 }
 
+// 设置密码字段
+const setPasswordForm = (password: any) => {
+  console.log('设置密码表单：', password);
+  // 清除自动生成密码
+  if (randomInputInterval !== null) {
+    clearInterval(randomInputInterval);
+  }
+  if (randomInputTimeout !== null) {
+    clearTimeout(randomInputTimeout);
+  }
+  if (password.name) {
+    passwordForm.value.title = password.name;
+  }
+  if (password.address) {
+    passwordForm.value.address = password.address;
+  }
+  if (password.username) {
+    passwordForm.value.username = password.username;
+  }
+  if (password.password) {
+    passwordForm.value.password = password.password;
+  }
+  if (password.remark) {
+    passwordForm.value.remark = password.remark;
+  }
+  console.log('设置密码表单2：', passwordForm.value);
+};
+
 // 编辑密码
 const editPasswordForm = (password: Password) => {
   console.log('显示修改密码表单：', password.id)
@@ -117,7 +145,7 @@ const closePasswordForm = () => {
 
 // 用户名自动预测
 const usernameSearch = (queryString: string, cb: any) => {
-  console.log('用户名自动预测 queryString:',queryString)
+  console.log('用户名自动预测 queryString:', queryString)
   if (!queryString) {
     cb([])
     return
@@ -132,6 +160,7 @@ const usernameSearch = (queryString: string, cb: any) => {
 
 // 随机生成密码（有动画效果）
 let randomInputInterval: any = null;
+let randomInputTimeout: any = null;
 const generatePassword = () => {
   console.log('随机生成密码');
   playAnimate.value = false;
@@ -140,7 +169,7 @@ const generatePassword = () => {
     clearInterval(randomInputInterval);
   }
 
-  setTimeout(() => {
+  randomInputTimeout = setTimeout(() => {
     playAnimate.value = true;
     passwordForm.value.password = '';
     // 随机生成密码
@@ -166,7 +195,7 @@ const getDefaultExpandedKeys = (): number[] => {
 }
 
 const addField = () => {
-  if(!(passwordForm.value.customFields instanceof Array)){
+  if (!(passwordForm.value.customFields instanceof Array)) {
     passwordForm.value.customFields = []
   }
   passwordForm.value.customFields.push({
@@ -189,7 +218,7 @@ const savePassword = async (passwordFormFormRef: any) => {
           ElMessage.success('保存成功')
           alertVisStatus.value = false
         } else {
-          ElNotification.error({title: '系统异常',message: resp.message,})
+          ElNotification.error({title: '系统异常', message: resp.message,})
         }
       });
     } else {
@@ -200,7 +229,7 @@ const savePassword = async (passwordFormFormRef: any) => {
           ElMessage.success('修改成功')
           alertVisStatus.value = false
         } else {
-          ElNotification.error({title: '系统异常',message: resp.message})
+          ElNotification.error({title: '系统异常', message: resp.message})
         }
       });
     }
@@ -210,6 +239,7 @@ const savePassword = async (passwordFormFormRef: any) => {
 defineExpose({
   addPasswordForm,
   editPasswordForm,
+  setPasswordForm,
   closePasswordForm,
 })
 
@@ -227,7 +257,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 };
 
-const delField = (index:number) => {
+const delField = (index: number) => {
   passwordForm.value.customFields.splice(index, 1)
 }
 
@@ -249,7 +279,7 @@ onBeforeUnmount(() => {
   >
     <template #header>
       <el-text style="font-size: 16px">
-        {{formType === 'add'?'添加密码':'修改密码'}}
+        {{ formType === 'add' ? '添加密码' : '修改密码' }}
       </el-text>
     </template>
     <el-form
@@ -258,10 +288,12 @@ onBeforeUnmount(() => {
         label-width="60px"
         :ref="(el: any) => refStore.passwordFormFormRef = el">
       <el-form-item label="名称" prop="title">
-        <el-input :ref="(el: any) => refStore.passwordFormTitleRef = el" v-model="passwordForm.title" autocomplete="new-password" clearable></el-input>
+        <el-input :ref="(el: any) => refStore.passwordFormTitleRef = el" v-model="passwordForm.title"
+                  autocomplete="new-password" clearable></el-input>
       </el-form-item>
       <el-form-item label="地址" prop="address">
-        <el-input placeholder="https://" v-model="passwordForm.address" autocomplete="new-password" clearable></el-input>
+        <el-input placeholder="https://" v-model="passwordForm.address" autocomplete="new-password"
+                  clearable></el-input>
       </el-form-item>
       <el-form-item label="用户名" prop="username">
         <el-autocomplete
@@ -274,11 +306,14 @@ onBeforeUnmount(() => {
       <el-form-item label="密码">
         <el-card class="generate-card">
           <div class="generate-input-div">
-            <el-input autocomplete="new-password" class="generate-input" placeholder="输入密码或随机生成" v-model="passwordForm.password" clearable>
+            <el-input autocomplete="new-password" class="generate-input" placeholder="输入密码或随机生成"
+                      v-model="passwordForm.password" clearable>
               <template #append>
                 <el-tooltip content="随机生成" placement="top">
-                  <el-button :ref="(el: any) => refStore.passwordFormGenerateBtnRef = el" @click="generatePassword" tabindex="-1" class="refresh-password">
-                    <i class="iconfont icon-dice" :class="{'random-dice':playAnimate}" @animationend="playAnimate = false"></i>
+                  <el-button :ref="(el: any) => refStore.passwordFormGenerateBtnRef = el" @click="generatePassword"
+                             tabindex="-1" class="refresh-password">
+                    <i class="iconfont icon-dice" :class="{'random-dice':playAnimate}"
+                       @animationend="playAnimate = false"></i>
                   </el-button>
                 </el-tooltip>
               </template>
@@ -379,7 +414,7 @@ onBeforeUnmount(() => {
       <el-form-item label="自定义">
         <el-card style="width: 100%" v-if="passwordForm.customFields && passwordForm.customFields.length > 0">
           <div style="display: flex" v-for="(field,index) in passwordForm.customFields"
-                  :style="{'margin-bottom': index !== passwordForm.customFields.length - 1?'15px':'0'}">
+               :style="{'margin-bottom': index !== passwordForm.customFields.length - 1?'15px':'0'}">
             <el-input style="margin-right: 10px;flex: 1" v-model="field.key" placeholder="名称"></el-input>
             <el-input style="margin-right: 10px;flex: 2" v-model="field.val" placeholder="内容"></el-input>
             <el-button title="删除" @click="delField(index)" type="danger" plain>
@@ -391,7 +426,9 @@ onBeforeUnmount(() => {
       </el-form-item>
     </el-form>
     <div style="display: flex;justify-content: end">
-      <el-button @click="savePassword(refStore.passwordFormFormRef)" :ref="(el: any) => refStore.passwordFormSaveBtnRef = el" type="primary">保存</el-button>
+      <el-button @click="savePassword(refStore.passwordFormFormRef)"
+                 :ref="(el: any) => refStore.passwordFormSaveBtnRef = el" type="primary">保存
+      </el-button>
     </div>
   </el-drawer>
 </template>
@@ -432,7 +469,8 @@ onBeforeUnmount(() => {
     color: #ff0000;
   }
 }
-.icon-dice{
+
+.icon-dice {
   font-size: 120%;
 }
 

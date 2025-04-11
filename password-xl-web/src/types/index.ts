@@ -76,6 +76,7 @@ export interface Setting {
     showLabelForTable: boolean,// 在列表中显示标签
     showStrength: boolean,// 在列表中显示密码强度
     showLabelCard: boolean,// 启用标签模块
+    enableAiAdd: boolean,// 启用AI创建
     showFavoriteCard: boolean,// 启用收藏模块
     enableShortcutKey: boolean,// 启用快捷键
     enableRecycleBin: boolean,// 启用密码回收站
@@ -240,6 +241,8 @@ export interface RefStore {
     backupAndRecoveryRef: Ref,
     // 快速登录提示
     fastLoginRef: Ref,
+    // Ai解析密码组件
+    aiAddPasswordRef: Ref,
     // 标签抽屉
     labelDrawer: Ref,
     // 收藏抽屉
@@ -256,6 +259,8 @@ export interface RefStore {
     contextmenuRef: Ref,
     // 创建密码按钮
     createPasswordBtnRef: Ref,
+    // Ai创建密码按钮
+    aiCreatePasswordBtnRef: Ref,
     // 密码表单
     passwordFormFormRef: Ref,
     // 密码表单标题录入框
