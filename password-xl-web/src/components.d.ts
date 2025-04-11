@@ -92,7 +92,6 @@ declare module 'vue' {
     VerifyMainPassword: typeof import('./components/common/VerifyMainPassword.vue')['default']
   }
   export interface ComponentCustomProperties {
-    vInfiniteScroll: typeof import('element-plus/es')['ElInfiniteScroll']
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }
