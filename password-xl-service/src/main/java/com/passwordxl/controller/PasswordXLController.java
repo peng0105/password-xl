@@ -8,11 +8,11 @@ import com.passwordxl.bean.LoginParam;
 import com.passwordxl.bean.PutContentParam;
 import com.passwordxl.common.RestResult;
 import com.passwordxl.service.PasswordXLService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
