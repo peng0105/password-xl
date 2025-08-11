@@ -8,6 +8,11 @@ const routes = [
         path: '/login',
         name: 'Login',
         component: () => import('@/views/LoginPage.vue'),
+    },
+    {
+        path: '/note',
+        name: 'Note',
+        component: () => import('@/views/NotePage.vue'),
     }
 ]
 export default routes

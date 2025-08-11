@@ -5,7 +5,6 @@ import {createPinia} from 'pinia'
 
 import piniaReset from "./stores/piniaReset";
 
-import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/display.css'
 import '@/assets/iconfont/iconfont.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
