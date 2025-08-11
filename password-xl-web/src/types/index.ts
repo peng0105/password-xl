@@ -1,5 +1,6 @@
 // 密码
 import {Ref} from "vue";
+import {TreeNote} from "@/types/types";
 
 // 自定义字段
 export interface CustomField {
@@ -136,8 +137,8 @@ export interface PasswordManager {
     // 同步标签数据
     syncStoreData(): Promise<RespData>,
 
-    // 同步密码数据
-    syncStoreData(): Promise<RespData>,
+    // 同步笔记数据
+    syncNoteData(): Promise<RespData>,
 
     // 同步系统设置
     syncSetting(): Promise<RespData>,
@@ -150,6 +151,12 @@ export interface PasswordManager {
 
     // 注销账号
     closeAccount(): Promise<RespData>,
+
+    // 获取数据
+    getData(name: string): Promise<string>,
+
+    // 设置数据
+    setData(name: string, text: string): Promise<RespData>,
 }
 
 // 数据库
@@ -159,6 +166,18 @@ export interface Database {
     getStoreData(): Promise<string>,
 
     setStoreData(text: string): Promise<RespData>,
+
+    // 获取笔记数据
+    getTreeNoteData(): Promise<string>,
+
+    // 设置笔记数据
+    setNoteData(text: string): Promise<RespData>,
+
+    // 获取数据
+    getData(name: string): Promise<string>,
+
+    // 设置数据
+    setData(name: string, text: string): Promise<RespData>,
 
     deleteStoreData(): Promise<RespData>,
 
@@ -182,6 +201,12 @@ export enum ServiceStatus {
     LOGGED = '已登录',
     WAIT_INIT = '待初始化',
     UNLOCKED = '已解锁',
+}
+
+// NoteStore
+export interface NoteStore {
+    noteTree: Array<TreeNote>
+    currentNote: string
 }
 
 // PasswordStore
@@ -342,7 +367,11 @@ export interface StoreData {
     mainPasswordType: MainPasswordType,
 }
 
-
+// 笔记树文件存储对象
+export interface TreeNoteData {
+    noteTree: string,
+    mainPasswordType: MainPasswordType,
+}
 
 export interface LoginStore {
     // 登录类型

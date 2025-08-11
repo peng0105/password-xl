@@ -10,6 +10,7 @@ export class DatabaseForPrivate implements Database {
     private fileNames = {
         store: 'store.json',
         setting: 'setting.json',
+        note: 'note.json',
     }
 
     // 文件更新标记（用于检查文件是否在其他客户端更新过，若在其他客户端更新过则强制刷新页面）
@@ -52,6 +53,26 @@ export class DatabaseForPrivate implements Database {
     // 设置密码数据
     async setStoreData(text: string) {
         return this.uploadFile(this.fileNames.store, text)
+    }
+
+    // 获取笔记数据
+    async getTreeNoteData(): Promise<string> {
+        return this.getFile(this.fileNames.note)
+    }
+
+    // 设置笔记数据
+    async setNoteData(text: string): Promise<RespData> {
+        return this.uploadFile(this.fileNames.note, text)
+    }
+
+    // 获取数据
+    async getData(name: string): Promise<string> {
+        return this.getFile(name)
+    }
+
+    // 设置数据
+    async setData(name: string, text: string): Promise<RespData> {
+        return this.uploadFile(name, text)
     }
 
     // 删除密码数据

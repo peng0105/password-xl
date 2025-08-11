@@ -49,3 +49,17 @@ declare global {
         }
     }
 }
+
+interface TreeNote {
+    id: string
+    label: string
+    expand: boolean
+    children: TreeNote[]
+}
+
+interface NoteData {
+    id: string
+    name: string
+    content: string
+    updateTime: number
+}
