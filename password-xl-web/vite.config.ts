@@ -32,7 +32,6 @@ export default defineConfig({
             resolvers: [
                 ElementPlusResolver(),
             ],
-
             dts: path.resolve(srcPath, 'components.d.ts'),
         }),
     ],

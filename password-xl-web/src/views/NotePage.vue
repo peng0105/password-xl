@@ -20,7 +20,7 @@ const activateChange = (treeNote: TreeNote): void => {
       <el-card shadow="never" style="height: calc(100% - 2px)">
         <template #header>
           <div style="display: flex;justify-content: space-between">
-            <el-text style="font-size: 18px">目录</el-text>
+            <el-text style="font-size: 18px;color: #444">目录</el-text>
             <el-button @click="addNote()" circle class="add-note-btn" type="primary">
               +
             </el-button>
@@ -30,9 +30,7 @@ const activateChange = (treeNote: TreeNote): void => {
       </el-card>
     </el-aside>
     <el-main class="mask" style="margin-left: 6px;">
-      <el-card shadow="never" style="height: calc(100% - 2px)">
-        <NoteEditor ref="noteEditorRef"></NoteEditor>
-      </el-card>
+      <NoteEditor ref="noteEditorRef"></NoteEditor>
     </el-main>
   </el-container>
 </template>

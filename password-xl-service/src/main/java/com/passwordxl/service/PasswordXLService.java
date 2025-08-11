@@ -1,17 +1,24 @@
 package com.passwordxl.service;
 
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.http.HttpStatus;
 import com.alibaba.fastjson2.JSONObject;
 import com.passwordxl.bean.*;
 import com.passwordxl.common.RestResult;
 import com.passwordxl.util.JwtUtil;
 import com.passwordxl.util.UserContent;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Date;
 import java.util.Objects;
 
 @Slf4j
@@ -61,6 +68,9 @@ public class PasswordXLService {
         String content = putContentParam.getContent();
         log.info("put username: {} key: {} size: {}", username, contentName, content.length());
         File file = new File(DataService.workPath + "/password-xl-data/" + username + "/" + contentName);
+        if (!file.getParentFile().exists()) {
+            FileUtil.mkdir(file.getParentFile());
+        }
         FileUtil.writeUtf8String(content, file);
         log.info("put succeed username: {} key: {}", username, contentName);
         JSONObject result = new JSONObject();
