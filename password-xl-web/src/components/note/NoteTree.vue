@@ -131,52 +131,59 @@ defineExpose({
 </script>
 
 <template>
-  <el-tree
-      style="max-width: 600px"
-      :data="noteStore.noteTree"
-      ref="treeRef"
-      :expand-on-click-node="false"
-      :node-expand="nodeExpand"
-      :node-collapse="nodeCollapse"
-      node-key="id"
-      highlight-current
-      draggable
-      @current-change="currentChange"
-      @node-drop="passwordStore.passwordManager.syncNoteData()"
-  >
-    <template #default="{node, data }">
-      <el-dropdown
-          :ref="(el: any) => dropdownRef[data.id] = el"
-          :hide-timeout="0"
-          trigger="contextmenu"
-          style="width: 100%">
-        <div @contextmenu="contextmenu($event,data.id)" class="node-class">
-          {{ data.label }}
-        </div>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item @click="addNote(data)">
-              <span class="iconfont icon-create more-item" style="color: rgb(0 147 255)"></span>
-              添加
-            </el-dropdown-item>
-            <el-dropdown-item @click="deleteNote(node)">
-              <span class="iconfont icon-delete more-item" style="color: rgb(255,23,23);font-size: 130%"></span>
-              删除
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-    </template>
-  </el-tree>
+  <div class="note-tree">
+    <el-tree
+        style="max-width: 600px"
+        :data="noteStore.noteTree"
+        ref="treeRef"
+        :expand-on-click-node="false"
+        :node-expand="nodeExpand"
+        :node-collapse="nodeCollapse"
+        node-key="id"
+        highlight-current
+        draggable
+        @current-change="currentChange"
+        @node-drop="passwordStore.passwordManager.syncNoteData()"
+    >
+      <template #default="{node, data }">
+        <el-dropdown
+            :ref="(el: any) => dropdownRef[data.id] = el"
+            :hide-timeout="0"
+            trigger="contextmenu"
+            style="width: 100%">
+          <div @contextmenu="contextmenu($event,data.id)" class="node-class">
+            {{ data.label }}
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="addNote(data)">
+                <span class="iconfont icon-create more-item" style="color: rgb(0 147 255)"></span>
+                添加
+              </el-dropdown-item>
+              <el-dropdown-item @click="deleteNote(node)">
+                <span class="iconfont icon-delete more-item" style="color: rgb(255,23,23);font-size: 130%"></span>
+                删除
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </template>
+    </el-tree>
+  </div>
 </template>
-
+<style>
+.note-tree .el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content {
+  background-color: rgba(100,100, 100, 0.1);
+  font-weight: bold;
+}
+</style>
 <style scoped>
 :deep(.el-tree-node__content) {
   border-radius: 4px;
 }
 
 :deep(.el-tree-node__content):hover {
-  background-color: #409eff10;
+  background-color: rgba(150,150, 150, 0.1);
 }
 
 :deep(.el-tree) {
@@ -198,8 +205,8 @@ defineExpose({
 :deep(.el-tree-node__expand-icon) {
   font-size: 18px;
 }
-
 .more-item {
   margin-right: 10px;
 }
+
 </style>

@@ -15,7 +15,7 @@ const activateChange = (treeNote: TreeNote): void => {
 </script>
 
 <template>
-  <el-container>
+  <el-container class="note-container">
     <el-aside class="mask" style="margin-right: 6px;">
       <el-card shadow="never" style="height: calc(100% - 2px)">
         <template #header>
@@ -72,4 +72,7 @@ const activateChange = (treeNote: TreeNote): void => {
   height: 23px;
 }
 
+.note-container {
+  backdrop-filter: blur(20px);
+}
 </style>
