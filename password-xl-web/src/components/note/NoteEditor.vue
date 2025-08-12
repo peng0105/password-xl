@@ -139,7 +139,11 @@ defineExpose({
     <template #header>
       <div style="display: flex;justify-content: space-between">
         <input class="title-input" placeholder="请输入标题" v-model="noteData.name"/>
-        <el-button size="small" type="primary" @click="saveNote(true)" plain>保存</el-button>
+        <el-space size="large">
+          <el-text>自动保存</el-text>
+          <el-switch v-model="autoSave"></el-switch>
+          <el-button size="small" type="primary" @click="saveNote(true)" plain>保存</el-button>
+        </el-space>
       </div>
     </template>
 
@@ -156,6 +160,10 @@ aie-footer, .aie-codeblock-tools-comments, .aie-codeblock-tools-explain {
 }
 .aie-container {
   border: 0;
+  background-color: rgba(255, 255, 255, 0);
+}
+.aie-container aie-header{
+  background-color: rgba(255, 255, 255, 0);
 }
 </style>
 <style scoped>
@@ -179,5 +187,9 @@ aie-footer, .aie-codeblock-tools-comments, .aie-codeblock-tools-explain {
 
 .editor-card :deep(.el-card__body) {
   padding: 0;
+}
+
+:deep(.aie-codeblock-tools){
+  padding-bottom: 5px;
 }
 </style>
