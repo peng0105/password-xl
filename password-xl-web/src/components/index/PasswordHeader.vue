@@ -5,9 +5,11 @@ import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {displaySize} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
+import {useRouter} from "vue-router";
 
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
+const router = useRouter()
 const settingStore = useSettingStore()
 
 // 搜索文本
@@ -131,6 +133,11 @@ const openRecycleBin = () => {
   refStore.recycleBinRef.openRecycleBin()
 }
 
+// 跳转笔记
+const toNote = () => {
+  router.push('/note')
+}
+
 // 介绍页
 const goAbout = () => {
   location.href = 'https://password-xl.cn/about'
@@ -206,6 +213,12 @@ const goAbout = () => {
           plain>
         创建密码
       </el-button>
+
+      <el-tooltip content="打开笔记" v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED">
+        <el-button @click="toNote" class="to-note-btn" plain>
+          <span class="iconfont icon-note" style="font-size: 120%;font-weight: bold" :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
+        </el-button>
+      </el-tooltip>
       <el-tooltip content="锁定" v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED">
         <el-button @click="lock" class="lock-btn" plain>
           <span class="iconfont icon-lock" style="font-size: 120%;" :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
@@ -361,7 +374,7 @@ const goAbout = () => {
   margin-left: 10px
 }
 
-.lock-btn, .unlock-btn, .table-btn, .card-btn {
+.lock-btn, .unlock-btn, .table-btn, .card-btn, .to-note-btn {
   margin-left: 10px;
   color: #666;
 }

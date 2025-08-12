@@ -3,6 +3,7 @@ import {TreeNote} from "@/types/types";
 import NoteEditor from "@/components/note/NoteEditor.vue";
 
 const noteTreeRef = ref()
+const showFirstUseMessage = ref(false)
 const noteEditorRef = ref()
 
 const addNote = (note?: TreeNote): void => {
@@ -12,22 +13,40 @@ const addNote = (note?: TreeNote): void => {
 const activateChange = (treeNote: TreeNote): void => {
   noteEditorRef.value.showNote(treeNote)
 }
+
+const closeMessage = () =>{
+  showFirstUseMessage.value = false
+  localStorage.setItem('firstNote', '1')
+}
+
+onMounted(() => {
+  let firstNote = localStorage.getItem('firstNote')
+  if (!firstNote) {
+    showFirstUseMessage.value = true
+  }
+})
+
 </script>
 
 <template>
   <el-container class="note-container">
-    <el-aside class="mask" style="margin-right: 6px;">
-      <el-card shadow="never" style="height: calc(100% - 2px)">
-        <template #header>
-          <div style="display: flex;justify-content: space-between">
-            <el-text style="font-size: 18px;color: #444">目录</el-text>
-            <el-button @click="addNote()" circle class="add-note-btn" type="primary">
-              +
-            </el-button>
-          </div>
-        </template>
-        <NoteTree ref="noteTreeRef" @activateChange="activateChange"></NoteTree>
-      </el-card>
+    <el-aside width="310px" class="mask" style="margin-right: 6px;">
+      <div style="height: calc(100% - 2px);display: flex;flex-direction: column;">
+        <el-alert @close="closeMessage" v-if="showFirstUseMessage" type="warning" style="margin-bottom: 12px;">
+          笔记内容未使用主密码加密，请注意安全
+        </el-alert>
+        <el-card shadow="never" style="width: calc(100% - 2px);flex: 1;">
+          <template #header>
+            <div style="display: flex;justify-content: space-between">
+              <el-text style="font-size: 18px;color: #444">目录</el-text>
+              <el-button @click="addNote()" circle class="add-note-btn" type="primary">
+                +
+              </el-button>
+            </div>
+          </template>
+          <NoteTree ref="noteTreeRef" @activateChange="activateChange"></NoteTree>
+        </el-card>
+      </div>
     </el-aside>
     <el-main class="mask" style="margin-left: 6px;">
       <NoteEditor ref="noteEditorRef"></NoteEditor>

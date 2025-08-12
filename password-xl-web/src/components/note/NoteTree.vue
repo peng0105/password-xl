@@ -3,7 +3,9 @@ import {TreeNote} from "@/types/types";
 import {useNoteStore} from "@/stores/NoteStore.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {generateRandomId} from "@/utils/global.ts";
+import {useRefStore} from "@/stores/RefStore.ts";
 
+const refStore = useRefStore()
 const noteStore = useNoteStore()
 const dropdownRef: Ref<{ [key: number]: any }> = ref({})
 const passwordStore = usePasswordStore()
@@ -14,7 +16,7 @@ const emits = defineEmits(['activateChange'])
 const addNote = (note?: TreeNote): void => {
   let newNote: TreeNote = {
     id: generateRandomId(),
-    label: '新分类',
+    label: '新笔记',
     expand: false,
     children: []
   }
@@ -29,7 +31,10 @@ const addNote = (note?: TreeNote): void => {
 
   nextTick(() => {
     treeRef.value.setCurrentKey(newNote.id + '')
-    noteStore.currentNote = newNote.id + ''
+    noteStore.currentNote = newNote.id + '';
+    if (refStore.noteTitleRef && refStore.noteTitleRef.value) {
+      refStore.noteTitleRef.focus()
+    }
     passwordStore.passwordManager.syncNoteData()
   })
 }
@@ -77,6 +82,12 @@ const affirmDeleteNote = (node: any) => {
   }
 
   delNoteTree(preDeleteArray, noteStore.noteTree)
+
+  if (noteStore.currentNote) {
+    if (preDeleteArray.includes(noteStore.currentNote)) {
+      noteStore.currentNote = ''
+    }
+  }
 
   // 同步笔记数据
   passwordStore.passwordManager.syncNoteData()

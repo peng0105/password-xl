@@ -297,6 +297,8 @@ export interface RefStore {
     displayModeTableRef: Ref,
     // 搜索框
     searchInputRef: Ref,
+    // 笔记标题
+    noteTitleRef: Ref,
 }
 
 // 备份文件格式

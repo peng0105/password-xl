@@ -5,9 +5,10 @@ import {NoteData, TreeNote} from "@/types/types";
 import "aieditor/dist/style.css"
 import {AiEditor} from "aieditor";
 import {useNoteStore} from "@/stores/NoteStore.ts";
+import {useRefStore} from "@/stores/RefStore.ts";
 
+const refStore = useRefStore()
 const loading = ref(true)
-const autoSave = ref(false)
 const editorRef = ref()
 const lastSyncText = ref('');
 const noteStore = useNoteStore()
@@ -59,8 +60,12 @@ const initEditor = (content: string) => {
       "|", "highlight", "font-color",
       "|", "align", "line-height",
       "|", "bullet-list", "ordered-list",
-      "|", "quote", "code-block", "table", "source-code"
+      "|", "quote", "code-block", "container", "table", "source-code"
     ],
+    textSelectionBubbleMenu: {
+      enable: true,
+      items: ["Bold", "Italic", "Underline", "Strike", "code", "comment"],
+    },
     placeholder: "点击输入内容...",
     content: content,
     onChange: (aiEditor) => {
@@ -74,11 +79,15 @@ const saveNote = (notification = false) => {
   if (!noteData.value.id) {
     return
   }
+  if (!noteData.value.name) {
+    ElMessage.error('请输入标题')
+    return
+  }
   if (lastSyncText.value === JSON.stringify(noteData.value)) {
     if (notification) {
       ElMessage.success('保存成功')
     }
-    return
+    return;
   }
   noteData.value.updateTime = Date.now()
   lastSyncText.value = JSON.stringify(noteData.value);
@@ -95,16 +104,6 @@ const saveNote = (notification = false) => {
     window.removeEventListener('beforeunload', handleBeforeUnload);
   })
 }
-
-
-setInterval(() => {
-  if (!autoSave) {
-    return
-  }
-  if (lastSyncText.value !== JSON.stringify(noteData.value)) {
-    saveNote();
-  }
-}, 5000)
 
 // 快捷键
 const handleKeyDown = (event: KeyboardEvent) => {
@@ -135,13 +134,11 @@ defineExpose({
 </script>
 
 <template>
-  <el-card shadow="never" class="editor-card" style="height: calc(100% - 2px)">
+  <el-card v-if="noteStore.currentNote" shadow="never" class="editor-card" style="height: calc(100% - 2px)">
     <template #header>
       <div style="display: flex;justify-content: space-between">
-        <input class="title-input" placeholder="请输入标题" v-model="noteData.name"/>
+        <input :ref="(el: any) => refStore.noteTitleRef = el" class="title-input" placeholder="请输入标题" v-model="noteData.name"/>
         <el-space size="large">
-          <el-text>自动保存</el-text>
-          <el-switch v-model="autoSave"></el-switch>
           <el-button size="small" type="primary" @click="saveNote(true)" plain>保存</el-button>
         </el-space>
       </div>

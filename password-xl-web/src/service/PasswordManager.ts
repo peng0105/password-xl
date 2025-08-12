@@ -201,18 +201,25 @@ export class PasswordManagerImpl implements PasswordManager {
 
         // 防止修改失败备份密文
         let backStoreData = JSON.stringify(this.storeData);
+        let backTreeNoteData = JSON.stringify(this.treeNoteData);
 
         this.storeData = {
             passwordData: encryptAES(newMainPassword, JSON.stringify(compressArray(this.passwordStore.allPasswordArray))),
             labelData: encryptAES(newMainPassword, JSON.stringify(this.passwordStore.labelArray)),
             mainPasswordType: newMainPasswordType,
         }
+        this.treeNoteData = {
+            noteTree: encryptAES(newMainPassword, JSON.stringify(this.noteStore)),
+            mainPasswordType: newMainPasswordType,
+        }
 
         // 修改密码文件
         let passwordResult = await this.databaseClient.setStoreData(JSON.stringify(this.storeData))
-        if (!passwordResult || !passwordResult.status) {
+        let noteResult = await this.databaseClient.setNoteData(JSON.stringify(this.treeNoteData))
+        if (!passwordResult || !passwordResult.status || !noteResult || !noteResult.status) {
             // 修改失败-回退
             this.storeData = JSON.parse(backStoreData)
+            this.treeNoteData = JSON.parse(backTreeNoteData)
             ElNotification.error({title: '系统异常',message: passwordResult.message})
             return Promise.reject()
         }
