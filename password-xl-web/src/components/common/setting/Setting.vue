@@ -652,67 +652,69 @@ const isAndroid = () => {
             </el-text>
           </template>
           <el-scrollbar :height="scrollbarHeight()">
-              <div class="function-div">
-                <div class="function-header" style="margin-bottom: 5px">
-                  <el-text tag="b">备份密码</el-text>
-                  <el-button plain type="primary" @click="refStore.backupAndRecoveryRef.backup(false)" size="small">备份
-                  </el-button>
-                </div>
-                <el-divider class="function-line"/>
-                <el-text type="info" tag="p" style="text-indent: 10px">
-                  密码备份功能可以安全的将加密后的密码文件导出，在需要时通过
-                  <el-text>恢复备份密码</el-text>
-                  功能还原。
-                </el-text>
+            <el-alert type="warning">笔记数据不会被备份或导出，请注意</el-alert>
+            <div class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">备份密码</el-text>
+                <el-button plain type="primary" @click="refStore.backupAndRecoveryRef.backup(false)" size="small">备份
+                </el-button>
               </div>
-              <div class="function-div">
-                <div class="function-header" style="margin-bottom: 5px">
-                  <el-text tag="b">恢复备份密码</el-text>
-                  <el-button plain type="primary" @click="refStore.backupAndRecoveryRef.recovery" size="small">恢复
-                  </el-button>
-                </div>
-                <el-divider class="function-line"/>
-                <el-text type="info" tag="p" style="text-indent: 10px">
-                  此功能可以将备份文件中的密码恢复到密码列表。在验证备份文件的主密码后，您可以选择合并或覆盖方式恢复密码。
-                </el-text>
+              <el-divider class="function-line"/>
+              <el-text type="info" tag="p" style="text-indent: 10px">
+                密码备份功能可以安全的将加密后的密码文件导出，在需要时通过
+                <el-text>恢复备份密码</el-text>
+                功能还原。
+              </el-text>
+            </div>
+            <div class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">恢复备份密码</el-text>
+                <el-button plain type="primary" @click="refStore.backupAndRecoveryRef.recovery" size="small">恢复
+                </el-button>
               </div>
+              <el-divider class="function-line"/>
+              <el-text type="info" tag="p" style="text-indent: 10px">
+                此功能可以将备份文件中的密码恢复到密码列表。在验证备份文件的主密码后，您可以选择合并或覆盖方式恢复密码。
+              </el-text>
+            </div>
 
-              <div class="function-div">
-                <div class="function-header" style="margin-bottom: 5px">
-                  <el-text tag="b">导出密码</el-text>
-                  <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(false)" size="small">导出 Excel
-                  </el-button>
-                </div>
-                <el-divider class="function-line"/>
-                <el-text type="info" tag="p" style="text-indent: 10px">
-                  导出密码会将敏感信息明文存储在excel表格中，请注意密码安全。若您仅需要迁移账号或备份密码建议使用密码备份与恢复功能更加高效安全。
-                </el-text>
+            <div class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">导出密码</el-text>
+                <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(false)" size="small">导出
+                  Excel
+                </el-button>
               </div>
-              <div class="function-div">
-                <div class="function-header" style="margin-bottom: 5px">
-                  <el-text tag="b">导入密码</el-text>
-                  <el-button plain type="primary" @click="refStore.importExcelRef.importExcel" size="small">导入 Excel
-                  </el-button>
-                </div>
-                <el-divider class="function-line"/>
-                <el-text type="info" tag="p" style="text-indent: 10px">
-                  密码导入功能支持按照密码模板导入excel文件中的密码，您可以通过下载模板功能获取密码模板。
-                </el-text>
+              <el-divider class="function-line"/>
+              <el-text type="info" tag="p" style="text-indent: 10px">
+                导出密码会将敏感信息明文存储在excel表格中，请注意密码安全。若您仅需要迁移账号或备份密码建议使用密码备份与恢复功能更加高效安全。
+              </el-text>
+            </div>
+            <div class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">导入密码</el-text>
+                <el-button plain type="primary" @click="refStore.importExcelRef.importExcel" size="small">导入 Excel
+                </el-button>
               </div>
-              <div class="function-div">
-                <div class="function-header" style="margin-bottom: 5px">
-                  <el-text tag="b">下载导入模板</el-text>
-                  <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(true)" size="small">下载
-                  </el-button>
-                </div>
-                <el-divider class="function-line"/>
-                <el-text type="info" tag="p" style="text-indent: 10px">
-                  您可在下载的Excel模板中按照要求填写您的密码列表（
-                  <el-text type="danger">密码名称为必填</el-text>
-                  ），然后使用密码导入功能导入您的密码。
-                </el-text>
+              <el-divider class="function-line"/>
+              <el-text type="info" tag="p" style="text-indent: 10px">
+                密码导入功能支持按照密码模板导入excel文件中的密码，您可以通过下载模板功能获取密码模板。
+              </el-text>
+            </div>
+            <div class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">下载导入模板</el-text>
+                <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(true)" size="small">下载
+                </el-button>
               </div>
-            </el-scrollbar>
+              <el-divider class="function-line"/>
+              <el-text type="info" tag="p" style="text-indent: 10px">
+                您可在下载的Excel模板中按照要求填写您的密码列表（
+                <el-text type="danger">密码名称为必填</el-text>
+                ），然后使用密码导入功能导入您的密码。
+              </el-text>
+            </div>
+          </el-scrollbar>
         </el-tab-pane>
         <el-tab-pane>
           <template #label>

@@ -421,6 +421,14 @@ export class PasswordManagerImpl implements PasswordManager {
         throw new Error('文件不存在')
     }
 
+    // 获取treeNoteData
+    getTreeNoteData(): TreeNoteData {
+        if (this.treeNoteData) {
+            return this.treeNoteData;
+        }
+        throw new Error('文件不存在')
+    }
+
     // 注销账号
     async closeAccount(): Promise<RespData> {
         console.log('passwordManager 注销账号')
@@ -471,5 +479,21 @@ export class PasswordManagerImpl implements PasswordManager {
                 resolve(data)
             })
         })
+    }
+
+    // 删除数据
+    delData = (name: string): Promise<RespData> =>{
+        return new Promise((resolve) => {
+            if(!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
+            this.databaseClient.deleteData(name).then((data) => {
+                resolve(data)
+            })
+        })
+    }
+
+    // 删除数据
+    uploadImage = (file: File, prefix: string): Promise<any> =>{
+        if(!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
+        return this.databaseClient.uploadImage(file, prefix)
     }
 }

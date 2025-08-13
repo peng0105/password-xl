@@ -148,6 +148,9 @@ export interface PasswordManager {
     // 获取StoreData
     getStoreData(): StoreData,
 
+    // 获取TreeNote
+    getTreeNoteData(): TreeNoteData,
+
     // 注销账号
     closeAccount(): Promise<RespData>,
 
@@ -156,6 +159,12 @@ export interface PasswordManager {
 
     // 设置数据
     setData(name: string, text: string): Promise<RespData>,
+
+    // 删除数据
+    delData(name: string): Promise<RespData>,
+
+    // 上传图片
+    uploadImage(file: File, prefix: string): Promise<any>,
 }
 
 // 数据库
@@ -185,6 +194,10 @@ export interface Database {
     setSettingData(text: string): Promise<RespData>,
 
     deleteSettingData(): Promise<RespData>,
+
+    deleteData(fileName: string): Promise<RespData>,
+
+    uploadImage(file: File, prefix: string): Promise<any>,
 }
 
 // 公用异步响应
@@ -305,6 +318,7 @@ export interface RefStore {
 export interface BackupFile {
     explain: string,
     storeData: StoreData,
+    noteData?: TreeNoteData | null,
     backupTime: number,
 }
 

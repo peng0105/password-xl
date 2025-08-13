@@ -4,12 +4,15 @@ import {useNoteStore} from "@/stores/NoteStore.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {generateRandomId} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
+import {ElMessage} from "element-plus";
 
 const refStore = useRefStore()
 const noteStore = useNoteStore()
 const dropdownRef: Ref<{ [key: number]: any }> = ref({})
 const passwordStore = usePasswordStore()
 const treeRef = ref()
+const loading = ref(true)
+const defaultExpandedKeys = ref([])
 const emits = defineEmits(['activateChange'])
 
 // 添加笔记
@@ -41,23 +44,22 @@ const addNote = (note?: TreeNote): void => {
 
 // 删除笔记
 const deleteNote = (node: any): void => {
-  // 询问确认删除吗？
-  ElMessageBox.confirm(
-      '确认删除“' + node.data.label + '”吗？',
-      '删除笔记',
-      {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-  ).then(() => {
+  let message = '确认删除“' + node.data.label + '”吗？'
+  if (node.children && node.children.length) {
+    message = '确认删除“' + node.data.label + '”及其子目录下的所有笔记吗？'
+  }
+
+  ElMessageBox.confirm(message, '删除笔记', {
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
     affirmDeleteNote(node)
   }).catch(() => {
   })
 }
 
-// 确认删除笔记
-const affirmDeleteNote = (node: any) => {
+const getAllChildren = (node: any) => {
   // 递归获取要删除的笔记
   const recursionDeleteRef = (data: any, preDeleteNote: Array<any>) => {
     preDeleteNote.push(data.id)
@@ -68,17 +70,29 @@ const affirmDeleteNote = (node: any) => {
 
   let preDeleteArray: Array<string> = []
   recursionDeleteRef(node.data, preDeleteArray)
+  return preDeleteArray
+}
 
-  function delNoteTree(preDeleteArray: Array<string>, noteTree: Array<TreeNote>) {
-    for (let i = noteTree.length - 1; i >= 0; i--) {
-      if (noteTree[i].children) {
-        delNoteTree(preDeleteArray, noteTree[i].children);
-      }
-      if (preDeleteArray.includes(noteTree[i].id)) {
-        console.log('删除笔记', noteTree[i].id)
-        noteTree.splice(i, 1);
-      }
+const delNoteTree = (preDeleteArray: Array<string>, noteTree: Array<TreeNote>) => {
+  for (let i = noteTree.length - 1; i >= 0; i--) {
+    if (noteTree[i].children) {
+      delNoteTree(preDeleteArray, noteTree[i].children);
     }
+    if (preDeleteArray.includes(noteTree[i].id)) {
+      console.log('删除笔记', noteTree[i].id)
+      noteTree.splice(i, 1);
+    }
+  }
+}
+
+// 确认删除笔记
+const affirmDeleteNote = (node: any) => {
+  // 获取要删除的笔记和子目录下的笔记
+  let preDeleteArray = getAllChildren(node)
+
+  for (let i = 0; i < preDeleteArray.length; i++) {
+    let name = 'note/' + preDeleteArray[i] + '.html'
+    passwordStore.passwordManager.delData(name)
   }
 
   delNoteTree(preDeleteArray, noteStore.noteTree)
@@ -91,6 +105,8 @@ const affirmDeleteNote = (node: any) => {
 
   // 同步笔记数据
   passwordStore.passwordManager.syncNoteData()
+
+  ElMessage.success('删除成功')
 }
 
 // 右键菜单
@@ -125,14 +141,29 @@ const nodeCollapse = (data: TreeNote) => {
   passwordStore.passwordManager.syncNoteData()
 }
 
-onMounted(() => {
-  if (noteStore.currentNote) {
-    treeRef.value.setCurrentKey(noteStore.currentNote);
-    let node = treeRef.value.getCurrentNode()
-    if (node) {
-      emits('activateChange', node);
+const expandedKeys = (notes: Array<TreeNote>) => {
+  for (let i = 0; i < notes.length; i++) {
+    if (notes[i].expand) {
+      defaultExpandedKeys.value.push(notes[i].id)
+    }
+    if (notes[i].children) {
+      expandedKeys(notes[i].children)
     }
   }
+}
+
+onMounted(() => {
+  expandedKeys(noteStore.noteTree);
+  loading.value = false
+  nextTick(() => {
+    if (noteStore.currentNote) {
+      treeRef.value.setCurrentKey(noteStore.currentNote);
+      let node = treeRef.value.getCurrentNode()
+      if (node) {
+        emits('activateChange', node);
+      }
+    }
+  })
 })
 
 defineExpose({
@@ -142,34 +173,35 @@ defineExpose({
 </script>
 
 <template>
-  <div class="note-tree">
+  <div class="note-tree" v-if="!loading">
     <el-tree
         style="max-width: 600px"
         :data="noteStore.noteTree"
         ref="treeRef"
         :expand-on-click-node="false"
-        :node-expand="nodeExpand"
-        :node-collapse="nodeCollapse"
+        @node-expand="nodeExpand"
+        @node-collapse="nodeCollapse"
+        :default-expanded-keys="defaultExpandedKeys"
         node-key="id"
         highlight-current
         draggable
         @current-change="currentChange"
-        @node-drop="passwordStore.passwordManager.syncNoteData()"
+        @node-drop="() => passwordStore.passwordManager.syncNoteData()"
     >
       <template #default="{node, data }">
         <el-dropdown
             :ref="(el: any) => dropdownRef[data.id] = el"
-            :hide-timeout="0"
             trigger="contextmenu"
             style="width: 100%">
-          <div @contextmenu="contextmenu($event,data.id)" class="node-class">
+          <div @contextmenu="contextmenu($event,data.id)" class="node-class"
+               :style="{'color': noteStore.currentNote === data.id?'#409EFF':''}">
             {{ data.label }}
           </div>
           <template #dropdown>
-            <el-dropdown-menu>
+            <el-dropdown-menu style="width: 100px;">
               <el-dropdown-item @click="addNote(data)">
                 <span class="iconfont icon-create more-item" style="color: rgb(0 147 255)"></span>
-                添加
+                新笔记
               </el-dropdown-item>
               <el-dropdown-item @click="deleteNote(node)">
                 <span class="iconfont icon-delete more-item" style="color: rgb(255,23,23);font-size: 130%"></span>
@@ -185,8 +217,8 @@ defineExpose({
 <style>
 .note-tree .el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content {
   background-color: rgba(100,100, 100, 0.1);
-  font-weight: bold;
 }
+
 </style>
 <style scoped>
 :deep(.el-tree-node__content) {
