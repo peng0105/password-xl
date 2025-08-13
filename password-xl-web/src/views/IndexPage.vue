@@ -37,7 +37,7 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
   <!-- 电脑版 -->
   <div
       v-if="!['xs','sm'].includes(displaySize().value)"
-      @click="refStore.contextmenuRef.hideContextmenu()"
+      @click="refStore.contextmenuRef && refStore.contextmenuRef.hideContextmenu()"
       @contextmenu.prevent="refStore.contextmenuRef.showContextmenu($event)">
     <el-row class="password-body-row">
       <el-col

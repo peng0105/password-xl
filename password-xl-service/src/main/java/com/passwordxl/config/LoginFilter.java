@@ -34,7 +34,7 @@ public class LoginFilter extends OncePerRequestFilter {
         // 获取请求的URI
         String uri = request.getRequestURI();
 
-        if ("/login".equals(uri)) {
+        if ("/login".equals(uri) || uri.startsWith("/image/")) {
             chain.doFilter(request, response);
             return;
         }

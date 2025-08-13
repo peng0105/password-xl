@@ -100,7 +100,7 @@ declare module 'vue' {
     TextLine: typeof import('./components/login/TextLine.vue')['default']
     VerifyMainPassword: typeof import('./components/common/VerifyMainPassword.vue')['default']
   }
-  export interface ComponentCustomProperties {
+  export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

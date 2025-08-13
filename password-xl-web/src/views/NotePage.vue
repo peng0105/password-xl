@@ -39,7 +39,7 @@ onMounted(() => {
           <template #header>
             <div style="display: flex;justify-content: space-between">
               <el-text style="font-size: 18px;color: #444">目录</el-text>
-              <el-button @click="addNote()" circle class="add-note-btn" type="primary">
+              <el-button @click="addNote()" plain circle class="add-note-btn" type="primary">
                 +
               </el-button>
             </div>

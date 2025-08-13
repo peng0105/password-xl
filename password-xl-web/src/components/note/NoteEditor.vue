@@ -6,6 +6,7 @@ import "aieditor/dist/style.css"
 import {AiEditor} from "aieditor";
 import {useNoteStore} from "@/stores/NoteStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
+import dayjs from "dayjs";
 
 const refStore = useRefStore()
 const loading = ref(true)
@@ -57,14 +58,34 @@ const initEditor = (content: string) => {
       "brush", "eraser",
       "|", "heading", "font-family", "font-size",
       "|", "bold", "italic", "underline", "strike", "link", "code", "subscript", "superscript", "hr", "todo", "emoji",
-      "|", "highlight", "font-color",
-      "|", "align", "line-height",
-      "|", "bullet-list", "ordered-list",
+      "|", "image", "highlight", "font-color",
+      "|", "align", "line-height", "bullet-list", "ordered-list",
       "|", "quote", "code-block", "container", "table", "source-code"
     ],
     textSelectionBubbleMenu: {
       enable: true,
       items: ["Bold", "Italic", "Underline", "Strike", "code", "comment"],
+    },
+    image: {
+      uploader: (file) => {
+        return new Promise((resolve) => {
+          passwordStore.passwordManager.uploadImage(file, noteData.value.id).then((data) => {
+            console.log('上传data', data);
+            resolve({
+              "errorCode": 0,
+              "data": {
+                "src": data,
+                "alt": file.name
+              }
+            })
+          }).catch((e) => {
+            console.log('图片上传失败', e);
+            resolve({
+              "errorCode": -1
+            })
+          })
+        })
+      }
     },
     placeholder: "点击输入内容...",
     content: content,
@@ -138,6 +159,7 @@ defineExpose({
     <template #header>
       <div style="display: flex;justify-content: space-between">
         <input :ref="(el: any) => refStore.noteTitleRef = el" class="title-input" placeholder="请输入标题" v-model="noteData.name"/>
+        <el-text>最后更新于：{{ dayjs(noteData.updateTime).format('YYYY-MM-DD HH:mm:ss') }}</el-text>
         <el-space size="large">
           <el-button size="small" type="primary" @click="saveNote(true)" plain>保存</el-button>
         </el-space>
