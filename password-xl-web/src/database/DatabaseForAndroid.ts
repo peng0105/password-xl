@@ -9,6 +9,7 @@ export class DatabaseForAndroid implements Database {
     private fileNames = {
         store: 'store.json',
         setting: 'setting.json',
+        note: 'note.json',
     }
 
     // 登录并验证文件权限、初始化基本信息
@@ -20,6 +21,26 @@ export class DatabaseForAndroid implements Database {
     // 获取密码数据
     async getStoreData(): Promise<string> {
         return this.getFile(this.fileNames.store)
+    }
+
+    // 获取笔记数据
+    async getTreeNoteData(): Promise<string> {
+        return this.getFile(this.fileNames.note)
+    }
+
+    // 设置笔记数据
+    async setNoteData(text: string): Promise<RespData> {
+        return this.uploadFile(this.fileNames.note, text)
+    }
+
+    // 获取数据
+    async getData(name: string): Promise<string> {
+        return this.getFile(name)
+    }
+
+    // 设置数据
+    async setData(name: string, text: string): Promise<RespData> {
+        return this.uploadFile(name, text)
     }
 
     // 设置密码数据
@@ -45,6 +66,20 @@ export class DatabaseForAndroid implements Database {
     // 删除设置数据
     async deleteSettingData() {
         return this.deleteFile(this.fileNames.setting)
+    }
+
+    // 删除数据
+    async deleteData(name: string): Promise<RespData> {
+        return this.deleteFile(name)
+    }
+
+    // 上传图片
+    async uploadImage(file: File, prefix: string): Promise<any> {
+        console.log('上传android文件', file)
+        return new Promise(async (resolve) => {
+            let data = await window.androidAPI.uploadImage(file, prefix)
+            resolve(data)
+        })
     }
 
     // 获取android文件

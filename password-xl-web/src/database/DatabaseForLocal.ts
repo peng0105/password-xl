@@ -64,6 +64,36 @@ export class DatabaseForLocal implements Database {
         })
     }
 
+    // 获取笔记数据
+    async getTreeNoteData(): Promise<string> {
+        throw new Error('因为浏览器规则限制，本地存储不支持此功能，请改用其他存储方式');
+    }
+
+    // 设置笔记数据
+    async setNoteData(_text: string): Promise<RespData> {
+        throw new Error('因为浏览器规则限制，本地存储不支持此功能，请改用其他存储方式');
+    }
+
+    // 获取数据
+    async getData(_name: string): Promise<string> {
+        throw new Error('因为浏览器规则限制，本地存储不支持此功能，请改用其他存储方式');
+    }
+
+    // 设置数据
+    async setData(_name: string, _text: string): Promise<RespData> {
+        throw new Error('因为浏览器规则限制，本地存储不支持此功能，请改用其他存储方式');
+    }
+
+    // 删除数据
+    async deleteData(_name: string): Promise<RespData> {
+        throw new Error('因为浏览器规则限制，本地存储不支持此功能，请改用其他存储方式');
+    }
+
+    // 上传图片
+    async uploadImage(_file: File, _prefix: string): Promise<any> {
+        throw new Error('因为浏览器规则限制，本地存储不支持此功能，请改用其他存储方式');
+    }
+
     // 保存密码数据
     async setStoreData(text: string): Promise<RespData> {
         console.log('local 保存密码数据')

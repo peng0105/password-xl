@@ -7,6 +7,9 @@ import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import Contextmenu from "@/components/index/Contextmenu.vue";
 
+const ExportExcel = defineAsyncComponent(() => import('@/components/common/setting/ExportExcel.vue'))
+const ImportExcel = defineAsyncComponent(() => import('@/components/common/setting/ImportExcel.vue'))
+
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
 const settingStore = useSettingStore()
@@ -107,10 +110,12 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
   <NoviceGuide :ref="(el: any) => refStore.tourRef = el"></NoviceGuide>
   <!-- 查看密码 -->
   <ShowPassword :ref="(el: any) => refStore.showPasswordRef = el"></ShowPassword>
-  <!-- 导出密码 -->
-  <ExportExcel :ref="(el: any) => refStore.exportExcelRef = el"></ExportExcel>
-  <!-- 导入密码 -->
-  <ImportExcel :ref="(el: any) => refStore.importExcelRef = el"></ImportExcel>
+  <template v-if="settingStore.visSetting">
+    <!-- 导出密码 -->
+    <ExportExcel :ref="(el: any) => refStore.exportExcelRef = el"></ExportExcel>
+    <!-- 导入密码 -->
+    <ImportExcel :ref="(el: any) => refStore.importExcelRef = el"></ImportExcel>
+  </template>
   <!-- 右键菜单 -->
   <Contextmenu :ref="(el: any) => refStore.contextmenuRef = el"></Contextmenu>
   <!-- 快捷键 -->

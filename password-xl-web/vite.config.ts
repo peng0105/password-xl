@@ -44,7 +44,7 @@ export default defineConfig({
                         let node_modules = id.toString().split('node_modules/')
                         if (node_modules && node_modules.length > 1) {
                             let name = node_modules[1].split('/')[0].toString();
-                            if (['@vue', 'element-plus', '@element-plus', 'cos-js-sdk-v5', 'ali-oss', 'exceljs'].includes(name)) {
+                            if (['@vue', 'element-plus', '@element-plus', 'cos-js-sdk-v5', 'ali-oss', 'exceljs', 'aieditor'].includes(name)) {
                                 return name
                             }
                             return 'vendor'

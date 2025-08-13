@@ -1,7 +1,6 @@
 import {defineStore} from "pinia";
 import {browserFingerprint, checkPassword, decryptAES, encryptAES} from "@/utils/security.ts";
 import {DatabaseForCOS} from "@/database/DatabaseForCOS.ts";
-import {DatabaseForOSS} from "@/database/DatabaseForOSS.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {LoginInfo, LoginStore, ServiceStatus} from "@/types";
 import {useSettingStore} from "@/stores/SettingStore.ts";
@@ -27,7 +26,8 @@ export const useLoginStore = defineStore('loginStore', {
                 // 获取存储引擎对象
                 let database: any = null
                 if (loginForm.loginType === 'oss') {
-                    database = new DatabaseForOSS()
+                    const module = await import("@/database/DatabaseForOSS.ts");
+                    database = new module.DatabaseForOSS()
                 } else if (loginForm.loginType === 'cos') {
                     database = new DatabaseForCOS()
                 } else if (loginForm.loginType === 'private') {

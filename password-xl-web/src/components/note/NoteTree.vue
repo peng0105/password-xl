@@ -12,7 +12,7 @@ const dropdownRef: Ref<{ [key: number]: any }> = ref({})
 const passwordStore = usePasswordStore()
 const treeRef = ref()
 const loading = ref(true)
-const defaultExpandedKeys = ref([])
+const defaultExpandedKeys: Ref<string[]> = ref([])
 const emits = defineEmits(['activateChange'])
 
 // 添加笔记

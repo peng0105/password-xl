@@ -17,9 +17,6 @@ const settingStore = useSettingStore()
 const loginStore = useLoginStore()
 const refStore = useRefStore()
 
-// 是否显示设置组件
-const visSetting = ref(false);
-
 // 是否已验证密码
 const authenticated = ref(false);
 
@@ -35,14 +32,14 @@ const openSetting = () => {
   } else {
     topicMode.value = localTopicMode as TopicMode
   }
-  visSetting.value = true
+  settingStore.visSetting = true
   authenticated.value = false
 }
 
 // 关闭设置
 const closeSetting = () => {
   console.log('关闭设置')
-  visSetting.value = false
+  settingStore.visSetting = false
 }
 
 // 滚动条高度
@@ -136,7 +133,7 @@ defineExpose({
 
 // 监听显示标签卡片设置变更
 watch(() => settingStore.setting.showLabelCard, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('显示标签卡片设置变更:', newValue)
   passwordStore.passwordManager.syncSetting().then((resp) => {
     if (resp.status) {
@@ -148,14 +145,14 @@ watch(() => settingStore.setting.showLabelCard, (newValue: boolean) => {
 
 // 监听动态背景图设置变更
 watch(() => settingStore.setting.dynamicBackground, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('动态背景图设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
 
 // 监听显示收藏卡片设置变更
 watch(() => settingStore.setting.showFavoriteCard, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('显示收藏卡片设置变更:', newValue)
   passwordStore.passwordManager.syncSetting().then((resp) => {
     if (resp.status) {
@@ -167,7 +164,7 @@ watch(() => settingStore.setting.showFavoriteCard, (newValue: boolean) => {
 
 // 监听密码回收站设置变更
 watch(() => settingStore.setting.enableRecycleBin, (newValue: boolean, oldValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('密码回收站设置变更:', newValue, oldValue)
   passwordStore.passwordManager.syncSetting().then((resp) => {
     if (resp.status) {
@@ -180,28 +177,28 @@ watch(() => settingStore.setting.enableRecycleBin, (newValue: boolean, oldValue:
 
 // 监听快捷键设置变更
 watch(() => settingStore.setting.enableShortcutKey, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('快捷键设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
 
 // 监听排序字段设置变更
 watch(() => settingStore.setting.sortField, (newValue: keyof Password) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('排序字段设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
 
 // 监听排序顺序设置变更
 watch(() => settingStore.setting.sortOrder, (newValue: string) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('排序顺序设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
 
 // 监听密码列表中显示标签设置变更
 watch(() => settingStore.setting.showLabelForTable, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('密码列表中显示标签设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
@@ -215,28 +212,28 @@ watch(() => settingStore.setting.enableAiAdd, (newValue: boolean) => {
 
 // 监听密码列表中显示时间设置变更
 watch(() => settingStore.setting.showTimeForTable, (newValue: string) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('密码列表中显示时间设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
 
 // 监听显示密码强度设置变更
 watch(() => settingStore.setting.showStrength, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('显示密码强度设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
 
 // 监听超时锁定设置变更
 watch(() => settingStore.setting.timeoutLock, (newValue: number) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('超时锁定设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
 
 // 监听自动登录设置变更
 watch(() => settingStore.setting.autoLogin, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('自动登录设置变更:', newValue)
   passwordStore.passwordManager.syncSetting().then((resp) => {
     if (resp.status) {
@@ -255,7 +252,7 @@ watch(() => settingStore.setting.autoLogin, (newValue: boolean) => {
 
 // 监听自动解锁设置变更
 watch(() => settingStore.setting.autoUnlock, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('自动解锁设置变更:', newValue)
   passwordStore.passwordManager.syncSetting().then((resp) => {
     if (resp.status) {
@@ -273,7 +270,7 @@ watch(() => settingStore.setting.autoUnlock, (newValue: boolean) => {
 
 // 监听验证密码显示手势设置变更
 watch(() => settingStore.setting.verifyShowGesture, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('验证密码显示手势设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
   localStorage.setItem('showGesture', newValue + '')
@@ -281,7 +278,7 @@ watch(() => settingStore.setting.verifyShowGesture, (newValue: boolean) => {
 
 // 监听主题设置变更
 watch(() => topicMode.value, (newValue: TopicMode) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('主题设置变更:', newValue)
   passwordStore.setTopicMode(newValue)
 })
@@ -289,7 +286,7 @@ watch(() => topicMode.value, (newValue: TopicMode) => {
 // 监听易混淆字符设置变更
 let easyConfuseChatChangeDelay: any = null;
 watch(() => settingStore.setting.easyConfuseChat, (newValue: string) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   if (easyConfuseChatChangeDelay) {
     clearTimeout(easyConfuseChatChangeDelay)
   }
@@ -301,14 +298,14 @@ watch(() => settingStore.setting.easyConfuseChat, (newValue: string) => {
 
 // 监听自动生成密码设置变更
 watch(() => settingStore.setting.autoGeneratePassword, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('自动生成密码设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
 
 // 监听显示密码颜色设置变更
 watch(() => settingStore.setting.passwordColor, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('显示密码颜色设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
@@ -316,7 +313,7 @@ watch(() => settingStore.setting.passwordColor, (newValue: boolean) => {
 // 监听默认密码生成规则设置变更
 let generateRuleChangeDelay: any = null;
 watch(() => settingStore.setting.generateRule, (newValue: GenerateRule) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   if (generateRuleChangeDelay) {
     clearTimeout(generateRuleChangeDelay)
   }
@@ -338,7 +335,7 @@ const isAndroid = () => {
 <template>
   <el-dialog
       :fullscreen="['xs', 'sm'].includes(displaySize().value)"
-      v-model="visSetting"
+      v-model="settingStore.visSetting"
       width="750px"
 
       draggable>
@@ -669,7 +666,7 @@ const isAndroid = () => {
             </el-text>
           </template>
           <el-scrollbar :height="scrollbarHeight()">
-            <el-alert type="warning">笔记数据不会被备份或导出，请注意</el-alert>
+            <el-alert style="margin-bottom: 10px" type="warning">笔记数据不会被备份或导出，请注意</el-alert>
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">备份密码</el-text>
@@ -710,7 +707,7 @@ const isAndroid = () => {
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">导入密码</el-text>
-                <el-button plain type="primary" @click="refStore.importExcelRef.importExcel" size="small">导入 Excel
+                <el-button plain type="primary" @click="refStore.importExcelRef && refStore.importExcelRef.importExcel" size="small">导入 Excel
                 </el-button>
               </div>
               <el-divider class="function-line"/>
@@ -721,7 +718,7 @@ const isAndroid = () => {
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">下载导入模板</el-text>
-                <el-button plain type="primary" @click="refStore.exportExcelRef.exportExcel(true)" size="small">下载
+                <el-button plain type="primary" @click="refStore.exportExcelRef && refStore.exportExcelRef.exportExcel(true)" size="small">下载
                 </el-button>
               </div>
               <el-divider class="function-line"/>
