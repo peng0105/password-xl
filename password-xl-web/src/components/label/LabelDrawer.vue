@@ -1,5 +1,5 @@
 <!--标签抽屉-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {displaySize} from "@/utils/global.ts";
 
 const labelDialogVis = ref(false)
@@ -17,9 +17,9 @@ defineExpose({
 <template>
   <div>
     <el-drawer
-        :size="['xs','sm'].includes(displaySize().value)?'80%':'350px'"
+        v-model="labelDialogVis"
         :direction="['xs','sm'].includes(displaySize().value)?'btt':'rtl'"
-        title="标签" v-model="labelDialogVis">
+        :size="['xs','sm'].includes(displaySize().value)?'80%':'350px'" title="标签">
       <div style="font-size: 12px;color: #999;margin-bottom: 20px">
         <span class="iconfont icon-info" style="font-size: 100%"></span>
         选中标签可以对密码列表进行过滤

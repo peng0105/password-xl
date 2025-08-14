@@ -1,5 +1,5 @@
 <!--密码列表头组件-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {PasswordDisplayMode, ServiceStatus, TopicMode} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {displaySize} from "@/utils/global.ts";
@@ -147,8 +147,8 @@ const aiAddPassword = () => {
 <template>
   <div class="password-card-header">
     <div>
-      <el-text class="hidden-sm-and-down password-title" style="width: 300px"
-               v-if="settingStore.setting.showPasswordStatistics">
+      <el-text v-if="settingStore.setting.showPasswordStatistics" class="hidden-sm-and-down password-title"
+               style="width: 300px">
         <template v-if="passwordStore.visPasswordArray.length > 0">
           <span>
             共
@@ -165,33 +165,33 @@ const aiAddPassword = () => {
         </template>
       </el-text>
       <div v-else class="hidden-xs-only" style="height: 32px" @click="goAbout">
-        <img alt="" style="height: 32px;cursor: pointer" src="../../assets/images/logo.svg">
+        <img alt="" src="../../assets/images/logo.svg" style="height: 32px;cursor: pointer">
       </div>
     </div>
     <div style="display: flex;">
       <el-autocomplete
+          :ref="(el: any) => refStore.searchInputRef = el"
           v-model="searchText"
+          :debounce="10"
+          :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
+
+          :fetch-suggestions="querySearch"
           class="search-input"
           clearable
           placeholder="搜索.."
 
-          :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
-          :fetch-suggestions="querySearch"
-          :debounce="10"
-          :ref="(el: any) => refStore.searchInputRef = el"
-
+          @blur="inputIng = false;saveSearchLog()"
           @change="filterPassword('change')"
           @clear="filterPassword('clear')"
-          @keyup.enter.native="filterPassword('inputEnter')"
-          @keyup="delayedSearch"
-          @compositionstart="inputIng = true"
           @compositionend="inputIng = false"
-          @blur="inputIng = false;saveSearchLog()"
+          @compositionstart="inputIng = true"
+          @keyup="delayedSearch"
+          @keyup.enter.native="filterPassword('inputEnter')"
       >
         <template #default="{ item }">
-          <div v-if="item.type === 'cleanHistory'" style="text-align: center;margin-left: -20px;margin-right: -20px;"
-               class="clear-history">
-            <span @click="clearSearchHistory" class="clear-history-text">清除搜索历史</span>
+          <div v-if="item.type === 'cleanHistory'" class="clear-history"
+               style="text-align: center;margin-left: -20px;margin-right: -20px;">
+            <span class="clear-history-text" @click="clearSearchHistory">清除搜索历史</span>
           </div>
           <div v-else>
             {{ item.value }}
@@ -206,66 +206,67 @@ const aiAddPassword = () => {
     </div>
     <div style="display: flex;">
       <el-button
+          v-if="settingStore.setting.enableAiAdd"
           :ref="(el: any) => refStore.aiCreatePasswordBtnRef = el"
           :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
-          @click="aiAddPassword"
-          v-if="settingStore.setting.enableAiAdd"
           class="ai-add-password-btn"
+          plain
           type="primary"
-          plain>
+          @click="aiAddPassword">
         Ai
       </el-button>
       <el-button
           :ref="(el: any) => refStore.createPasswordBtnRef = el"
           :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
-          @click="addPassword"
           class="add-password-btn"
+          plain
           type="primary"
-          plain>
+          @click="addPassword">
         添加
       </el-button>
 
-      <el-tooltip content="打开笔记" v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED
-      && !['xs','sm'].includes(displaySize().value)">
-        <el-button @click="toNote" class="to-note-btn" plain>
-          <span class="iconfont icon-note" style="font-size: 120%;font-weight: bold" :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
+      <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED
+      && !['xs','sm'].includes(displaySize().value)" content="打开笔记">
+        <el-button class="to-note-btn" plain @click="toNote">
+          <span :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="iconfont icon-note"
+                style="font-size: 120%;font-weight: bold"/>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="锁定" v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED">
-        <el-button @click="lock" class="lock-btn" plain>
-          <span class="iconfont icon-lock" style="font-size: 120%;"
-                :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
+      <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED" content="锁定">
+        <el-button class="lock-btn" plain @click="lock">
+          <span :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="iconfont icon-lock"
+                style="font-size: 120%;"/>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="解锁" v-if="passwordStore.serviceStatus === ServiceStatus.LOGGED">
-        <el-button @click="unlock" class="unlock-btn" plain>
-          <span class="iconfont icon-unlock" style="font-size: 120%;"
-                :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
+      <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.LOGGED" content="解锁">
+        <el-button class="unlock-btn" plain @click="unlock">
+          <span :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="iconfont icon-unlock"
+                style="font-size: 120%;"/>
         </el-button>
       </el-tooltip>
       <el-dropdown trigger="click">
-        <el-button class="menu-btn" :style="{'color':passwordStore.isDark?'#ccc':'#666'}" plain>
+        <el-button :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="menu-btn" plain>
           <span class="iconfont icon-menu" style="font-size: 130%;"/>
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item
-                @click="refStore.labelDrawer?.showLabelDrawer"
+                v-if="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showLabelCard"
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
-                v-if="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showLabelCard">
+                @click="refStore.labelDrawer?.showLabelDrawer">
               <span class="iconfont icon-label menu-item" style="color: #409EFF"></span>
               标签
             </el-dropdown-item>
             <el-dropdown-item
-                @click="refStore.favoriteDrawer?.showFavoriteDrawer"
+                v-if="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showFavoriteCard"
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
-                v-if="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showFavoriteCard">
+                @click="refStore.favoriteDrawer?.showFavoriteDrawer">
               <span class="iconfont icon-collect menu-item" style="color: #FF9700"></span>
               收藏
             </el-dropdown-item>
             <el-dropdown-item
-                :divided="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showFavoriteCard || !settingStore.setting.showLabelCard"
                 v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"
+                :divided="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showFavoriteCard || !settingStore.setting.showLabelCard"
                 @click="settingStore.setting.passwordDisplayMode = PasswordDisplayMode.CARD"
             >
               <span class="iconfont icon-card menu-item" style="color: #67c23a"></span>
@@ -279,37 +280,37 @@ const aiAddPassword = () => {
               列表视图
             </el-dropdown-item>
             <el-dropdown-item
+                :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
                 divided
-                @click="toNote"
-                :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED">
+                @click="toNote">
               <span class="iconfont icon-note menu-item" style="color: #409EFF"></span>
               打开笔记
             </el-dropdown-item>
             <el-dropdown-item
+                v-if="!passwordStore.isDark"
                 :divided="['xs','sm'].includes(displaySize().value)"
                 @click="switchTopicMode(TopicMode.DARK)"
-                v-if="!passwordStore.isDark"
             >
               <span class="iconfont icon-dark-mode menu-item" style="color: rgb(96 0 255)"></span>
               深色主题
             </el-dropdown-item>
             <el-dropdown-item
+                v-if="passwordStore.isDark"
                 :divided="['xs','sm'].includes(displaySize().value)"
                 @click="switchTopicMode(TopicMode.LIGHT)"
-                v-if="passwordStore.isDark"
             >
               <span class="iconfont icon-right-mode menu-item" style="color: rgb(186 255 0)"></span>
               明亮主题
             </el-dropdown-item>
             <el-dropdown-item
+                :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
                 divided
-                @click="refStore.settingRef?.openSetting"
-                :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED">
+                @click="refStore.settingRef?.openSetting">
               <span class="iconfont icon-setting menu-item" style="color: #409EFF"></span>
               系统设置
             </el-dropdown-item>
-            <el-dropdown-item @click="openRecycleBin"
-                              :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED">
+            <el-dropdown-item :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
+                              @click="openRecycleBin">
               <span class="iconfont icon-recycle-bin menu-item" style="color: #E6A23C;"></span>
               回收站
             </el-dropdown-item>

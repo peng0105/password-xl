@@ -1,5 +1,5 @@
 <!--卡片式密码列表-->
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {
@@ -139,23 +139,23 @@ onMounted(() => {
 
 <template>
   <el-scrollbar
-      height="calc(100vh - 85px)"
       ref="passwordCardScrollbar"
+      height="calc(100vh - 85px)"
   >
     <div
         v-if="passwordStore.visPasswordArray.length"
-        style="display: grid;padding: 6px;"
-        :style="{'grid-template-columns':'repeat('+getRowCount()+', 1fr)'}">
+        :style="{'grid-template-columns':'repeat('+getRowCount()+', 1fr)'}"
+        style="display: grid;padding: 6px;">
       <div v-for="password in getPagePasswordArray()">
-        <el-card body-style="height: 100%;" :style="getBackStype" class="password-card">
+        <el-card :style="getBackStype" body-style="height: 100%;" class="password-card">
           <template #header>
-            <div class="password-header-div" :style="cardStyle(password)">
+            <div :style="cardStyle(password)" class="password-header-div">
               <div>
                 <el-tooltip v-if="settingStore.setting.showStrength && password.password"
                             :content="getPasswordStrengthTip(password.password)" placement="top">
                   <div
-                      class="password-strength"
                       :style="{'background-color':getPasswordStrengthColor(password.password)}"
+                      class="password-strength"
                   ></div>
                 </el-tooltip>
                 <el-text style="font-size: 17px">{{ password.title }}</el-text>
@@ -163,24 +163,24 @@ onMounted(() => {
               <div>
                 <el-tooltip :content="password.favorite?'取消收藏':'收藏'" placement="top">
                     <span
+                        :class="password.favorite?'icon-favorited':'icon-collect'"
+                        :style="{'color':password.favorite?'#FF9700':'rgb(255 151 0 / 75%)'}"
                         class="iconfont icon-favorited card-opt-icon"
                         style="font-size: 115%;"
-                        :style="{'color':password.favorite?'#FF9700':'rgb(255 151 0 / 75%)'}"
                         @click="favoritePassword(password)"
-                        :class="password.favorite?'icon-favorited':'icon-collect'"
                     />
                 </el-tooltip>
               </div>
             </div>
           </template>
           <ul class="password-field-ul" style="height: 100%;">
-            <li class="empty-card" v-if="
+            <li v-if="
             !password.address
             && !password.username
             && !password.password
             && !password.remark
             && !password.labels.length
-            && !(password.customFields && password.customFields.length > 0)">
+            && !(password.customFields && password.customFields.length > 0)" class="empty-card">
               <el-text style="margin: 20px 0">
                 空空如也！
               </el-text>
@@ -188,7 +188,7 @@ onMounted(() => {
             <li v-if="password.address">
               <el-text class="password-field-name">地址:</el-text>
               <el-text class="password-field-value">
-                <el-link v-if="isUrl(password.address)" type="primary" :href="password.address" target="_blank">
+                <el-link v-if="isUrl(password.address)" :href="password.address" target="_blank" type="primary">
                   {{ password.address }}
                 </el-link>
                 <el-text v-else>
@@ -202,7 +202,7 @@ onMounted(() => {
               <el-text class="password-field-value">
                 <div class="card-username-div">
                   {{ password.username }}
-                  <el-tooltip content="复制用户名" placement="top" :show-after="300" :hide-after="0">
+                  <el-tooltip :hide-after="0" :show-after="300" content="复制用户名" placement="top">
                     <span class="iconfont icon-copy password-row-icon copy-username"
                           @click="copyText(password.username)"></span>
                   </el-tooltip>
@@ -249,22 +249,22 @@ onMounted(() => {
           </ul>
           <template #footer>
             <div style="display: flex;justify-content: space-between">
-              <el-text type="info" style="font-size: 80%">{{ formatterDate(password.updateTime, 'YYYY-MM-DD HH:mm') }}
+              <el-text style="font-size: 80%" type="info">{{ formatterDate(password.updateTime, 'YYYY-MM-DD HH:mm') }}
               </el-text>
               <div>
                 <el-tooltip content="删除" placement="top">
-                  <el-button type="danger" plain size="small" @click="deletePassword(password)">
+                  <el-button plain size="small" type="danger" @click="deletePassword(password)">
                     <span class="iconfont icon-delete card-opt-icon"/>
                   </el-button>
                 </el-tooltip>
                 <el-tooltip content="修改" placement="top">
-                  <el-button type="primary" plain size="small"
+                  <el-button plain size="small" type="primary"
                              @click="refStore.passwordFormRef.editPasswordForm(password)">
                     <span class="iconfont icon-edit card-opt-icon"/>
                   </el-button>
                 </el-tooltip>
                 <el-tooltip content="分享" placement="top">
-                  <el-button type="success" plain size="small" @click="sharePassword(password)">
+                  <el-button plain size="small" type="success" @click="sharePassword(password)">
                     <span class="iconfont icon-share card-opt-icon"/>
                   </el-button>
                 </el-tooltip>

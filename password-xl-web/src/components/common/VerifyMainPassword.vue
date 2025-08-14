@@ -1,5 +1,5 @@
 <!--验证主密码组件-->
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {MainPasswordType, ServiceStatus} from "@/types";
@@ -194,49 +194,55 @@ defineExpose({
 
 <template>
   <el-dialog
-      top="20vh"
-      :width="['xs', 'sm'].includes(displaySize().value)?'95%':'400px'"
       v-model="visVerify"
       :close-on-click-modal="passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
       :close-on-press-escape="passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
       :show-close="passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
-      @opened="onOpen"
+      :width="['xs', 'sm'].includes(displaySize().value)?'95%':'400px'"
+      top="20vh"
       @open="formRef?.resetFields()"
+      @opened="onOpen"
   >
     <template #header>
       <el-text size="large" style="user-select: none;">
         <span class="iconfont icon-verify"></span>
-        <template v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN">自动登录<span style="font-weight: bold"> · </span></template>验证主密码
+        <template v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN">自动登录<span style="font-weight: bold"> · </span>
+        </template>
+        验证主密码
       </el-text>
     </template>
-    <div style="margin: 20px" v-if="mainPasswordType === MainPasswordType.STANDARD">
+    <div v-if="mainPasswordType === MainPasswordType.STANDARD" style="margin: 20px">
       <el-form
           ref="formRef"
-          @submit.native.prevent
           :model="form"
-          :rules="formRules">
+          :rules="formRules"
+          @submit.native.prevent>
         <el-form-item prop="mainPassword">
           <el-input
               ref="passwordInputRef"
-              type="password"
-              show-password
-              autocomplete="new-password"
-              @keyup.enter.native="alertConfirm(formRef)"
               v-model="form.mainPassword"
+              autocomplete="new-password"
               placeholder="请输入主密码"
+              show-password
+              type="password"
+              @keyup.enter.native="alertConfirm(formRef)"
           ></el-input>
         </el-form-item>
       </el-form>
     </div>
-    <div style="margin: 20px" v-if="mainPasswordType === MainPasswordType.GESTURE">
-      <GesturePassword @complete="gestureComplete" :show-gesture="showGesture()"></GesturePassword>
+    <div v-if="mainPasswordType === MainPasswordType.GESTURE" style="margin: 20px">
+      <GesturePassword :show-gesture="showGesture()" @complete="gestureComplete"></GesturePassword>
     </div>
     <template #footer>
       <div style="display: flex;justify-content: space-between">
         <div>
-          <el-link v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN" type="primary" @click="toLogin" :underline="false">返回登录页</el-link>
+          <el-link v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN" :underline="false" type="primary"
+                   @click="toLogin">返回登录页
+          </el-link>
         </div>
-        <el-button v-if="mainPasswordType === MainPasswordType.STANDARD" @click="alertConfirm(formRef)" type="primary">确定</el-button>
+        <el-button v-if="mainPasswordType === MainPasswordType.STANDARD" type="primary" @click="alertConfirm(formRef)">
+          确定
+        </el-button>
       </div>
     </template>
   </el-dialog>

@@ -1,5 +1,5 @@
 <!--快捷键-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";

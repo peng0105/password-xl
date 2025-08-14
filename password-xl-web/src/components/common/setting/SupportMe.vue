@@ -1,5 +1,5 @@
 <!--支持项目-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import packageJson from '../../../../package.json'
 
 const donateArray = [
@@ -12,7 +12,7 @@ const donateArray = [
 
 <template>
   <h2 style="margin-top: 0">支持我们</h2>
-  <el-text tag="p" size="large" style="text-indent: 20px">
+  <el-text size="large" style="text-indent: 20px" tag="p">
     为了帮助您更安全、便捷地管理密码，我们打造了一个开源免费的密码管理工具。在开发和维护过程中，我们面临着诸多困难和挑战。您的支持对项目的发展至关重要，您可以通过以下方式支持此项目：
   </el-text>
   <ul class="support-ul">
@@ -20,8 +20,8 @@ const donateArray = [
       <el-text size="large">
         <span class="iconfont icon-praise support-icon" style="color: #E6A23C;"></span>
         在项目
-        <el-link :href="packageJson.repository.url" style="font-size: 16px;position: relative;top: -2px"
-                 :underline="false" target="_blank" type="primary">开源地址
+        <el-link :href="packageJson.repository.url" :underline="false"
+                 style="font-size: 16px;position: relative;top: -2px" target="_blank" type="primary">开源地址
         </el-link>
         中为项目点赞，增加项目的曝光度。
       </el-text>
@@ -30,8 +30,8 @@ const donateArray = [
       <el-text size="large">
         <span class="iconfont icon-report support-icon" style="color: #F56C6C;"></span>
         在Github上
-        <el-link :href="packageJson.repository.url+'/issues'" style="font-size: 16px;position: relative;top: -2px"
-                 :underline="false" target="_blank" type="primary">报告您遇到的错误
+        <el-link :href="packageJson.repository.url+'/issues'" :underline="false"
+                 style="font-size: 16px;position: relative;top: -2px" target="_blank" type="primary">报告您遇到的错误
         </el-link>
         ，帮助我们持续改进。
       </el-text>
@@ -40,8 +40,8 @@ const donateArray = [
       <el-text size="large">
         <span class="iconfont icon-idea support-icon" style="color: #67C23A;"></span>
         提出您的
-        <el-link :href="packageJson.repository.url+'/issues'" style="font-size: 16px;position: relative;top: -2px"
-                 :underline="false" target="_blank" type="primary">建议和想法
+        <el-link :href="packageJson.repository.url+'/issues'" :underline="false"
+                 style="font-size: 16px;position: relative;top: -2px" target="_blank" type="primary">建议和想法
         </el-link>
         ，帮助我们更好地满足用户需求。
       </el-text>
@@ -67,15 +67,15 @@ const donateArray = [
     </li>
   </ul>
   <el-row>
-    <el-col :xs="{span:24}" :sm="{span:24}" :md="{span:9}" style="text-align: center">
+    <el-col :md="{span:9}" :sm="{span:24}" :xs="{span:24}" style="text-align: center">
       <div style="text-align: center;">
         <h3 style="margin-top: 4px">微信赞赏码</h3>
         <div style="padding: 5px 20px;text-align: center">
-          <img alt="" style="width: 80%;max-width: 300px;border-radius: 50%" src="../../../assets/images/donate.png">
+          <img alt="" src="../../../assets/images/donate.png" style="width: 80%;max-width: 300px;border-radius: 50%">
         </div>
       </div>
     </el-col>
-    <el-col :xs="{span:24}" :sm="{span:24}" :md="{span:15}" style="text-align: center;padding-right: 10px">
+    <el-col :md="{span:15}" :sm="{span:24}" :xs="{span:24}" style="text-align: center;padding-right: 10px">
       <h3 style="margin-top: 4px">捐赠者列表</h3>
       <el-table :data="donateArray" border stripe>
         <el-table-column label="名称" prop="name"></el-table-column>

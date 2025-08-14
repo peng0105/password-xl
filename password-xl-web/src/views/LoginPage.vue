@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {useLoginStore} from "@/stores/LoginStore.ts";
 import {useRoute} from "vue-router";
 
@@ -49,14 +49,14 @@ initForm()
   <!-- 电脑版-->
   <div class="hidden-xs-only">
     <el-row>
-      <el-col :sm="{span: 12, offset: 6}" :md="{span: 18, offset: 3}" :lg="{span: 14, offset: 5}"
+      <el-col :lg="{span: 14, offset: 5}" :md="{span: 18, offset: 3}" :sm="{span: 12, offset: 6}"
               :xl="{span: 10, offset: 7}">
         <div class="login-card-pc">
           <el-row>
-            <el-col class="hidden-sm-and-down" :span="12">
+            <el-col :span="12" class="hidden-sm-and-down">
               <img alt="" src="~@/assets/images/login/login.png">
             </el-col>
-            <el-col :sm="{span: 24}" :md="{span: 12}">
+            <el-col :md="{span: 12}" :sm="{span: 24}">
               <div style="position: sticky">
                 <transition name="slide">
                   <div v-if="loginStep === 1" class="sliding-element">
@@ -66,9 +66,10 @@ initForm()
                     <TextLine class="select-type-tip" text="请选择登录方式"></TextLine>
                     <LoginType @loginTypeChange="loginTypeChange"></LoginType>
                   </div>
-                  <div v-else class="sliding-element" v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText">
+                  <div v-else v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText"
+                       class="sliding-element">
                     <div style="padding: 8px">
-                      <el-link v-if="loginStep === 2" @click="loginStep = 1" type="primary" :underline="false">
+                      <el-link v-if="loginStep === 2" :underline="false" type="primary" @click="loginStep = 1">
                         <span class="iconfont icon-back login-back"></span>返回
                       </el-link>
                     </div>
@@ -93,20 +94,21 @@ initForm()
     <div class="login-form-div">
       <el-row>
         <el-col style="text-align: center;">
-        <el-text class="login-title" style="padding: 5px 15px">
-          欢迎使用 password-XL
-        </el-text>
+          <el-text class="login-title" style="padding: 5px 15px">
+            欢迎使用 password-XL
+          </el-text>
         </el-col>
       </el-row>
       <div style="display: flex;justify-content: center;">
         <transition name="slide">
-          <div class="login-form-card" v-if="loginStep === 1">
+          <div v-if="loginStep === 1" class="login-form-card">
             <TextLine style="margin-top: 20px;margin-bottom: 0" text="请选择登录方式"></TextLine>
             <LoginType @loginTypeChange="loginTypeChange"></LoginType>
           </div>
-          <div class="login-form-card" v-else v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText">
+          <div v-else v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText"
+               class="login-form-card">
             <el-row style="margin-top: 20px">
-              <el-col :span="22" :offset="1">
+              <el-col :offset="1" :span="22">
                 <template v-if="loginStore.loginType === 'oss'">
                   <OSSLoginForm></OSSLoginForm>
                 </template>

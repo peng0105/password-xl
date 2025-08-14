@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {zhCn} from "element-plus/es/locale/index";
 import {useRefStore} from "@/stores/RefStore.js";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -42,11 +42,11 @@ watch(() => settingStore.setting.dynamicBackground, (newValue: boolean) => {
 </script>
 <template>
   <!-- 背景-->
-  <img alt="" v-if="dynamicBackground" class="back-img hidden-xs-only" src="~@/assets/images/background.svg">
-  <img alt="" v-if="dynamicBackground" class="back-img hidden-sm-and-up" src="~@/assets/images/background-m.svg">
+  <img v-if="dynamicBackground" alt="" class="back-img hidden-xs-only" src="~@/assets/images/background.svg">
+  <img v-if="dynamicBackground" alt="" class="back-img hidden-sm-and-up" src="~@/assets/images/background-m.svg">
 
-  <div @click="passwordStore.resetTimeoutLock()" id="password-app" v-loading="passwordStore.globalLoading.vis"
-       :element-loading-text="passwordStore.globalLoading.content">
+  <div id="password-app" v-loading="passwordStore.globalLoading.vis" :element-loading-text="passwordStore.globalLoading.content"
+       @click="passwordStore.resetTimeoutLock()">
     <el-config-provider :locale="zhCn">
       <router-view></router-view>
 

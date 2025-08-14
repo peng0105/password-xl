@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {TreeNote} from "@/types/types";
 import {useNoteStore} from "@/stores/NoteStore.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -162,28 +162,29 @@ defineExpose({
 </script>
 
 <template>
-  <div class="note-tree" v-if="!loading">
+  <div v-if="!loading" class="note-tree">
     <el-tree
-        style="max-width: 600px"
-        :data="noteStore.noteData.noteTree"
         ref="treeRef"
+        :data="noteStore.noteData.noteTree"
+        :default-expanded-keys="expandKeys"
         :expand-on-click-node="false"
+        draggable
+        highlight-current
+        node-key="id"
+        style="max-width: 600px"
         @node-expand="(node) => nodeExpand(node.id)"
         @node-collapse="(node) => nodeCollapse(node.id)"
-        :default-expanded-keys="expandKeys"
-        node-key="id"
-        highlight-current
-        draggable
         @current-change="currentChange"
         @node-drop="() => passwordStore.passwordManager.syncNoteData()"
     >
       <template #default="{node, data }">
         <el-dropdown
             :ref="(el: any) => dropdownRef[data.id] = el"
-            trigger="contextmenu"
-            style="width: 100%">
-          <div @contextmenu="contextmenu($event,data.id)" class="node-class">
-            <el-text truncated style="width: 85%;" :style="{'color': noteStore.noteData.currentNote === data.id?'#409EFF':''}">
+            style="width: 100%"
+            trigger="contextmenu">
+          <div class="node-class" @contextmenu="contextmenu($event,data.id)">
+            <el-text :style="{'color': noteStore.noteData.currentNote === data.id?'#409EFF':''}" style="width: 85%;"
+                     truncated>
               {{ data.label }}
             </el-text>
           </div>
@@ -206,7 +207,7 @@ defineExpose({
 </template>
 <style>
 .note-tree .el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content {
-  background-color: rgba(100,100, 100, 0.1);
+  background-color: rgba(100, 100, 100, 0.1);
 }
 
 </style>
@@ -216,7 +217,7 @@ defineExpose({
 }
 
 :deep(.el-tree-node__content):hover {
-  background-color: rgba(150,150, 150, 0.1);
+  background-color: rgba(150, 150, 150, 0.1);
 }
 
 :deep(.el-tree) {
@@ -238,6 +239,7 @@ defineExpose({
 :deep(.el-tree-node__expand-icon) {
   font-size: 18px;
 }
+
 .more-item {
   margin-right: 10px;
 }

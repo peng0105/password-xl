@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {DatabaseForLocal} from "@/database/DatabaseForLocal.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -53,7 +53,7 @@ const supportLocalFile = () => {
     <div v-if="supportLocalFile()">
       <TextLine class="input-login-line" text="请选择"></TextLine>
       <el-row style="padding: 10px">
-        <el-col :sm="{span:24}" :md="{span:12}" class="local-type-col">
+        <el-col :md="{span:12}" :sm="{span:24}" class="local-type-col">
           <div class="local-type local-create" @click="useLocalLogin('create')">
             <div class="icon-div">
               <span class="iconfont icon-create"></span>
@@ -66,7 +66,7 @@ const supportLocalFile = () => {
             </div>
           </div>
         </el-col>
-        <el-col :sm="{span:24}" :md="{span:12}" class="local-type-col">
+        <el-col :md="{span:12}" :sm="{span:24}" class="local-type-col">
           <div class="local-type local-open" @click="useLocalLogin('open')">
             <div class="icon-div">
               <span class="iconfont icon-open-file"></span>
@@ -82,7 +82,8 @@ const supportLocalFile = () => {
       </el-row>
     </div>
     <div v-else style="text-align: center;margin: 100px 0">
-      <el-text size="large" type="danger">您的浏览器不支持本地存储，您可以在电脑版edge、chrome等浏览器使用本地存储功能</el-text>
+      <el-text size="large" type="danger">您的浏览器不支持本地存储，您可以在电脑版edge、chrome等浏览器使用本地存储功能
+      </el-text>
     </div>
   </div>
 </template>
@@ -138,7 +139,7 @@ const supportLocalFile = () => {
   padding: 15px
 }
 
-.icon-div{
+.icon-div {
   margin-top: 20px;
 }
 
@@ -146,16 +147,16 @@ const supportLocalFile = () => {
   font-size: 25px;
 }
 
-.icon-create,.icon-open-file{
+.icon-create, .icon-open-file {
   font-size: 100px;
   color: #999;
 }
 
-.icon-create{
+.icon-create {
   color: #409EFF;
 }
 
-.icon-open-file{
+.icon-open-file {
   color: #67C23A;
 }
 </style>

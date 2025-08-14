@@ -1,5 +1,5 @@
 <!--常见问题-->
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import packageJson from "../../../../package.json";
 </script>
@@ -24,7 +24,7 @@ import packageJson from "../../../../package.json";
         <div style="padding-left: 15px">
           <el-text tag="b">本地存储：</el-text>
           请到 C:\Users\您的用户名\AppData\Roaming\password-xl目录下删除setting.json和store.json两个文件。<br>
-          <el-text type="info" size="small">
+          <el-text size="small" type="info">
             <el-alert type="info">
               AppData是系统隐藏目录，可以通过地址栏输入C:\Users\您的用户名\AppData\Roaming\password-xl直接进入文件夹
             </el-alert>
@@ -36,34 +36,34 @@ import packageJson from "../../../../package.json";
       <el-text>
         <el-text size="large">项目分为前端和后端两个服务，您可以根据需要选择部署：</el-text>
         <br>
-        <el-text tag="b" style="text-indent: 15px;display: inline-block">仅部署前端服务：</el-text>
+        <el-text style="text-indent: 15px;display: inline-block" tag="b">仅部署前端服务：</el-text>
         可以使用阿里云OSS、腾讯云COS、和本地存储功能<br>
-        <el-text tag="b" style="text-indent: 15px;display: inline-block">仅部署后端服务：</el-text>
+        <el-text style="text-indent: 15px;display: inline-block" tag="b">仅部署后端服务：</el-text>
         可以使用官网提供的页面或安装程序将密码文件存储在您的私有服务中<br>
-        <el-text tag="b" style="text-indent: 15px;display: inline-block">两个服务都部署：</el-text>
+        <el-text style="text-indent: 15px;display: inline-block" tag="b">两个服务都部署：</el-text>
         可以使用部署的前端页面将密码文件存储在私有服务中<br>
       </el-text>
       <br>
       <el-text>
         <el-text size="large">部署文档：</el-text>
         <div style="padding-left: 15px">
-          <el-link type="primary" target="_blank"
-                   :href="packageJson.repository.url+'/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker'">
+          <el-link :href="packageJson.repository.url+'/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker'" target="_blank"
+                   type="primary">
             后端-docker部署
           </el-link>
           <br>
-          <el-link type="primary" target="_blank"
-                   :href="packageJson.repository.url+'/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90jar'">
+          <el-link :href="packageJson.repository.url+'/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90jar'" target="_blank"
+                   type="primary">
             后端-jar包部署
           </el-link>
           <br>
-          <el-link type="primary" target="_blank"
-                   :href="packageJson.repository.url+'/wiki/%E5%89%8D%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker'">
+          <el-link :href="packageJson.repository.url+'/wiki/%E5%89%8D%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker'" target="_blank"
+                   type="primary">
             前端-docker部署
           </el-link>
           <br>
-          <el-link type="primary" target="_blank"
-                   :href="packageJson.repository.url+'/wiki/%E5%89%8D%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90nginx'">
+          <el-link :href="packageJson.repository.url+'/wiki/%E5%89%8D%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90nginx'" target="_blank"
+                   type="primary">
             前端-nginx部署
           </el-link>
         </div>
@@ -77,21 +77,21 @@ import packageJson from "../../../../package.json";
     <el-collapse-item title="4、忘记登录信息如何找回？">
       <div style="padding-left: 15px">
         <el-text>
-          <el-text tag="b" style="text-indent: 15px;display: inline-block">阿里云OSS：</el-text>
+          <el-text style="text-indent: 15px;display: inline-block" tag="b">阿里云OSS：</el-text>
           您可以参考
-          <el-link type="primary" target="_blank" style="position: relative;top: -2px"
-                   :href="packageJson.repository.url+'/wiki/%E9%98%BF%E9%87%8C%E4%BA%91OSS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95'">
+          <el-link :href="packageJson.repository.url+'/wiki/%E9%98%BF%E9%87%8C%E4%BA%91OSS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95'" style="position: relative;top: -2px" target="_blank"
+                   type="primary">
             阿里云OSS注册指引
           </el-link>
           ，登录阿里云控制台重新创建子账户并在存储桶位置为账号分配权限，密码数据不会丢失<br>
-          <el-text tag="b" style="text-indent: 15px;display: inline-block">腾讯云COS：</el-text>
+          <el-text style="text-indent: 15px;display: inline-block" tag="b">腾讯云COS：</el-text>
           您可以参考
-          <el-link type="primary" target="_blank" style="position: relative;top: -2px"
-                   :href="packageJson.repository.url+'/wiki/%E8%85%BE%E8%AE%AF%E4%BA%91COS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95'">
+          <el-link :href="packageJson.repository.url+'/wiki/%E8%85%BE%E8%AE%AF%E4%BA%91COS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95'" style="position: relative;top: -2px" target="_blank"
+                   type="primary">
             腾讯云COS注册指引
           </el-link>
           ，登录腾讯云控制台重新创建子账户并在存储桶位置为账号分配权限，密码数据不会丢失<br>
-          <el-text tag="b" style="text-indent: 15px;display: inline-block">私有服务：</el-text>
+          <el-text style="text-indent: 15px;display: inline-block" tag="b">私有服务：</el-text>
           您可在服务端项目部署路径下用户配置文件中查看您的登录密码。如果不是您部署项目请联系管理员<br>
         </el-text>
       </div>

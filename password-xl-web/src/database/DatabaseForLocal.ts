@@ -159,6 +159,6 @@ export class DatabaseForLocal implements Database {
     }
 
     getFileInfo() {
-        return '此文件为password-xl密码管理项目数据文件，password-xl官网：https://password-xl.cn，该文件最后更新时间为：' + formatterDate(Date.now(),'YYYY-MM-DD HH:mm')
+        return '此文件为password-xl密码管理项目数据文件，password-xl官网：https://password-xl.cn，该文件最后更新时间为：' + formatterDate(Date.now(), 'YYYY-MM-DD HH:mm')
     }
 }

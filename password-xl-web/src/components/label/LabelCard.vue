@@ -1,5 +1,5 @@
 <!--标签卡片-->
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
@@ -13,9 +13,9 @@ const settingStore = useSettingStore()
 
 <template>
   <el-card
-      class="label-card"
       v-if="settingStore.setting.showLabelCard"
       :style="{'background-color': passwordStore.isDark?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'}"
+      class="label-card"
       header="标签">
     <template #header>
       <div style="display: flex;justify-content: space-between">
@@ -24,11 +24,12 @@ const settingStore = useSettingStore()
           <el-text size="large">标签</el-text>
         </div>
         <div>
-          <el-tooltip v-if="passwordStore.filterCondition.labelArray.length" content="标签过滤生效中，点击取消" placement="left">
-            <el-badge is-dot class="item">
+          <el-tooltip v-if="passwordStore.filterCondition.labelArray.length" content="标签过滤生效中，点击取消"
+                      placement="left">
+            <el-badge class="item" is-dot>
                     <span
-                        @click="refStore.labelTreeRef.setCheckedNodes([])"
-                        class="iconfont icon-filtration filter-icon"></span>
+                        class="iconfont icon-filtration filter-icon"
+                        @click="refStore.labelTreeRef.setCheckedNodes([])"></span>
             </el-badge>
           </el-tooltip>
         </div>

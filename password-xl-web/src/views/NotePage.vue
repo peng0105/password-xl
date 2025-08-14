@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {TreeNote} from "@/types/types";
 import NoteEditor from "@/components/note/NoteEditor.vue";
 import router from "@/router";
@@ -19,7 +19,7 @@ const activateChange = (treeNote: TreeNote): void => {
   noteEditorRef.value.showNote(treeNote)
 }
 
-const closeMessage = () =>{
+const closeMessage = () => {
   showFirstUseMessage.value = false
   localStorage.setItem('firstNote', '1')
 }
@@ -35,9 +35,9 @@ onMounted(() => {
 
 <template>
   <el-container class="note-container">
-    <el-aside width="310px" class="mask" style="margin-right: 6px;">
+    <el-aside class="mask" style="margin-right: 6px;" width="310px">
       <div style="height: calc(100% - 2px);display: flex;flex-direction: column;">
-        <el-alert @close="closeMessage" v-if="showFirstUseMessage" type="warning" style="margin-bottom: 12px;">
+        <el-alert v-if="showFirstUseMessage" style="margin-bottom: 12px;" type="warning" @close="closeMessage">
           笔记内容未使用主密码加密，请注意安全
         </el-alert>
         <el-card shadow="never" style="width: calc(100% - 2px);flex: 1;">
@@ -46,10 +46,11 @@ onMounted(() => {
               <el-text style="font-size: 18px;color: #444">目录</el-text>
               <div style="display: flex;align-items: center;">
                 <el-tooltip content="密码管理">
-                  <img alt="" @click="toPassword" style="height: 30px;margin-right: 10px;cursor: pointer" src="../assets/images/logo.svg">
+                  <img alt="" src="../assets/images/logo.svg" style="height: 30px;margin-right: 10px;cursor: pointer"
+                       @click="toPassword">
                 </el-tooltip>
                 <el-tooltip content="添加笔记">
-                  <el-button @click="addNote()" plain circle class="note-btn" type="primary">
+                  <el-button circle class="note-btn" plain type="primary" @click="addNote()">
                     +
                   </el-button>
                 </el-tooltip>

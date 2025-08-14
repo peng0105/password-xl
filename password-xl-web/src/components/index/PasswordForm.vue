@@ -1,7 +1,7 @@
 <!--密码表单组件-->
-<script setup lang="ts">
+<script lang="ts" setup>
 
-import {copyText, displaySize, getBgColor, randomPassword} from "@/utils/global.ts";
+import {copyText, displaySize, randomPassword} from "@/utils/global.ts";
 import {GenerateRule, Password, PasswordStatus} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
@@ -273,9 +273,9 @@ onBeforeUnmount(() => {
 <template>
   <el-drawer
       v-model="alertVisStatus"
+      :direction="['xs','sm'].includes(displaySize().value)?'btt':'rtl'"
       :show-close="false"
       :size="['xs','sm'].includes(displaySize().value)?'80%':'540px'"
-      :direction="['xs','sm'].includes(displaySize().value)?'btt':'rtl'"
   >
     <template #header>
       <el-text style="font-size: 16px">
@@ -283,151 +283,151 @@ onBeforeUnmount(() => {
       </el-text>
     </template>
     <el-form
+        :ref="(el: any) => refStore.passwordFormFormRef = el"
         :model="passwordForm"
         :rules="passwordFormRules"
-        label-width="60px"
-        :ref="(el: any) => refStore.passwordFormFormRef = el">
+        label-width="60px">
       <el-form-item label="名称" prop="title">
         <el-input :ref="(el: any) => refStore.passwordFormTitleRef = el" v-model="passwordForm.title"
                   autocomplete="new-password" clearable></el-input>
       </el-form-item>
       <el-form-item label="地址" prop="address">
-        <el-input placeholder="https://" v-model="passwordForm.address" autocomplete="new-password"
-                  clearable></el-input>
+        <el-input v-model="passwordForm.address" autocomplete="new-password" clearable
+                  placeholder="https://"></el-input>
       </el-form-item>
       <el-form-item label="用户名" prop="username">
         <el-autocomplete
             v-model="passwordForm.username"
             :fetch-suggestions="usernameSearch"
-            clearable
             autocomplete="new-password"
+            clearable
         />
       </el-form-item>
       <el-form-item label="密码">
         <el-card class="generate-card">
           <div class="generate-input-div">
-            <el-input autocomplete="new-password" class="generate-input" placeholder="输入密码或随机生成"
-                      v-model="passwordForm.password" clearable>
+            <el-input v-model="passwordForm.password" autocomplete="new-password" class="generate-input"
+                      clearable placeholder="输入密码或随机生成">
               <template #append>
                 <el-tooltip content="随机生成" placement="top">
-                  <el-button :ref="(el: any) => refStore.passwordFormGenerateBtnRef = el" @click="generatePassword"
-                             tabindex="-1" class="refresh-password">
-                    <i class="iconfont icon-dice" :class="{'random-dice':playAnimate}"
+                  <el-button :ref="(el: any) => refStore.passwordFormGenerateBtnRef = el" class="refresh-password"
+                             tabindex="-1" @click="generatePassword">
+                    <i :class="{'random-dice':playAnimate}" class="iconfont icon-dice"
                        @animationend="playAnimate = false"></i>
                   </el-button>
                 </el-tooltip>
               </template>
             </el-input>
-            <el-button @click="copyText(passwordForm.password)" tabindex="-1" type="success" plain>复制</el-button>
+            <el-button plain tabindex="-1" type="success" @click="copyText(passwordForm.password)">复制</el-button>
           </div>
 
           <div class="generate-use-type-div">
             <el-row>
-              <el-col :xs="{span:12}" :sm="{span:6}" style="text-align: center">
+              <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
                 <el-checkbox
-                    size="small"
-                    class="generate-type-checkbox"
                     v-model="generateForm.uppercase"
-                    label="大写"
-                    tabindex="-1"
                     :disabled="!generateForm.lowercase && !generateForm.number && !generateForm.symbol"
-                    @change="generatePassword"
-                    border/>
-              </el-col>
-              <el-col :xs="{span:12}" :sm="{span:6}" style="text-align: center">
-                <el-checkbox
-                    size="small"
+                    border
                     class="generate-type-checkbox"
+                    label="大写"
+                    size="small"
+                    tabindex="-1"
+                    @change="generatePassword"/>
+              </el-col>
+              <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
+                <el-checkbox
                     v-model="generateForm.lowercase"
-                    label="小写"
-                    tabindex="-1"
                     :disabled="!generateForm.uppercase && !generateForm.number && !generateForm.symbol"
-                    @change="generatePassword"
-                    border/>
-              </el-col>
-              <el-col :xs="{span:12}" :sm="{span:6}" style="text-align: center">
-                <el-checkbox
-                    size="small"
+                    border
                     class="generate-type-checkbox"
+                    label="小写"
+                    size="small"
+                    tabindex="-1"
+                    @change="generatePassword"/>
+              </el-col>
+              <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
+                <el-checkbox
                     v-model="generateForm.number"
-                    label="数字"
-                    tabindex="-1"
                     :disabled="!generateForm.uppercase && !generateForm.lowercase && !generateForm.symbol"
-                    @change="generatePassword"
-                    border/>
-              </el-col>
-              <el-col :xs="{span:12}" :sm="{span:6}" style="text-align: center">
-                <el-checkbox
-                    size="small"
+                    border
                     class="generate-type-checkbox"
-                    v-model="generateForm.symbol"
-                    label="符号"
+                    label="数字"
+                    size="small"
                     tabindex="-1"
+                    @change="generatePassword"/>
+              </el-col>
+              <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
+                <el-checkbox
+                    v-model="generateForm.symbol"
                     :disabled="!generateForm.uppercase && !generateForm.lowercase && !generateForm.number"
-                    @change="generatePassword"
-                    border/>
+                    border
+                    class="generate-type-checkbox"
+                    label="符号"
+                    size="small"
+                    tabindex="-1"
+                    @change="generatePassword"/>
               </el-col>
             </el-row>
           </div>
           <div class="generate-length-div">
             <el-slider
-                size="small"
-                @change="generatePassword"
-                v-model="generateForm.length"
-                :min="4" :max="32"
-                tabindex="-1"
                 :ref="(el: any) => refStore.passwordFormGenerateRuleRef = el"
+                v-model="generateForm.length"
+                :max="32"
+                :min="4" :show-input-controls="false"
                 show-input
-                :show-input-controls="false"/>
+                size="small"
+                tabindex="-1"
+                @change="generatePassword"/>
           </div>
         </el-card>
       </el-form-item>
       <el-form-item label="标签">
         <el-tree-select
             v-model="passwordForm.labels"
-            :data="passwordStore.labelArray"
-            node-key="id"
             :check-strictly="true"
-            :props="{label:'name'}"
+            :data="passwordStore.labelArray"
             :default-expanded-keys="getDefaultExpandedKeys()"
+            :props="{label:'name'}"
             multiple
+            node-key="id"
             show-checkbox
         />
       </el-form-item>
       <el-form-item label="备注">
         <el-input
-            type="textarea"
-            placeholder="备注..."
+            v-model="passwordForm.remark"
             :rows="2"
             autocomplete="new-password"
-            v-model="passwordForm.remark"></el-input>
+            placeholder="备注..."
+            type="textarea"></el-input>
       </el-form-item>
       <el-form-item v-if="settingStore.setting.passwordColor">
         <div
             v-for="color in settingStore.setting.bgColors"
-            @click="passwordForm.bgColor === color?passwordForm.bgColor = '':passwordForm.bgColor = color"
             :style="{'background-color':getBgColor(color,passwordForm.bgColor === color ? '0.5':'0.3'),'transform': passwordForm.bgColor === color?'scale(1.5)':'scale(1)'}"
-            class="bg-color-item">
-          <span class="iconfont icon-check-mark" style="font-size: 14px" v-show="passwordForm.bgColor === color"></span>
+            class="bg-color-item"
+            @click="passwordForm.bgColor === color?passwordForm.bgColor = '':passwordForm.bgColor = color">
+          <span v-show="passwordForm.bgColor === color" class="iconfont icon-check-mark" style="font-size: 14px"></span>
         </div>
       </el-form-item>
       <el-form-item label="自定义">
-        <el-card style="width: 100%" v-if="passwordForm.customFields && passwordForm.customFields.length > 0">
-          <div style="display: flex" v-for="(field,index) in passwordForm.customFields"
-               :style="{'margin-bottom': index !== passwordForm.customFields.length - 1?'15px':'0'}">
-            <el-input style="margin-right: 10px;flex: 1" v-model="field.key" placeholder="名称"></el-input>
-            <el-input style="margin-right: 10px;flex: 2" v-model="field.val" placeholder="内容"></el-input>
-            <el-button title="删除" @click="delField(index)" type="danger" plain>
+        <el-card v-if="passwordForm.customFields && passwordForm.customFields.length > 0" style="width: 100%">
+          <div v-for="(field,index) in passwordForm.customFields" :style="{'margin-bottom': index !== passwordForm.customFields.length - 1?'15px':'0'}"
+               style="display: flex">
+            <el-input v-model="field.key" placeholder="名称" style="margin-right: 10px;flex: 1"></el-input>
+            <el-input v-model="field.val" placeholder="内容" style="margin-right: 10px;flex: 2"></el-input>
+            <el-button plain title="删除" type="danger" @click="delField(index)">
               <span class="iconfont icon-clean"></span>
             </el-button>
           </div>
         </el-card>
-        <el-button @click="addField()" style="margin-top: 10px" type="primary" plain>添加自定义信息</el-button>
+        <el-button plain style="margin-top: 10px" type="primary" @click="addField()">添加自定义信息</el-button>
       </el-form-item>
     </el-form>
     <div style="display: flex;justify-content: end">
-      <el-button @click="savePassword(refStore.passwordFormFormRef)"
-                 :ref="(el: any) => refStore.passwordFormSaveBtnRef = el" type="primary">保存
+      <el-button :ref="(el: any) => refStore.passwordFormSaveBtnRef = el"
+                 type="primary" @click="savePassword(refStore.passwordFormFormRef)">保存
       </el-button>
     </div>
   </el-drawer>

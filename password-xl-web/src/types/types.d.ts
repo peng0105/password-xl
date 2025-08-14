@@ -20,14 +20,19 @@ interface SaveFilePickerOptions {
 interface FileHandle {
     kind: "file";
     name: string;
+
     getFile(): Promise<File>;
+
     createWritable(): Promise<FileSystemWritableFileStream>;
 }
 
 interface FileSystemWritableFileStream extends WritableStream {
     write(data: BufferSource | Blob | string): Promise<void>;
+
     seek(position: number): Promise<void>;
+
     truncate(size: number): Promise<void>;
+
     close(): Promise<void>;
 }
 

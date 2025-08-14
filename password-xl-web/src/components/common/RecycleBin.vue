@@ -1,5 +1,5 @@
 <!-- 密码回收站 -->
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {displaySize} from "@/utils/global.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -52,26 +52,29 @@ defineExpose({
 
 <template>
   <el-dialog
-      :fullscreen="['xs'].includes(displaySize().value)"
       v-model="visRecycleBin"
-      width="600px"
+      :fullscreen="['xs'].includes(displaySize().value)"
+      class="recycle-bin"
       draggable
-      class="recycle-bin">
+      width="600px">
     <template #header>
       <el-text size="large" style="user-select: none;">
         <span class="iconfont icon-recycle-bin"></span>
         回收站
       </el-text>
     </template>
-    <el-table height="380px" :header-cell-style="{'padding':0}" v-if="settingStore.setting.enableRecycleBin" :data="passwordStore.deletedArray">
+    <el-table v-if="settingStore.setting.enableRecycleBin" :data="passwordStore.deletedArray" :header-cell-style="{'padding':0}"
+              height="380px">
       <template #empty>
         <el-text type="info">这里空空如也</el-text>
       </template>
       <el-table-column prop="title"></el-table-column>
       <el-table-column width="150px">
         <template #default="scope">
-          <el-link type="primary" @click="cancelDeletePassword(scope.row)" :underline="false">还原</el-link>
-          <el-link type="danger" style="margin-left: 15px" @click="completelyDelete(scope.row)" :underline="false">彻底删除</el-link>
+          <el-link :underline="false" type="primary" @click="cancelDeletePassword(scope.row)">还原</el-link>
+          <el-link :underline="false" style="margin-left: 15px" type="danger" @click="completelyDelete(scope.row)">
+            彻底删除
+          </el-link>
         </template>
       </el-table-column>
     </el-table>
@@ -83,7 +86,7 @@ defineExpose({
         <el-text type="info">当前未开启密码回收站功能</el-text>
       </div>
       <div style="margin: 40px">
-        <el-button @click="enableRecycleBin" type="primary" plain>开启回收站</el-button>
+        <el-button plain type="primary" @click="enableRecycleBin">开启回收站</el-button>
       </div>
     </div>
   </el-dialog>

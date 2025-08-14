@@ -27,7 +27,7 @@ export class DatabaseForPrivate implements Database {
         this.serverUrl = form.serverUrl
         return new Promise((resolve) => {
             axios.post(this.serverUrl + '/login', {username: form.username, password: form.password}).then(res => {
-                console.log('私有服务登录结果：',res)
+                console.log('私有服务登录结果：', res)
                 if (res.status !== 200) {
                     resolve({status: false, message: res.statusText})
                     return
@@ -39,7 +39,7 @@ export class DatabaseForPrivate implements Database {
                 this.token = res.data.data
                 resolve({status: true})
             }).catch(err => {
-                console.log('私有服务登录失败',err)
+                console.log('私有服务登录失败', err)
                 resolve({status: false, message: this.errorDispose(err.message)})
             })
         })
@@ -174,7 +174,10 @@ export class DatabaseForPrivate implements Database {
                 return
             }
 
-            axios.post(this.serverUrl + '/put', { key: fileName, content: content}, {headers: {Authorization: `Bearer ${this.token}`}}).then(res => {
+            axios.post(this.serverUrl + '/put', {
+                key: fileName,
+                content: content
+            }, {headers: {Authorization: `Bearer ${this.token}`}}).then(res => {
                 if (res.data.code === 500) {
                     console.log('private 上传文件错误：', res.data)
                     ElNotification.error({title: '系统异常', message: this.errorDispose(res.data.message)})

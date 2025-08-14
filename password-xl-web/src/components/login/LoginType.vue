@@ -1,5 +1,5 @@
 <!--登录类型选择组件-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import ElectronLoginForm from "@/components/login/ElectronLoginForm.vue";
 import AndroidLoginForm from "@/components/login/AndroidLoginForm.vue";
 
@@ -16,13 +16,13 @@ const isAndroid = () => {
 
 const electronStore = () => {
   console.log('使用本地存储electron')
-  emits('loginTypeChange','electron')
+  emits('loginTypeChange', 'electron')
   electronLoginFormRef.value.useLocalLogin()
 }
 
 const androidStore = () => {
   console.log('使用本地存储android')
-  emits('loginTypeChange','android')
+  emits('loginTypeChange', 'android')
   androidLoginFormRef.value.useLocalLogin()
 }
 
@@ -34,40 +34,52 @@ const androidStore = () => {
       <el-col :span="12">
         <div class="login-type-item oss" @click="emits('loginTypeChange','oss')">
           <img alt="" src="../../assets/images/login/oss.png">
-          <div><el-text>阿里云OSS</el-text></div>
+          <div>
+            <el-text>阿里云OSS</el-text>
+          </div>
         </div>
       </el-col>
       <el-col :span="12">
         <div class="login-type-item cos" @click="emits('loginTypeChange','cos')">
           <img alt="" src="../../assets/images/login/cos.png">
-          <div><el-text>腾讯云COS</el-text></div>
+          <div>
+            <el-text>腾讯云COS</el-text>
+          </div>
         </div>
       </el-col>
-      <el-col :span="12" v-if="false">
+      <el-col v-if="false" :span="12">
         <div class="login-type-item official" @click="emits('loginTypeChange','official')">
           <img alt="" src="../../assets/images/login/official.png">
-          <div><el-text>官方存储</el-text></div>
+          <div>
+            <el-text>官方存储</el-text>
+          </div>
         </div>
       </el-col>
       <el-col :span="12">
         <div class="login-type-item private" @click="emits('loginTypeChange','private')">
           <img alt="" src="../../assets/images/login/private.png">
-          <div><el-text>私有服务</el-text></div>
+          <div>
+            <el-text>私有服务</el-text>
+          </div>
         </div>
       </el-col>
-      <el-col :span="12" v-if="isElectron()">
+      <el-col v-if="isElectron()" :span="12">
         <div class="login-type-item local" @click="electronStore">
           <img alt="" src="../../assets/images/login/local.png">
-          <div><el-text>本地存储</el-text></div>
+          <div>
+            <el-text>本地存储</el-text>
+          </div>
         </div>
       </el-col>
-      <el-col :span="12" v-else-if="isAndroid()">
+      <el-col v-else-if="isAndroid()" :span="12">
         <div class="login-type-item local" @click="androidStore">
           <img alt="" src="../../assets/images/login/local.png">
-          <div><el-text>本地存储</el-text></div>
+          <div>
+            <el-text>本地存储</el-text>
+          </div>
         </div>
       </el-col>
-      <el-col :span="12" v-else>
+      <el-col v-else :span="12">
         <div class="login-type-item local" @click="emits('loginTypeChange','local')">
           <img alt="" src="../../assets/images/login/local.png">
           <div>
@@ -147,6 +159,7 @@ const androidStore = () => {
   background: rgba(228, 10, 244, 0.27);
   box-shadow: 0 0 10px #bbb;
 }
+
 .login-type-item.local {
   background: rgba(40, 193, 39, 0.3);
 }

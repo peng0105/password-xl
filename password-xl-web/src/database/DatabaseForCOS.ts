@@ -107,7 +107,7 @@ export class DatabaseForCOS implements Database {
                 Body: file,
             }, (err, data) => {
                 if (err) {
-                    console.error('cos上传图片错误：',err)
+                    console.error('cos上传图片错误：', err)
                     ElNotification.error({title: '系统异常', message: this.errorDispose(err)})
                     reject({status: false, message: this.errorDispose(err)})
                 } else {
@@ -139,7 +139,7 @@ export class DatabaseForCOS implements Database {
                     console.log('cos 获取文件404')
                     resolve('')
                 } else {
-                    console.error('cos 获取文件错误：',err)
+                    console.error('cos 获取文件错误：', err)
                     ElNotification.error({title: '系统异常', message: this.errorDispose(err)})
                     reject({status: false, message: this.errorDispose(err)})
                 }
@@ -181,7 +181,7 @@ export class DatabaseForCOS implements Database {
                 Body: JSON.stringify(content),
             }, (err, data) => {
                 if (err) {
-                    console.error('cos上传文件错误：',err)
+                    console.error('cos上传文件错误：', err)
                     ElNotification.error({title: '系统异常', message: this.errorDispose(err)})
                     reject({status: false, message: this.errorDispose(err)})
                 } else {

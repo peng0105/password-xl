@@ -2,7 +2,7 @@ import {defineStore} from "pinia";
 import {PasswordDisplayMode, Setting, Sort} from "@/types";
 
 export const useSettingStore = defineStore('settingStore', {
-    state: (): {visSetting: boolean, setting: Setting } => {
+    state: (): { visSetting: boolean, setting: Setting } => {
         return {
             visSetting: false,
             setting: {

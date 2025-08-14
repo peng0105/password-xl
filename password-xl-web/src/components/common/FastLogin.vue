@@ -1,5 +1,5 @@
 <!-- 快速登录提示 -->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {decryptAES} from "@/utils/security.ts";
 import {useRouter} from "vue-router";
 import {displaySize, getFastLoginLink, getLocationUrl} from "@/utils/global.ts";
@@ -42,7 +42,8 @@ defineExpose({
 
 <template>
 
-  <el-dialog :fullscreen="['xs', 'sm'].includes(displaySize().value)" :append-to-body="true" width="700px" v-model="visFastLogin">
+  <el-dialog v-model="visFastLogin" :append-to-body="true" :fullscreen="['xs', 'sm'].includes(displaySize().value)"
+             width="700px">
     <template #header>
       <el-text size="large" style="user-select: none;">
         <span class="iconfont icon-verify"></span>
@@ -53,13 +54,13 @@ defineExpose({
       <el-text type="info">以下链接可以自动输入登录信息，您可以保存此链接以防丢失：</el-text>
     </div>
     <div style="margin-top: 5px">
-      <el-input type="textarea" :rows="7" :model-value="fastLoginUrl"></el-input>
+      <el-input :model-value="fastLoginUrl" :rows="7" type="textarea"></el-input>
     </div>
     <div style="margin-top: 10px">
       <el-text type="info">该链接为password-XL首页地址，您可以收藏：</el-text>
     </div>
     <div style="margin-top: 5px">
-      <el-input readonly :model-value="getLocationUrl()"></el-input>
+      <el-input :model-value="getLocationUrl()" readonly></el-input>
     </div>
     <template #footer>
       <el-button type="primary" @click="toHome">好的</el-button>
