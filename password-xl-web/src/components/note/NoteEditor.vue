@@ -34,7 +34,6 @@ const showNote = (treeNote: TreeNote): void => {
   }
   loading.value = true;
   passwordStore.passwordManager.getData('note/' + treeNote.id + '.html').then((data) => {
-    loading.value = false
     if (data) {
       noteData.value = JSON.parse(data);
     }else{
@@ -47,6 +46,7 @@ const showNote = (treeNote: TreeNote): void => {
     }
     lastSyncText.value = JSON.stringify(noteData.value)
     initEditor(noteData.value.content)
+    loading.value = false
   })
 }
 
@@ -165,8 +165,7 @@ defineExpose({
         </el-space>
       </div>
     </template>
-
-    <div ref="editorRef" style="height: calc(100vh - 66px)"/>
+    <div ref="editorRef" v-loading="loading" element-loading-text="加载中，别急" style="height: calc(100vh - 66px)"/>
   </el-card>
 </template>
 
@@ -194,6 +193,7 @@ aie-footer, .aie-codeblock-tools-comments, .aie-codeblock-tools-explain {
   background: transparent;
   width: 50%;
   color: #444;
+  font-weight: bold;
 }
 
 :deep(.el-card) {

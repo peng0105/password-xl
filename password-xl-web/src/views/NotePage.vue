@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import {TreeNote} from "@/types/types";
 import NoteEditor from "@/components/note/NoteEditor.vue";
+import router from "@/router";
 
 const noteTreeRef = ref()
 const showFirstUseMessage = ref(false)
 const noteEditorRef = ref()
+
+const toPassword = () => {
+  router.push('/')
+}
 
 const addNote = (note?: TreeNote): void => {
   noteTreeRef.value.addNote(note)
@@ -39,9 +44,16 @@ onMounted(() => {
           <template #header>
             <div style="display: flex;justify-content: space-between">
               <el-text style="font-size: 18px;color: #444">目录</el-text>
-              <el-button @click="addNote()" plain circle class="add-note-btn" type="primary">
-                +
-              </el-button>
+              <div style="display: flex;align-items: center;">
+                <el-tooltip content="密码管理">
+                  <img alt="" @click="toPassword" style="height: 30px;margin-right: 10px;cursor: pointer" src="../assets/images/logo.svg">
+                </el-tooltip>
+                <el-tooltip content="添加笔记">
+                  <el-button @click="addNote()" plain circle class="note-btn" type="primary">
+                    +
+                  </el-button>
+                </el-tooltip>
+              </div>
             </div>
           </template>
           <NoteTree ref="noteTreeRef" @activateChange="activateChange"></NoteTree>
@@ -82,7 +94,7 @@ onMounted(() => {
   width: 100%;
 }
 
-.add-note-btn {
+.note-btn {
   font-size: 20px;
   padding: 0;
   font-weight: 100;

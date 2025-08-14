@@ -340,7 +340,7 @@ export class PasswordManagerImpl implements PasswordManager {
             }
 
             // 恢复笔记树
-            if (this.treeNoteData) {
+            if (this.treeNoteData && this.treeNoteData.noteData) {
                 let noteDataText = decryptAES(mainPassword, this.treeNoteData.noteData);
                 if (noteDataText) {
                     this.noteStore.noteData = JSON.parse(noteDataText)
