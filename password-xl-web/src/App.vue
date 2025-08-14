@@ -80,4 +80,5 @@ body, html {
 #password-app {
   height: 100vh;
 }
+
 </style>

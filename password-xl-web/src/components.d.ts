@@ -18,6 +18,7 @@ declare module 'vue' {
     CopyrightNotice: typeof import('./components/common/setting/CopyrightNotice.vue')['default']
     COSLoginForm: typeof import('./components/login/COSLoginForm.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
+    ElAside: typeof import('element-plus/es')['ElAside']
     ElAutocomplete: typeof import('element-plus/es')['ElAutocomplete']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -27,6 +28,7 @@ declare module 'vue' {
     ElCollapse: typeof import('element-plus/es')['ElCollapse']
     ElCollapseItem: typeof import('element-plus/es')['ElCollapseItem']
     ElConfigProvider: typeof import('element-plus/es')['ElConfigProvider']
+    ElContainer: typeof import('element-plus/es')['ElContainer']
     ElDescriptions: typeof import('element-plus/es')['ElDescriptions']
     ElDescriptionsItem: typeof import('element-plus/es')['ElDescriptionsItem']
     ElDialog: typeof import('element-plus/es')['ElDialog']
@@ -40,11 +42,13 @@ declare module 'vue' {
     ElFormItem: typeof import('element-plus/es')['ElFormItem']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElLink: typeof import('element-plus/es')['ElLink']
+    ElMain: typeof import('element-plus/es')['ElMain']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSlider: typeof import('element-plus/es')['ElSlider']
+    ElSpace: typeof import('element-plus/es')['ElSpace']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
@@ -73,6 +77,8 @@ declare module 'vue' {
     LocalLoginForm: typeof import('./components/login/LocalLoginForm.vue')['default']
     LoginInfo: typeof import('./components/common/setting/LoginInfo.vue')['default']
     LoginType: typeof import('./components/login/LoginType.vue')['default']
+    NoteEditor: typeof import('./components/note/NoteEditor.vue')['default']
+    NoteTree: typeof import('./components/note/NoteTree.vue')['default']
     NoviceGuide: typeof import('./components/common/NoviceGuide.vue')['default']
     OSSLoginForm: typeof import('./components/login/OSSLoginForm.vue')['default']
     PasswordCards: typeof import('./components/index/PasswordCards.vue')['default']
@@ -91,7 +97,7 @@ declare module 'vue' {
     TextLine: typeof import('./components/login/TextLine.vue')['default']
     VerifyMainPassword: typeof import('./components/common/VerifyMainPassword.vue')['default']
   }
-  export interface ComponentCustomProperties {
+  export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

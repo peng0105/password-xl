@@ -60,6 +60,8 @@ export const useRefStore = defineStore('refStore', {
             displayModeTableRef: ref(),
             // 搜索框
             searchInputRef: ref(),
+            // 笔记标题
+            noteTitleRef: ref(),
         }
     }
 })

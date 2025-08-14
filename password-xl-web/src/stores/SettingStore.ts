@@ -2,8 +2,9 @@ import {defineStore} from "pinia";
 import {PasswordDisplayMode, Setting, Sort} from "@/types";
 
 export const useSettingStore = defineStore('settingStore', {
-    state: (): { setting: Setting } => {
+    state: (): {visSetting: boolean, setting: Setting } => {
         return {
+            visSetting: false,
             setting: {
                 // 自动生成密码
                 autoGeneratePassword: true,

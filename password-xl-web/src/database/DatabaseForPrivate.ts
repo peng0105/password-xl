@@ -10,6 +10,7 @@ export class DatabaseForPrivate implements Database {
     private fileNames = {
         store: 'store.json',
         setting: 'setting.json',
+        note: 'note.json',
     }
 
     // 文件更新标记（用于检查文件是否在其他客户端更新过，若在其他客户端更新过则强制刷新页面）
@@ -54,6 +55,26 @@ export class DatabaseForPrivate implements Database {
         return this.uploadFile(this.fileNames.store, text)
     }
 
+    // 获取笔记数据
+    async getTreeNoteData(): Promise<string> {
+        return this.getFile(this.fileNames.note)
+    }
+
+    // 设置笔记数据
+    async setNoteData(text: string): Promise<RespData> {
+        return this.uploadFile(this.fileNames.note, text)
+    }
+
+    // 获取数据
+    async getData(name: string): Promise<string> {
+        return this.getFile(name)
+    }
+
+    // 设置数据
+    async setData(name: string, text: string): Promise<RespData> {
+        return this.uploadFile(name, text)
+    }
+
     // 删除密码数据
     async deleteStoreData() {
         return this.deleteFile(this.fileNames.store)
@@ -72,6 +93,31 @@ export class DatabaseForPrivate implements Database {
     // 删除设置数据
     async deleteSettingData() {
         return this.deleteFile(this.fileNames.setting)
+    }
+
+    // 删除数据
+    async deleteData(name: string): Promise<RespData> {
+        return this.deleteFile(name)
+    }
+
+    // 上传图片
+    async uploadImage(file: File, prefix: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            axios.post(this.serverUrl + '/uploadImage/' + prefix, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${this.token}`
+                }
+            }).then(response => {
+                console.log('上传成功', response.data);
+                resolve(this.serverUrl + '/image' + response.data.data.objectKey);
+            }).catch(error => {
+                console.error('上传失败', error);
+                reject(error);
+            });
+        })
     }
 
     // 获取文件
@@ -128,7 +174,7 @@ export class DatabaseForPrivate implements Database {
                 return
             }
 
-            axios.post(this.serverUrl + '/put', {key: fileName, content: content}, {headers: {Authorization: `Bearer ${this.token}`}}).then(res => {
+            axios.post(this.serverUrl + '/put', { key: fileName, content: content}, {headers: {Authorization: `Bearer ${this.token}`}}).then(res => {
                 if (res.data.code === 500) {
                     console.log('private 上传文件错误：', res.data)
                     ElNotification.error({title: '系统异常', message: this.errorDispose(res.data.message)})
