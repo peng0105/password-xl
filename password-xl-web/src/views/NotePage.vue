@@ -105,5 +105,6 @@ onMounted(() => {
 
 .note-container {
   backdrop-filter: blur(20px);
+  min-width: 900px
 }
 </style>
