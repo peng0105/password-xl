@@ -193,9 +193,10 @@ defineExpose({
             :ref="(el: any) => dropdownRef[data.id] = el"
             trigger="contextmenu"
             style="width: 100%">
-          <div @contextmenu="contextmenu($event,data.id)" class="node-class"
-               :style="{'color': noteStore.noteData.currentNote === data.id?'#409EFF':''}">
-            {{ data.label }}
+          <div @contextmenu="contextmenu($event,data.id)" class="node-class">
+            <el-text truncated style="width: 85%;" :style="{'color': noteStore.noteData.currentNote === data.id?'#409EFF':''}">
+              {{ data.label }}
+            </el-text>
           </div>
           <template #dropdown>
             <el-dropdown-menu style="width: 100px;">
