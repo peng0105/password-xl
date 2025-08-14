@@ -40,12 +40,28 @@ declare global {
             uploadFile(fileName: string, content: string): Promise<RespData>;
             deleteFile(fileName: string): Promise<RespData>;
             setTopic(topic: string): void;
+            uploadImage(fileName: string, arrayBuffer: ArrayBuffer, prefix: string): any;
         }
         androidAPI: {
             getFile(fileName: string): Promise<string>;
             uploadFile(fileName: string, content: string): Promise<RespData>;
             deleteFile(fileName: string): Promise<RespData>;
             setTopic(topic: string): void;
+            uploadImage(file: File, prefix: string): any;
         }
     }
+}
+
+interface TreeNote {
+    id: string
+    label: string
+    expand: boolean
+    children: TreeNote[]
+}
+
+interface NoteData {
+    id: string
+    name: string
+    content: string
+    updateTime: number
 }

@@ -5,6 +5,7 @@ import {Database, RespData} from "@/types";
 import OSS from "ali-oss";
 import {Buffer} from "buffer";
 import {OSSLoginForm} from "@/types/index.ts";
+import {generateRandomId} from "@/utils/global.ts";
 
 export class DatabaseForOSS implements Database {
 
@@ -12,6 +13,7 @@ export class DatabaseForOSS implements Database {
     private fileNames = {
         store: 'password-xl/store.json',
         setting: 'password-xl/setting.json',
+        note: 'password-xl/note.json',
     }
 
     // 文件更新标记（用于检查文件是否在其他客户端更新过，若在其他客户端更新过则强制刷新页面）
@@ -19,6 +21,9 @@ export class DatabaseForOSS implements Database {
 
     // oss 客户端
     private ossClient: OSS | null = null
+
+    private region: string | null = null
+    private bucket: string | null = null
 
     // 登录并验证文件权限、初始化基本信息
     async login(form: OSSLoginForm): Promise<RespData> {
@@ -30,6 +35,8 @@ export class DatabaseForOSS implements Database {
                 accessKeySecret: form.accessKeySecret,
                 bucket: form.bucket,
             })
+            this.region = form.region
+            this.bucket = form.bucket
             return Promise.resolve({status: true})
         } catch (err) {
             return Promise.reject({status: false, message: err})
@@ -44,6 +51,26 @@ export class DatabaseForOSS implements Database {
     // 设置密码数据
     async setStoreData(text: string) {
         return this.uploadFile(this.fileNames.store, text)
+    }
+
+    // 获取笔记数据
+    async getTreeNoteData(): Promise<string> {
+        return this.getFile(this.fileNames.note)
+    }
+
+    // 设置笔记数据
+    async setNoteData(text: string): Promise<RespData> {
+        return this.uploadFile(this.fileNames.note, text)
+    }
+
+    // 获取数据
+    async getData(name: string): Promise<string> {
+        return this.getFile(name)
+    }
+
+    // 设置数据
+    async setData(name: string, text: string): Promise<RespData> {
+        return this.uploadFile(name, text)
     }
 
     // 删除密码数据
@@ -64,6 +91,34 @@ export class DatabaseForOSS implements Database {
     // 删除设置数据
     async deleteSettingData() {
         return this.deleteFile(this.fileNames.setting)
+    }
+
+    // 删除数据
+    async deleteData(name: string): Promise<RespData> {
+        return this.deleteFile(name)
+    }
+
+    // 上传图片
+    async uploadImage(file: File, prefix: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            if (!this.ossClient) throw new Error('oss uploadFile 存储引擎不存在')
+
+            let extName = file.name.split('.').pop()
+            let objectKey = '/images/' + prefix + '/' + generateRandomId() + '.' + extName
+            const headers = {
+                'x-oss-object-acl': 'public-read'
+            }
+            this.ossClient.put(objectKey, file, {headers}).then(async () => {
+                console.log('上传oss图片成功：', objectKey)
+                console.log('this.region', this.region)
+                console.log('this.bucket', this.bucket)
+                resolve('https://' + this.bucket + '.' + this.region + '.aliyuncs.com' + objectKey)
+            }).catch((err) => {
+                console.error('oss上传文件错误：', err)
+                ElNotification.error({title: '系统异常', message: this.errorDispose(err)})
+                reject({status: false, message: this.errorDispose(err)})
+            });
+        })
     }
 
     // 获取oss文件

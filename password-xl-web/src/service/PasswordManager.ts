@@ -1,7 +1,18 @@
 /**
  * 密码管理器(上接视图,下接存储)
  */
-import {Database, Label, MainPasswordType, Password, PasswordManager, PasswordStatus, RespData, ServiceStatus, StoreData} from "@/types";
+import {
+    Database,
+    Label,
+    MainPasswordType,
+    TreeNoteData,
+    Password,
+    PasswordManager,
+    PasswordStatus,
+    RespData,
+    ServiceStatus,
+    StoreData
+} from "@/types";
 import {checkPassword, decryptAES, encryptAES} from "@/utils/security.ts";
 import {compressArray, decompressionArray} from "@/utils/compress";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -9,6 +20,7 @@ import {useLoginStore} from "@/stores/LoginStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {randomPassword} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
+import {useNoteStore} from "@/stores/NoteStore.ts";
 
 export class PasswordManagerImpl implements PasswordManager {
 
@@ -16,22 +28,32 @@ export class PasswordManagerImpl implements PasswordManager {
     private databaseClient: Database | null = null;
     // 原始密码文件
     public storeData: StoreData | null = null
+    // 原始笔记树文件
+    public treeNoteData: TreeNoteData | null = null
     // 密码状态管理器
     private passwordStore = usePasswordStore()
     // 登录状态管理器
     private loginStore = useLoginStore()
     // 设置状态管理器
     private settingStore = useSettingStore()
+    // 笔记状态管理器
+    private noteStore = useNoteStore()
     // ref状态管理器
     private refStore = useRefStore()
 
+    private nodeCacheMap = new Map<string, string | null>()
+
     // 登录
     async login(database: Database): Promise<RespData> {
-        console.log('passwordManager 登录')
+        console.log('passwordManager 登录');
         return new Promise(async (resolve, reject) => {
             try {
-                let storeDataText = await database.getStoreData()
-                let settingDataText = await database.getSettingData()
+                // 同时请求三个数据
+                const [storeDataText, settingDataText, noteTreeDataText] = await Promise.all([
+                    database.getStoreData(),
+                    database.getSettingData(),
+                    database.getTreeNoteData()
+                ]);
 
                 // 验证通过初始化基本信息
                 if (storeDataText) {
@@ -42,31 +64,36 @@ export class PasswordManagerImpl implements PasswordManager {
                 }
 
                 if (settingDataText) {
-                    console.log('passwordManager 验证通过初始化设置信息')
+                    console.log('passwordManager 验证通过初始化设置信息');
                     Object.assign(this.settingStore.setting, JSON.parse(settingDataText));
                 }
 
+                if (noteTreeDataText) {
+                    console.log('passwordManager 验证通过初始化笔记信息');
+                    this.treeNoteData = JSON.parse(noteTreeDataText);
+                }
+
                 // 设置存储引擎
-                console.log('passwordManager 设置存储引擎')
-                this.databaseClient = database
+                console.log('passwordManager 设置存储引擎');
+                this.databaseClient = database;
 
                 // 设置密码管理器
-                this.passwordStore.passwordManager = this
-                console.log('passwordManager 密码管理器初始化成功')
+                this.passwordStore.passwordManager = this;
+                console.log('passwordManager 密码管理器初始化成功');
 
                 if (this.storeData && this.storeData.passwordData) {
                     // 密码文件存在-设置服务状态为已登录
-                    this.passwordStore.mainPasswordType = this.storeData.mainPasswordType
+                    this.passwordStore.mainPasswordType = this.storeData.mainPasswordType;
                     this.passwordStore.setServiceStatus(ServiceStatus.LOGGED);
                 } else {
                     // 密码文件不存在-设置服务状态为待初始化
                     this.passwordStore.setServiceStatus(ServiceStatus.WAIT_INIT);
                 }
-                resolve({status: true})
+                resolve({ status: true });
             } catch (e) {
-                reject({status: false, message: e});
+                reject({ status: false, message: e });
             }
-        })
+        });
     }
 
     // 初始化密码（第一次使用该系统）
@@ -174,18 +201,25 @@ export class PasswordManagerImpl implements PasswordManager {
 
         // 防止修改失败备份密文
         let backStoreData = JSON.stringify(this.storeData);
+        let backTreeNoteData = JSON.stringify(this.treeNoteData);
 
         this.storeData = {
             passwordData: encryptAES(newMainPassword, JSON.stringify(compressArray(this.passwordStore.allPasswordArray))),
             labelData: encryptAES(newMainPassword, JSON.stringify(this.passwordStore.labelArray)),
             mainPasswordType: newMainPasswordType,
         }
+        this.treeNoteData = {
+            noteData: encryptAES(newMainPassword, JSON.stringify(this.noteStore.noteData)),
+            mainPasswordType: newMainPasswordType,
+        }
 
         // 修改密码文件
         let passwordResult = await this.databaseClient.setStoreData(JSON.stringify(this.storeData))
-        if (!passwordResult || !passwordResult.status) {
+        let noteResult = await this.databaseClient.setNoteData(JSON.stringify(this.treeNoteData))
+        if (!passwordResult || !passwordResult.status || !noteResult || !noteResult.status) {
             // 修改失败-回退
             this.storeData = JSON.parse(backStoreData)
+            this.treeNoteData = JSON.parse(backTreeNoteData)
             ElNotification.error({title: '系统异常',message: passwordResult.message})
             return Promise.reject()
         }
@@ -292,7 +326,6 @@ export class PasswordManagerImpl implements PasswordManager {
         if (!this.storeData) throw new Error('系统异常')
 
         try {
-
             // 检查当前主密码是否正解锁备份文件
             if (!checkPassword(mainPassword, this.storeData.passwordData)) {
                 ElMessage.error('解锁失败-密码错误')
@@ -306,10 +339,19 @@ export class PasswordManagerImpl implements PasswordManager {
                 return false
             }
 
+            // 恢复笔记树
+            if (this.treeNoteData && this.treeNoteData.noteData) {
+                let noteDataText = decryptAES(mainPassword, this.treeNoteData.noteData);
+                if (noteDataText) {
+                    this.noteStore.noteData = JSON.parse(noteDataText)
+                }
+            }
+
             // 开始恢复
             this.passwordStore.allPasswordArray = decompressionArray(JSON.parse(passwordText))
             this.passwordStore.labelArray = JSON.parse(labelText)
             this.passwordStore.mainPassword = mainPassword
+
             this.passwordStore.setServiceStatus(ServiceStatus.UNLOCKED)
             console.log('密码本已解锁')
 
@@ -360,10 +402,30 @@ export class PasswordManagerImpl implements PasswordManager {
         return this.databaseClient.setStoreData(JSON.stringify(this.storeData))
     }
 
+    // 同步数据
+    syncNoteData(): Promise<RespData> {
+        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+        if (!this.databaseClient) throw new Error('系统异常databaseClient isnull syncNoteData')
+        console.log('同步笔记数据',this.noteStore.noteData)
+        let content = {
+            noteData: encryptAES(this.passwordStore.mainPassword, JSON.stringify(this.noteStore.noteData)),
+            mainPasswordType: this.passwordStore.mainPasswordType,
+        }
+        return this.databaseClient.setNoteData(JSON.stringify(content))
+    }
+
     // 获取StoreData
     getStoreData(): StoreData {
         if (this.storeData) {
             return this.storeData;
+        }
+        throw new Error('文件不存在')
+    }
+
+    // 获取treeNoteData
+    getTreeNoteData(): TreeNoteData {
+        if (this.treeNoteData) {
+            return this.treeNoteData;
         }
         throw new Error('文件不存在')
     }
@@ -387,5 +449,52 @@ export class PasswordManagerImpl implements PasswordManager {
         if (this.passwordStore.serviceStatus !== serviceStatus) {
             throw new Error('当前服务状态不允许该操作：' + this.passwordStore.serviceStatus)
         }
+    }
+
+    // 获取数据
+    getData = (name: string): Promise<string> =>{
+        if(!this.databaseClient) throw new Error('系统异常databaseClient isnull getData')
+        // 从缓存中获取
+        let data = this.nodeCacheMap.get(name)
+        if(data) {
+           return Promise.resolve(data)
+        }
+
+        return new Promise((resolve) => {
+            if(!this.databaseClient) throw new Error('系统异常databaseClient isnull getData')
+            this.databaseClient.getData(name).then((data) => {
+                // 缓存数据
+                this.nodeCacheMap.set(name, data)
+                resolve(data)
+            })
+        })
+    }
+
+    // 设置数据
+    setData = (name: string, text: string): Promise<RespData> =>{
+        return new Promise((resolve) => {
+            if(!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
+            this.databaseClient.setData(name, text).then((data) => {
+                // 缓存数据
+                this.nodeCacheMap.set(name, text)
+                resolve(data)
+            })
+        })
+    }
+
+    // 删除数据
+    delData = (name: string): Promise<RespData> =>{
+        return new Promise((resolve) => {
+            if(!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
+            this.databaseClient.deleteData(name).then((data) => {
+                resolve(data)
+            })
+        })
+    }
+
+    // 删除数据
+    uploadImage = (file: File, prefix: string): Promise<any> =>{
+        if(!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
+        return this.databaseClient.uploadImage(file, prefix)
     }
 }

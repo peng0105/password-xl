@@ -3,6 +3,7 @@ import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {GenerateRule, Label, Password} from "@/types";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {encryptAES} from "@/utils/security.ts";
+import CryptoJS from 'crypto-js'
 
 // 判断字符串是否为url
 export const isUrl = (str: string) => {
@@ -51,13 +52,18 @@ export const searchStr = (searchText: string, value: string): boolean => {
     if (!value) return false;
     if (!searchText) return false;
 
-    const lowerSearchText = searchText.toLowerCase();
-    const lowerValue = value.toLowerCase();
+    try {
+        const lowerSearchText = searchText.toLowerCase();
+        const lowerValue = value.toLowerCase();
 
-    // 普通大小写忽略搜索
-    if (lowerValue.includes(lowerSearchText)) {
-        return true;
+        // 普通大小写忽略搜索
+        if (lowerValue.includes(lowerSearchText)) {
+            return true;
+        }
+    } catch (e) {
+        console.log(e)
     }
+
     return false;
 };
 
@@ -121,7 +127,7 @@ export function randomPassword(generateRule: GenerateRule) {
 
     pool = pool.filter(Boolean)
     if (!pool.length) {
-        ElNotification.error({title: '生成失败',message: '请检查易混淆字符配置'})
+        ElNotification.error({title: '生成失败', message: '请检查易混淆字符配置'})
         return ''
     }
 
@@ -425,13 +431,13 @@ const joinPassword = (password: Password) => {
 
 // 比较密码
 export const comparePassword = (a: Password, b: Password): boolean => {
-    return joinPassword(a) ===joinPassword(b)
+    return joinPassword(a) === joinPassword(b)
 }
 
 // 获取当前域名地址
 export const getLocationUrl = () => {
     let url = location.origin
-    if(url.startsWith('file://')){
+    if (url.startsWith('file://')) {
         url += location.pathname
     }
     return url
@@ -455,4 +461,9 @@ export const incrId = () => {
 export const getFastLoginLink = (loginForm: any): string => {
     let url = getLocationUrl()
     return url + '/#/login?type=' + loginForm.loginType + '&autoLogin=' + encryptAES('password-xl', JSON.stringify(loginForm));
+}
+
+export const generateRandomId = (): string => {
+    const wordArray = CryptoJS.lib.WordArray.random(8);
+    return wordArray.toString(CryptoJS.enc.Hex);
 }

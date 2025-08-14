@@ -2,6 +2,8 @@
 import {useLoginStore} from "@/stores/LoginStore.ts";
 import {useRoute} from "vue-router";
 
+const OSSLoginForm = defineAsyncComponent(() => import('@/components/login/OSSLoginForm.vue'))
+
 const route = useRoute()
 const loginStore = useLoginStore()
 
@@ -70,7 +72,9 @@ initForm()
                         <span class="iconfont icon-back login-back"></span>返回
                       </el-link>
                     </div>
-                    <OSSLoginForm v-if="loginStore.loginType === 'oss'"></OSSLoginForm>
+                    <template v-if="loginStore.loginType === 'oss'">
+                      <OSSLoginForm></OSSLoginForm>
+                    </template>
                     <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                     <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                     <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>
@@ -103,7 +107,9 @@ initForm()
           <div class="login-form-card" v-else v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText">
             <el-row style="margin-top: 20px">
               <el-col :span="22" :offset="1">
-                <OSSLoginForm v-if="loginStore.loginType === 'oss'"></OSSLoginForm>
+                <template v-if="loginStore.loginType === 'oss'">
+                  <OSSLoginForm></OSSLoginForm>
+                </template>
                 <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                 <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                 <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>

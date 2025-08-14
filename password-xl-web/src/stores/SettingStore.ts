@@ -2,8 +2,9 @@ import {defineStore} from "pinia";
 import {PasswordDisplayMode, Setting, Sort} from "@/types";
 
 export const useSettingStore = defineStore('settingStore', {
-    state: (): { setting: Setting } => {
+    state: (): {visSetting: boolean, setting: Setting } => {
         return {
+            visSetting: false,
             setting: {
                 // 自动生成密码
                 autoGeneratePassword: true,
@@ -42,7 +43,7 @@ export const useSettingStore = defineStore('settingStore', {
                 // 验证主密码时显示手势
                 verifyShowGesture: true,
                 // 密码展示方式
-                passwordDisplayMode: PasswordDisplayMode.TABLE,
+                passwordDisplayMode: PasswordDisplayMode.CARD,
                 // 记住登录信息
                 autoLogin: true,
                 // 记住主密码
