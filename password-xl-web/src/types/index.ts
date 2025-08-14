@@ -380,7 +380,7 @@ export interface StoreData {
 
 // 笔记树文件存储对象
 export interface TreeNoteData {
-    noteTree: string,
+    noteData: string,
     mainPasswordType: MainPasswordType,
 }
 

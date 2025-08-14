@@ -155,7 +155,7 @@ defineExpose({
 </script>
 
 <template>
-  <el-card v-if="noteStore.currentNote" shadow="never" class="editor-card" style="height: calc(100% - 2px)">
+  <el-card v-if="noteStore.noteData.currentNote" shadow="never" class="editor-card" style="height: calc(100% - 2px)">
     <template #header>
       <div style="display: flex;justify-content: space-between">
         <input :ref="(el: any) => refStore.noteTitleRef = el" class="title-input" placeholder="请输入标题" v-model="noteData.name"/>

@@ -40,7 +40,7 @@ declare global {
             uploadFile(fileName: string, content: string): Promise<RespData>;
             deleteFile(fileName: string): Promise<RespData>;
             setTopic(topic: string): void;
-            uploadImage(file: File, prefix: string): any;
+            uploadImage(fileName: string, arrayBuffer: ArrayBuffer, prefix: string): any;
         }
         androidAPI: {
             getFile(fileName: string): Promise<string>;
