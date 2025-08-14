@@ -205,7 +205,7 @@ watch(() => settingStore.setting.showLabelForTable, (newValue: boolean) => {
 
 // 监听AI创建密码设置变更
 watch(() => settingStore.setting.enableAiAdd, (newValue: boolean) => {
-  if (!visSetting.value) return
+  if (!settingStore.visSetting) return
   console.log('AI创建密码设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })

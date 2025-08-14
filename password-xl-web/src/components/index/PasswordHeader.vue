@@ -117,12 +117,6 @@ const lock = () => {
   passwordStore.passwordManager.lock()
 }
 
-// 切换密码展示方式
-const switchDisplayMode = (displayMode: PasswordDisplayMode) => {
-  settingStore.setting.passwordDisplayMode = displayMode
-  passwordStore.passwordManager.syncSetting()
-}
-
 // 切换主题
 const switchTopicMode = (topicMode: TopicMode) => {
   passwordStore.setTopicMode(topicMode)
@@ -230,18 +224,6 @@ const goAbout = () => {
                 :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="列表视图" v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD">
-        <el-button @click="switchDisplayMode(PasswordDisplayMode.TABLE)"
-                   :ref="(el: any) => refStore.displayModeTableRef = el" class="table-btn hidden-sm-and-down" plain>
-          <span class="iconfont icon-list" style="color: #409eff;font-size: 130%;"/>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="卡片视图" v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE">
-        <el-button @click="switchDisplayMode(PasswordDisplayMode.CARD)"
-                   :ref="(el: any) => refStore.displayModeCardRef = el" class="card-btn hidden-sm-and-down" plain>
-          <span class="iconfont icon-card" style="color: #67c23a;font-size: 130%;"/>
-        </el-button>
-      </el-tooltip>
       <el-dropdown trigger="click">
         <el-button class="menu-btn" :style="{'color':passwordStore.isDark?'#ccc':'#666'}" plain>
           <span class="iconfont icon-menu" style="font-size: 130%;"/>
@@ -264,16 +246,14 @@ const goAbout = () => {
             </el-dropdown-item>
             <el-dropdown-item
                 :divided="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showFavoriteCard || !settingStore.setting.showLabelCard"
-                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE
-                && ['xs','sm'].includes(displaySize().value)"
+                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"
                 @click="settingStore.setting.passwordDisplayMode = PasswordDisplayMode.CARD"
             >
               <span class="iconfont icon-card menu-item" style="color: #67c23a"></span>
               卡片视图
             </el-dropdown-item>
             <el-dropdown-item
-                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD
-                && ['xs','sm'].includes(displaySize().value)"
+                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"
                 @click="settingStore.setting.passwordDisplayMode = PasswordDisplayMode.TABLE"
             >
               <span class="iconfont icon-list menu-item" style="color: #409eff"></span>
