@@ -1,7 +1,7 @@
 <!--密码表单组件-->
 <script lang="ts" setup>
 
-import {copyText, displaySize, randomPassword} from "@/utils/global.ts";
+import {copyText, displaySize, getBgColor, randomPassword} from "@/utils/global.ts";
 import {GenerateRule, Password, PasswordStatus} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
