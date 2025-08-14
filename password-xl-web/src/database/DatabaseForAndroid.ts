@@ -74,12 +74,8 @@ export class DatabaseForAndroid implements Database {
     }
 
     // 上传图片
-    async uploadImage(file: File, prefix: string): Promise<any> {
-        console.log('上传android文件', file)
-        return new Promise(async (resolve) => {
-            let data = await window.androidAPI.uploadImage(file, prefix)
-            resolve(data)
-        })
+    async uploadImage(_file: File, _prefix: string): Promise<any> {
+        throw new Error('安卓本地存储暂不支持上传图片，请改用其他存储方式');
     }
 
     // 获取android文件
