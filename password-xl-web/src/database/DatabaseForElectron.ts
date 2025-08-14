@@ -76,7 +76,8 @@ export class DatabaseForElectron implements Database {
     // 上传图片
     async uploadImage(file: File, prefix: string): Promise<any> {
         return new Promise(async (resolve) => {
-            let data = await window.electronAPI.uploadImage(file, prefix)
+            const arrayBuffer = await file.arrayBuffer();
+            let data = await window.electronAPI.uploadImage(file.name, arrayBuffer, prefix)
             resolve(data)
         })
     }

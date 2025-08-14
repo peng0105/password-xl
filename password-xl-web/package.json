@@ -23,7 +23,7 @@
   },
   "scripts": {
     "start": "vite",
-    "preview": "vite preview",
+    "preview": "vue-tsc -b && vite build && vite preview",
     "build": "vue-tsc -b && vite build",
     "dist-to-windows": "vue-tsc -b && vite build && electron-builder build --win --config electron/electron-builder.json5",
     "dist-to-mac": "vue-tsc -b && vite build && electron-builder build --mac --config electron/electron-builder.json5",

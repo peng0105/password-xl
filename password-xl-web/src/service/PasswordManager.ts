@@ -209,7 +209,7 @@ export class PasswordManagerImpl implements PasswordManager {
             mainPasswordType: newMainPasswordType,
         }
         this.treeNoteData = {
-            noteTree: encryptAES(newMainPassword, JSON.stringify(this.noteStore)),
+            noteData: encryptAES(newMainPassword, JSON.stringify(this.noteStore.noteData)),
             mainPasswordType: newMainPasswordType,
         }
 
@@ -341,9 +341,9 @@ export class PasswordManagerImpl implements PasswordManager {
 
             // 恢复笔记树
             if (this.treeNoteData) {
-                let noteTreeText = decryptAES(mainPassword, this.treeNoteData.noteTree);
-                if (noteTreeText) {
-                    Object.assign(this.noteStore, JSON.parse(noteTreeText));
+                let noteDataText = decryptAES(mainPassword, this.treeNoteData.noteData);
+                if (noteDataText) {
+                    this.noteStore.noteData = JSON.parse(noteDataText)
                 }
             }
 
@@ -406,8 +406,9 @@ export class PasswordManagerImpl implements PasswordManager {
     syncNoteData(): Promise<RespData> {
         this.serviceStatusAssert(ServiceStatus.UNLOCKED)
         if (!this.databaseClient) throw new Error('系统异常databaseClient isnull syncNoteData')
+        console.log('同步笔记数据',this.noteStore.noteData)
         let content = {
-            noteTree: encryptAES(this.passwordStore.mainPassword, JSON.stringify(this.noteStore)),
+            noteData: encryptAES(this.passwordStore.mainPassword, JSON.stringify(this.noteStore.noteData)),
             mainPasswordType: this.passwordStore.mainPasswordType,
         }
         return this.databaseClient.setNoteData(JSON.stringify(content))

@@ -29,12 +29,12 @@ const addNote = (note?: TreeNote): void => {
     }
     note.children.push(newNote)
   } else {
-    noteStore.noteTree.push(newNote)
+    noteStore.noteData.noteTree.push(newNote)
   }
 
   nextTick(() => {
     treeRef.value.setCurrentKey(newNote.id + '')
-    noteStore.currentNote = newNote.id + '';
+    noteStore.noteData.currentNote = newNote.id + '';
     if (refStore.noteTitleRef && refStore.noteTitleRef.value) {
       refStore.noteTitleRef.focus()
     }
@@ -95,11 +95,11 @@ const affirmDeleteNote = (node: any) => {
     passwordStore.passwordManager.delData(name)
   }
 
-  delNoteTree(preDeleteArray, noteStore.noteTree)
+  delNoteTree(preDeleteArray, noteStore.noteData.noteTree)
 
-  if (noteStore.currentNote) {
-    if (preDeleteArray.includes(noteStore.currentNote)) {
-      noteStore.currentNote = ''
+  if (noteStore.noteData.currentNote) {
+    if (preDeleteArray.includes(noteStore.noteData.currentNote)) {
+      noteStore.noteData.currentNote = ''
     }
   }
 
@@ -121,10 +121,10 @@ const contextmenu = (event: MouseEvent, _id: number) => {
 
 // 选择发生变化
 const currentChange = (treeNote: TreeNote): void => {
-  if (noteStore.currentNote === treeNote.id) {
+  if (noteStore.noteData.currentNote === treeNote.id) {
     return
   }
-  noteStore.currentNote = treeNote.id;
+  noteStore.noteData.currentNote = treeNote.id;
   emits('activateChange', treeNote)
   passwordStore.passwordManager.syncNoteData()
 }
@@ -153,11 +153,11 @@ const expandedKeys = (notes: Array<TreeNote>) => {
 }
 
 onMounted(() => {
-  expandedKeys(noteStore.noteTree);
+  expandedKeys(noteStore.noteData.noteTree);
   loading.value = false
   nextTick(() => {
-    if (noteStore.currentNote) {
-      treeRef.value.setCurrentKey(noteStore.currentNote);
+    if (noteStore.noteData.currentNote) {
+      treeRef.value.setCurrentKey(noteStore.noteData.currentNote);
       let node = treeRef.value.getCurrentNode()
       if (node) {
         emits('activateChange', node);
@@ -176,7 +176,7 @@ defineExpose({
   <div class="note-tree" v-if="!loading">
     <el-tree
         style="max-width: 600px"
-        :data="noteStore.noteTree"
+        :data="noteStore.noteData.noteTree"
         ref="treeRef"
         :expand-on-click-node="false"
         @node-expand="nodeExpand"
@@ -194,7 +194,7 @@ defineExpose({
             trigger="contextmenu"
             style="width: 100%">
           <div @contextmenu="contextmenu($event,data.id)" class="node-class"
-               :style="{'color': noteStore.currentNote === data.id?'#409EFF':''}">
+               :style="{'color': noteStore.noteData.currentNote === data.id?'#409EFF':''}">
             {{ data.label }}
           </div>
           <template #dropdown>
