@@ -15,4 +15,13 @@
       <module name="password-xl.test" target="21" />
     </bytecodeTargetLevel>
   </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="password-xl-service" options="-parameters" />
+      <module name="password-xl-service.aot" options="-parameters" />
+      <module name="password-xl-service.aotTest" options="-parameters" />
+      <module name="password-xl-service.main" options="-parameters" />
+      <module name="password-xl-service.test" options="-parameters" />
+    </option>
+  </component>
 </project>

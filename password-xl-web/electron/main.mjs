@@ -2,6 +2,8 @@ import path from 'node:path'
 import fs from 'fs'
 import {app, BrowserWindow, ipcMain, nativeTheme, shell} from 'electron'
 import {fileURLToPath} from "node:url";
+import CryptoJS from "crypto-js";
+import { protocol } from 'electron';
 
 const __dirname = fileURLToPath(new URL("../", import.meta.url))
 const createWindow = () => {
@@ -26,11 +28,34 @@ const createWindow = () => {
     })
 }
 
+
 app.whenReady().then(() => {
     createWindow()
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
+
+    protocol.handle('appimg', async (request) => {
+        const url = request.url.replace('appimg://', '');
+        const filePath = path.join(app.getPath('userData'), url);
+
+        try {
+            const data = await fs.promises.readFile(filePath);
+            const ext = path.extname(filePath).toLowerCase();
+
+            let mimeType = 'application/octet-stream';
+            if (ext === '.png') mimeType = 'image/png';
+            else if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+            else if (ext === '.gif') mimeType = 'image/gif';
+            else if (ext === '.webp') mimeType = 'image/webp';
+
+            return new Response(data, {
+                headers: { 'Content-Type': mimeType }
+            });
+        } catch (err) {
+            return new Response('File not found', { status: 404 });
+        }
+    });
 })
 
 app.on('window-all-closed', () => {
@@ -57,6 +82,8 @@ ipcMain.handle('get-file', (_event, fileName) => {
 ipcMain.handle('upload-file', (_event, fileName, content) => {
     return new Promise((resolve, reject) => {
         const filePath = path.join(app.getPath('userData'), fileName);
+        const dir = path.dirname(filePath);
+        fs.mkdirSync(dir, { recursive: true });
         try {
             fs.writeFileSync(filePath, content);
             resolve({status: true})
@@ -81,4 +108,26 @@ ipcMain.handle('delete-file', (_event, fileName) => {
 
 ipcMain.handle('set-topic', (_event, topic) => {
     nativeTheme.themeSource = topic
+})
+
+const generateRandomId = () => {
+    const wordArray = CryptoJS.lib.WordArray.random(8);
+    return wordArray.toString(CryptoJS.enc.Hex);
+}
+
+ipcMain.handle('upload-image', (_event, fileName, arrayBuffer, prefix) => {
+    return new Promise((resolve, reject) => {
+        let extName = fileName.split('.').pop()
+        let objectKey = '/images/' + prefix + '/' + generateRandomId() + '.' + extName
+
+        const filePath = path.join(app.getPath('userData'), objectKey);
+        try {
+            const dir = path.dirname(filePath);
+            fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
+            resolve(`appimg://${objectKey}`)
+        } catch (err) {
+            reject({status: 'error', message: err})
+        }
+    })
 })

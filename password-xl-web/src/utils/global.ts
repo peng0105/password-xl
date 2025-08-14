@@ -3,6 +3,7 @@ import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {GenerateRule, Label, Password} from "@/types";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {encryptAES} from "@/utils/security.ts";
+import CryptoJS from 'crypto-js'
 
 // 判断字符串是否为url
 export const isUrl = (str: string) => {
@@ -460,4 +461,9 @@ export const incrId = () => {
 export const getFastLoginLink = (loginForm: any): string => {
     let url = getLocationUrl()
     return url + '/#/login?type=' + loginForm.loginType + '&autoLogin=' + encryptAES('password-xl', JSON.stringify(loginForm));
+}
+
+export const generateRandomId = (): string => {
+    const wordArray = CryptoJS.lib.WordArray.random(8);
+    return wordArray.toString(CryptoJS.enc.Hex);
 }

@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     uploadFile: async (fileName, content) => ipcRenderer.invoke('upload-file', fileName, content),
     deleteFile: async (fileName) => ipcRenderer.invoke('delete-file', fileName),
     setTopic: async (topic) => ipcRenderer.invoke('set-topic', topic),
+    uploadImage: async (fileName, arrayBuffer, prefix) => ipcRenderer.invoke('upload-image', fileName, arrayBuffer, prefix),
 })

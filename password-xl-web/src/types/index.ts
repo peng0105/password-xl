@@ -1,5 +1,6 @@
 // 密码
 import {Ref} from "vue";
+import {TreeNote} from "@/types/types";
 
 // 自定义字段
 export interface CustomField {
@@ -135,8 +136,8 @@ export interface PasswordManager {
     // 同步标签数据
     syncStoreData(): Promise<RespData>,
 
-    // 同步密码数据
-    syncStoreData(): Promise<RespData>,
+    // 同步笔记数据
+    syncNoteData(): Promise<RespData>,
 
     // 同步系统设置
     syncSetting(): Promise<RespData>,
@@ -147,8 +148,23 @@ export interface PasswordManager {
     // 获取StoreData
     getStoreData(): StoreData,
 
+    // 获取TreeNote
+    getTreeNoteData(): TreeNoteData,
+
     // 注销账号
     closeAccount(): Promise<RespData>,
+
+    // 获取数据
+    getData(name: string): Promise<string>,
+
+    // 设置数据
+    setData(name: string, text: string): Promise<RespData>,
+
+    // 删除数据
+    delData(name: string): Promise<RespData>,
+
+    // 上传图片
+    uploadImage(file: File, prefix: string): Promise<any>,
 }
 
 // 数据库
@@ -159,6 +175,18 @@ export interface Database {
 
     setStoreData(text: string): Promise<RespData>,
 
+    // 获取笔记数据
+    getTreeNoteData(): Promise<string>,
+
+    // 设置笔记数据
+    setNoteData(text: string): Promise<RespData>,
+
+    // 获取数据
+    getData(name: string): Promise<string>,
+
+    // 设置数据
+    setData(name: string, text: string): Promise<RespData>,
+
     deleteStoreData(): Promise<RespData>,
 
     getSettingData(): Promise<string>,
@@ -166,6 +194,10 @@ export interface Database {
     setSettingData(text: string): Promise<RespData>,
 
     deleteSettingData(): Promise<RespData>,
+
+    deleteData(fileName: string): Promise<RespData>,
+
+    uploadImage(file: File, prefix: string): Promise<any>,
 }
 
 // 公用异步响应
@@ -181,6 +213,12 @@ export enum ServiceStatus {
     LOGGED = '已登录',
     WAIT_INIT = '待初始化',
     UNLOCKED = '已解锁',
+}
+
+// NoteStore
+export interface NoteStore {
+    noteTree: Array<TreeNote>
+    currentNote: string
 }
 
 // PasswordStore
@@ -272,12 +310,15 @@ export interface RefStore {
     displayModeTableRef: Ref,
     // 搜索框
     searchInputRef: Ref,
+    // 笔记标题
+    noteTitleRef: Ref,
 }
 
 // 备份文件格式
 export interface BackupFile {
     explain: string,
     storeData: StoreData,
+    noteData?: TreeNoteData | null,
     backupTime: number,
 }
 
@@ -337,7 +378,11 @@ export interface StoreData {
     mainPasswordType: MainPasswordType,
 }
 
-
+// 笔记树文件存储对象
+export interface TreeNoteData {
+    noteData: string,
+    mainPasswordType: MainPasswordType,
+}
 
 export interface LoginStore {
     // 登录类型

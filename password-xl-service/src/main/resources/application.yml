@@ -1,6 +1,10 @@
 spring:
   application:
     name: password-xl-service
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 doc:
   openSource: https://github.com/peng0105/password-xl
