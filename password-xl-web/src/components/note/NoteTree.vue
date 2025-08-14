@@ -12,15 +12,14 @@ const dropdownRef: Ref<{ [key: number]: any }> = ref({})
 const passwordStore = usePasswordStore()
 const treeRef = ref()
 const loading = ref(true)
-const defaultExpandedKeys: Ref<string[]> = ref([])
 const emits = defineEmits(['activateChange'])
+const expandKeys: Ref<string[]> = ref([])
 
 // 添加笔记
 const addNote = (note?: TreeNote): void => {
   let newNote: TreeNote = {
     id: generateRandomId(),
     label: '新笔记',
-    expand: false,
     children: []
   }
   if (note) {
@@ -93,6 +92,7 @@ const affirmDeleteNote = (node: any) => {
   for (let i = 0; i < preDeleteArray.length; i++) {
     let name = 'note/' + preDeleteArray[i] + '.html'
     passwordStore.passwordManager.delData(name)
+    nodeCollapse(preDeleteArray[i])
   }
 
   delNoteTree(preDeleteArray, noteStore.noteData.noteTree)
@@ -130,30 +130,19 @@ const currentChange = (treeNote: TreeNote): void => {
 }
 
 // 节点展开
-const nodeExpand = (data: TreeNote) => {
-  data.expand = true
-  passwordStore.passwordManager.syncNoteData()
+const nodeExpand = (id: string) => {
+  expandKeys.value.push(id)
+  localStorage.setItem('expandKeys', JSON.stringify(expandKeys.value))
 }
 
 // 节点收起
-const nodeCollapse = (data: TreeNote) => {
-  data.expand = false
-  passwordStore.passwordManager.syncNoteData()
-}
-
-const expandedKeys = (notes: Array<TreeNote>) => {
-  for (let i = 0; i < notes.length; i++) {
-    if (notes[i].expand) {
-      defaultExpandedKeys.value.push(notes[i].id)
-    }
-    if (notes[i].children) {
-      expandedKeys(notes[i].children)
-    }
-  }
+const nodeCollapse = (id: string) => {
+  expandKeys.value = expandKeys.value.filter((item: string) => item !== id)
+  localStorage.setItem('expandKeys', JSON.stringify(expandKeys.value))
 }
 
 onMounted(() => {
-  expandedKeys(noteStore.noteData.noteTree);
+  expandKeys.value = JSON.parse(localStorage.getItem('expandKeys') || '[]')
   loading.value = false
   nextTick(() => {
     if (noteStore.noteData.currentNote) {
@@ -179,9 +168,9 @@ defineExpose({
         :data="noteStore.noteData.noteTree"
         ref="treeRef"
         :expand-on-click-node="false"
-        @node-expand="nodeExpand"
-        @node-collapse="nodeCollapse"
-        :default-expanded-keys="defaultExpandedKeys"
+        @node-expand="(node) => nodeExpand(node.id)"
+        @node-collapse="(node) => nodeCollapse(node.id)"
+        :default-expanded-keys="expandKeys"
         node-key="id"
         highlight-current
         draggable

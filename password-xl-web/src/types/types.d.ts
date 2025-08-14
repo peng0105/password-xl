@@ -55,7 +55,6 @@ declare global {
 interface TreeNote {
     id: string
     label: string
-    expand: boolean
     children: TreeNote[]
 }
 
