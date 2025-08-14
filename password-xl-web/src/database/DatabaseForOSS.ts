@@ -34,6 +34,7 @@ export class DatabaseForOSS implements Database {
                 accessKeyId: form.accessKeyId,
                 accessKeySecret: form.accessKeySecret,
                 bucket: form.bucket,
+                secure: true,
             })
             this.region = form.region
             this.bucket = form.bucket
@@ -203,7 +204,8 @@ export class DatabaseForOSS implements Database {
             'AccessDenied': '该账号无存储桶（bucket）权限或存储桶错误',
         }
         if (err.status === -1) {
-           return '有可能是存储桶（bucket）不存在、地域（region）错误、跨域配置错误'
+            console.error('存储桶访问异常：', err)
+            return '有可能是存储桶（bucket）不存在、地域（region）错误、跨域配置错误'
         } else if (err.status === 403) {
             let message = errCodeDist[err.code]
             if (message) {

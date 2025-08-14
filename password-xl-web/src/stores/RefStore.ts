@@ -24,6 +24,8 @@ export const useRefStore = defineStore('refStore', {
             backupAndRecoveryRef: ref(),
             // 快速登录提示
             fastLoginRef: ref(),
+            // Ai解析密码组件
+            aiAddPasswordRef: ref(),
             // 标签抽屉
             labelDrawer: ref(),
             // 收藏抽屉
@@ -40,6 +42,8 @@ export const useRefStore = defineStore('refStore', {
             contextmenuRef: ref(),
             // 创建密码按钮
             createPasswordBtnRef: ref(),
+            // Ai创建密码按钮
+            aiCreatePasswordBtnRef: ref(),
             // 密码表单
             passwordFormFormRef: ref(),
             // 密码表单标题录入框

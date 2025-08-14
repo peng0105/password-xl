@@ -203,6 +203,13 @@ watch(() => settingStore.setting.showLabelForTable, (newValue: boolean) => {
   passwordStore.passwordManager.syncSetting()
 })
 
+// 监听AI创建密码设置变更
+watch(() => settingStore.setting.enableAiAdd, (newValue: boolean) => {
+  if (!settingStore.visSetting) return
+  console.log('AI创建密码设置变更:', newValue)
+  passwordStore.passwordManager.syncSetting()
+})
+
 // 监听密码列表中显示时间设置变更
 watch(() => settingStore.setting.showTimeForTable, (newValue: string) => {
   if (!settingStore.visSetting) return
@@ -429,6 +436,16 @@ const isAndroid = () => {
             </el-text>
           </template>
           <el-scrollbar :height="scrollbarHeight()">
+            <div class="function-div">
+              <div class="function-header">
+                <el-text tag="b">启用AI创建</el-text>
+                <el-switch v-model="settingStore.setting.enableAiAdd"></el-switch>
+              </div>
+              <el-divider class="function-line"/>
+              <el-text type="info" tag="p" style="text-indent: 10px">
+                在首页启用AI创建密码，AI创建可以把包含账号信息的文本解析成结构化的密码。
+              </el-text>
+            </div>
             <div class="function-div">
               <div class="function-header">
                 <el-text tag="b">显示标签卡片</el-text>

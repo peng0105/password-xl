@@ -47,16 +47,18 @@ public class AppStart implements ApplicationRunner {
             for (String path : configPaths) {
                 configFile = new File(path);
                 if (configFile.exists()) {
+                    log.info("开始读取用户配置文件: {}", path);
                     break;
                 }
             }
+        } else {
+            log.info("读取用户配置文件: {}", configPath);
         }
 
         if (!configFile.exists()) {
             throw new RuntimeException("配置文件不存在. 请参考官方部署说明文档：" + deployDoc);
         }
 
-        log.info("开始读取用户配置文件: {}", configPath);
         log.info("数据存储目录: {}", DataService.workPath);
         Toml toml = new Toml().read(configFile);
         List<Map<String, Object>> maps = toml.getList("user");

@@ -137,12 +137,18 @@ const goAbout = () => {
   location.href = 'https://password-xl.cn/about'
 }
 
+// ai创建密码
+const aiAddPassword = () => {
+  refStore.aiAddPasswordRef.show()
+}
+
 </script>
 
 <template>
   <div class="password-card-header">
     <div>
-      <el-text class="hidden-sm-and-down password-title" style="width: 300px" v-if="settingStore.setting.showPasswordStatistics">
+      <el-text class="hidden-sm-and-down password-title" style="width: 300px"
+               v-if="settingStore.setting.showPasswordStatistics">
         <template v-if="passwordStore.visPasswordArray.length > 0">
           <span>
             共
@@ -183,7 +189,8 @@ const goAbout = () => {
           @blur="inputIng = false;saveSearchLog()"
       >
         <template #default="{ item }">
-          <div v-if="item.type === 'cleanHistory'" style="text-align: center;margin-left: -20px;margin-right: -20px;" class="clear-history">
+          <div v-if="item.type === 'cleanHistory'" style="text-align: center;margin-left: -20px;margin-right: -20px;"
+               class="clear-history">
             <span @click="clearSearchHistory" class="clear-history-text">清除搜索历史</span>
           </div>
           <div v-else>
@@ -199,28 +206,40 @@ const goAbout = () => {
     </div>
     <div style="display: flex;">
       <el-button
+          :ref="(el: any) => refStore.aiCreatePasswordBtnRef = el"
+          :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
+          @click="aiAddPassword"
+          v-if="settingStore.setting.enableAiAdd"
+          class="ai-add-password-btn"
+          type="primary"
+          plain>
+        Ai
+      </el-button>
+      <el-button
           :ref="(el: any) => refStore.createPasswordBtnRef = el"
           :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
           @click="addPassword"
           class="add-password-btn"
           type="primary"
           plain>
-        创建密码
+        添加
       </el-button>
 
       <el-tooltip content="打开笔记" v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED">
         <el-button @click="toNote" class="to-note-btn" plain>
-          <span class="iconfont icon-note" style="font-size: 120%;font-weight: bold;color: #E6A23C"/>
+          <span class="iconfont icon-note" style="font-size: 120%;font-weight: bold" :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
         </el-button>
       </el-tooltip>
       <el-tooltip content="锁定" v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED">
         <el-button @click="lock" class="lock-btn" plain>
-          <span class="iconfont icon-lock" style="font-size: 120%;" :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
+          <span class="iconfont icon-lock" style="font-size: 120%;"
+                :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
         </el-button>
       </el-tooltip>
       <el-tooltip content="解锁" v-if="passwordStore.serviceStatus === ServiceStatus.LOGGED">
         <el-button @click="unlock" class="unlock-btn" plain>
-          <span class="iconfont icon-unlock" style="font-size: 120%;" :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
+          <span class="iconfont icon-unlock" style="font-size: 120%;"
+                :style="{'color':passwordStore.isDark?'#ccc':'#666'}"/>
         </el-button>
       </el-tooltip>
       <el-dropdown trigger="click">
@@ -281,7 +300,8 @@ const goAbout = () => {
               <span class="iconfont icon-setting menu-item" style="color: #409EFF"></span>
               系统设置
             </el-dropdown-item>
-            <el-dropdown-item @click="openRecycleBin" :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED">
+            <el-dropdown-item @click="openRecycleBin"
+                              :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED">
               <span class="iconfont icon-recycle-bin menu-item" style="color: #E6A23C;"></span>
               回收站
             </el-dropdown-item>
@@ -320,7 +340,7 @@ const goAbout = () => {
 
 :deep(.search-input) {
   max-width: 360px;
-  min-width: 150px;
+  min-width: 120px;
   width: 22vw;
 }
 
@@ -349,11 +369,26 @@ const goAbout = () => {
 }
 
 .search-input-icon {
-  font-size: 120%
+  font-size: 120%;
 }
 
 .add-password-btn {
-  margin-left: 10px
+  margin-left: 10px;
+}
+
+.ai-add-password-btn {
+  margin-left: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  background: linear-gradient(
+      to right top,
+      #d200ff, #00ffee
+  );
+
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 5px rgba(138, 43, 226, 0);
 }
 
 .lock-btn, .unlock-btn, .table-btn, .card-btn, .to-note-btn {
