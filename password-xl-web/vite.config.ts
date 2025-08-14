@@ -8,7 +8,7 @@ import legacy from "@vitejs/plugin-legacy";
 
 const srcPath = path.resolve(__dirname, './src')
 
-const noAttrCrossorigin = () => {
+const noAttrCrossorigin = ():any => {
     return {
         name: "no-attribute-crossorigin",
         enforce:'post',
