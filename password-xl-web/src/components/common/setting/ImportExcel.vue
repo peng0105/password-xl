@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import ExcelJS from 'exceljs';
 import {Label, Password, PasswordStatus} from "@/types";
 import {
@@ -402,15 +402,15 @@ defineExpose({
 </script>
 
 <template>
-  <input type="file" style="display: none" ref="fileInput" @change="fileChange()" accept=".xlsx">
+  <input ref="fileInput" accept=".xlsx" style="display: none" type="file" @change="fileChange()">
   <el-dialog
-      top="10vh"
+      v-model="importAffirmVis"
       :width="['xs','sm','md'].includes(displaySize().value)?'95%':'80%'"
       title="导入信息确认"
-      v-model="importAffirmVis">
+      top="10vh">
 
     <el-table ref="passwordTableRef" :data="importPasswords" height="65vh">
-      <el-table-column type="selection" :selectable="selectCheck" width="55"></el-table-column>
+      <el-table-column :selectable="selectCheck" type="selection" width="55"></el-table-column>
       <el-table-column width="55">
         <template #default="scope">
           <el-tooltip v-if="selectCheck(scope.row)" content="可导入" placement="top">
@@ -424,12 +424,14 @@ defineExpose({
       <el-table-column label="名称" min-width="100px" prop="title"></el-table-column>
       <el-table-column label="地址" min-width="150px" prop="address"></el-table-column>
       <el-table-column label="用户名" min-width="100px" prop="username"></el-table-column>
-      <el-table-column label="密码" width="180px" prop="password">
+      <el-table-column label="密码" prop="password" width="180px">
         <template #default="scope">
-          <el-text truncated line-clamp="3">{{ scope.row.password }}</el-text>
+          <el-text line-clamp="3" truncated>{{ scope.row.password }}</el-text>
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" min-width="150px" :formatter="(row: any) => formatterDate(row.addTime,'YYYY-MM-DD HH:mm')" prop="addTime"></el-table-column>
+      <el-table-column :formatter="(row: any) => formatterDate(row.addTime,'YYYY-MM-DD HH:mm')" label="创建时间"
+                       min-width="150px"
+                       prop="addTime"></el-table-column>
       <el-table-column label="备注" min-width="100px" prop="remark"></el-table-column>
       <el-table-column label="标签" min-width="150px" prop="labels">
         <template #default="scope">
@@ -447,8 +449,8 @@ defineExpose({
       </el-table-column>
     </el-table>
     <template #footer>
-      <el-tooltip content="请选择要导入的密码" placement="top" :disabled="!importBtnDis()">
-        <el-button type="primary" @click="affirmImport" :disabled="importBtnDis()">确认导入</el-button>
+      <el-tooltip :disabled="!importBtnDis()" content="请选择要导入的密码" placement="top">
+        <el-button :disabled="importBtnDis()" type="primary" @click="affirmImport">确认导入</el-button>
       </el-tooltip>
     </template>
   </el-dialog>

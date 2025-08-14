@@ -1,5 +1,5 @@
 <!-- 收藏夹组件 -->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {Password} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
@@ -29,7 +29,7 @@ const filterPassword = (id: number) => {
     console.log('收藏夹密码过滤，清除标签密码过滤：', passwordStore.filterCondition.favoriteId)
     if (refStore.labelTreeRef) {
       refStore.labelTreeRef.setCheckedNodes([]);
-    }else{
+    } else {
       passwordStore.filterCondition.labelArray = []
     }
   }
@@ -54,15 +54,15 @@ const tagEffect = (password: Password) => {
       暂无收藏
     </div>
     <div v-if="passwordStore.favoritePasswordArray.length">
-      <el-dropdown trigger="contextmenu" v-for="password in passwordStore.favoritePasswordArray">
+      <el-dropdown v-for="password in passwordStore.favoritePasswordArray" trigger="contextmenu">
         <el-tag
             :effect="tagEffect(password)"
-            type="warning"
-            @mouseenter="mouseoverId = password.id"
-            @mouseleave="mouseoverId = 0"
             class="favorite-tag"
             size="large"
-            @click="filterPassword(password.id)">
+            type="warning"
+            @click="filterPassword(password.id)"
+            @mouseenter="mouseoverId = password.id"
+            @mouseleave="mouseoverId = 0">
           {{ password.title }}
         </el-tag>
         <template #dropdown>

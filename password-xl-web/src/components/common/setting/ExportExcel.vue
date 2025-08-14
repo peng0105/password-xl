@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {formatterDate, getLabelNamesByIds} from "@/utils/global.ts";
 import ExcelJS from 'exceljs';

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {OSSLoginForm} from "@/types/index.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -32,8 +32,8 @@ const formRules = reactive({
   accessKeyId: [{required: true, message: '请输入accessKeyId', trigger: 'blur'}],
   accessKeySecret: [{required: true, message: '请输入accessKeySecret', trigger: 'blur'}],
   bucket: [
-      {required: true, message: '请输入bucket', trigger: 'blur'},
-      {min: 3,message: '请检查bucket', trigger: 'blur'}
+    {required: true, message: '请输入bucket', trigger: 'blur'},
+    {min: 3, message: '请检查bucket', trigger: 'blur'}
   ]
 })
 
@@ -105,7 +105,7 @@ const initForm = () => {
 }
 
 // 是否支持查看密码
-const showPassword = () =>{
+const showPassword = () => {
   // 非自动登录链接支持
   return !(route.query.autoLogin && route.query.type === 'oss')
 }
@@ -120,26 +120,31 @@ initForm()
   </div>
   <TextLine class="input-login-line hidden-xs-only" text="请输入登录信息"></TextLine>
   <el-row class="login-form-row">
-    <el-col :xs="{span: 24}" :sm="{span: 20, offset: 2}">
-      <el-form :model="form" ref="formRef" :rules="formRules">
+    <el-col :sm="{span: 20, offset: 2}" :xs="{span: 24}">
+      <el-form ref="formRef" :model="form" :rules="formRules">
         <el-form-item prop="region">
-          <el-input v-model="form.region" placeholder="region" clearable></el-input>
+          <el-input v-model="form.region" clearable placeholder="region"></el-input>
         </el-form-item>
         <el-form-item prop="accessKeyId">
-          <el-input v-model="form.accessKeyId" placeholder="accessKeyId" clearable></el-input>
+          <el-input v-model="form.accessKeyId" clearable placeholder="accessKeyId"></el-input>
         </el-form-item>
         <el-form-item prop="accessKeySecret">
-          <el-input type="password" :show-password="showPassword()" v-model="form.accessKeySecret" placeholder="accessKeySecret"></el-input>
+          <el-input v-model="form.accessKeySecret" :show-password="showPassword()" placeholder="accessKeySecret"
+                    type="password"></el-input>
         </el-form-item>
         <el-form-item prop="bucket">
-          <el-input v-model="form.bucket" @keyup.enter.native="login(formRef)" placeholder="bucket" clearable></el-input>
+          <el-input v-model="form.bucket" clearable placeholder="bucket"
+                    @keyup.enter.native="login(formRef)"></el-input>
         </el-form-item>
       </el-form>
-      <el-button @click="login(formRef)" class="login-btn" plain round type="primary">
+      <el-button class="login-btn" plain round type="primary" @click="login(formRef)">
         登 录
       </el-button>
       <div class="register-guide">
-        <el-link :underline="false" target="_blank" href="https://gitee.com/huanyp/password-xl/wikis/%E9%98%BF%E9%87%8C%E4%BA%91OSS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95" type="primary">阿里云OSS注册指引</el-link>
+        <el-link :underline="false" href="https://gitee.com/huanyp/password-xl/wikis/%E9%98%BF%E9%87%8C%E4%BA%91OSS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95"
+                 target="_blank"
+                 type="primary">阿里云OSS注册指引
+        </el-link>
       </div>
     </el-col>
   </el-row>

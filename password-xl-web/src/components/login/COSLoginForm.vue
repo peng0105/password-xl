@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {COSLoginForm} from "@/types/index.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -100,7 +100,7 @@ const initForm = () => {
 }
 
 // 是否支持查看密码
-const showPassword = () =>{
+const showPassword = () => {
   // 非自动登录链接支持
   return !(route.query.autoLogin && route.query.type === 'cos')
 }
@@ -115,26 +115,31 @@ initForm()
   </div>
   <TextLine class="input-login-line" text="请输入登录信息"></TextLine>
   <el-row class="login-form-row">
-    <el-col :xs="{span: 24}" :sm="{span: 20, offset: 2}">
-      <el-form :model="form" ref="formRef" :rules="formRules">
+    <el-col :sm="{span: 20, offset: 2}" :xs="{span: 24}">
+      <el-form ref="formRef" :model="form" :rules="formRules">
         <el-form-item prop="region">
-          <el-input v-model="form.region" placeholder="region" clearable></el-input>
+          <el-input v-model="form.region" clearable placeholder="region"></el-input>
         </el-form-item>
         <el-form-item prop="accessKeyId">
-          <el-input v-model="form.secretId" placeholder="secretId" clearable></el-input>
+          <el-input v-model="form.secretId" clearable placeholder="secretId"></el-input>
         </el-form-item>
         <el-form-item prop="accessKeySecret">
-          <el-input type="password" :show-password="showPassword()" v-model="form.secretKey" placeholder="secretKey" clearable></el-input>
+          <el-input v-model="form.secretKey" :show-password="showPassword()" clearable placeholder="secretKey"
+                    type="password"></el-input>
         </el-form-item>
         <el-form-item prop="bucket">
-          <el-input v-model="form.bucket" @keyup.enter.native="login(formRef)" placeholder="bucket" clearable></el-input>
+          <el-input v-model="form.bucket" clearable placeholder="bucket"
+                    @keyup.enter.native="login(formRef)"></el-input>
         </el-form-item>
       </el-form>
-      <el-button @click="login(formRef)" class="login-btn" plain round type="primary">
+      <el-button class="login-btn" plain round type="primary" @click="login(formRef)">
         登 录
       </el-button>
       <div class="register-guide">
-        <el-link :underline="false" target="_blank" href="https://github.com/peng0105/password-xl/wiki/%E8%85%BE%E8%AE%AF%E4%BA%91COS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95" type="primary">腾讯云COS注册指引</el-link>
+        <el-link :underline="false" href="https://github.com/peng0105/password-xl/wiki/%E8%85%BE%E8%AE%AF%E4%BA%91COS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95"
+                 target="_blank"
+                 type="primary">腾讯云COS注册指引
+        </el-link>
       </div>
     </el-col>
   </el-row>

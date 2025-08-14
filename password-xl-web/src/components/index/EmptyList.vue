@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {ServiceStatus} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
@@ -13,17 +13,19 @@ const refStore = useRefStore()
     <div v-if="passwordStore.serviceStatus === ServiceStatus.LOGGED">
       <span class="iconfont icon-lock-close"></span>
       <div class="status-tip">已锁定</div>
-      <el-button style="margin-top: 30px" @click="refStore.verifyPasswordRef.verifyAndUnlock()" type="primary" plain>解锁</el-button>
+      <el-button plain style="margin-top: 30px" type="primary" @click="refStore.verifyPasswordRef.verifyAndUnlock()">
+        解锁
+      </el-button>
     </div>
     <div v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED">
       <img alt="" src="../../assets/images/empty.svg">
       <div class="status-tip">这里一个密码都没有</div>
       <el-button
           v-if="passwordStore.passwordArray.length === 0"
-          @click="refStore.passwordFormRef.addPasswordForm()"
-          type="primary"
+          plain
           style="margin-top: 30px"
-          plain>
+          type="primary"
+          @click="refStore.passwordFormRef.addPasswordForm()">
         添加我的第一个密码
       </el-button>
     </div>

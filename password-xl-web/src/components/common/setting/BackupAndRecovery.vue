@@ -1,5 +1,5 @@
 <!--备份与恢复-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {BackupFile, Label, Password} from "@/types";
 import {displaySize, formatterDate, getLabelCount, mergeLabel, mergePassword} from "@/utils/global.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -26,11 +26,11 @@ const backup = (auto: boolean) => {
   let storeData = passwordStore.passwordManager.getStoreData()
   if (!storeData) {
     console.error('系统异常 备份文件不存在')
-    ElNotification.error({title: '系统异常',message: '备份文件不存在'})
+    ElNotification.error({title: '系统异常', message: '备份文件不存在'})
     return
   }
 
-  let backupType = auto ? `您与“${formatterDate(Date.now(),'YYYY-MM-DD HH:mm')}” 进行密码恢复时系统自动备份了该文件，` : `您于“${formatterDate(Date.now(),'YYYY-MM-DD HH:mm')}” 手动备份了该文件，`
+  let backupType = auto ? `您与“${formatterDate(Date.now(), 'YYYY-MM-DD HH:mm')}” 进行密码恢复时系统自动备份了该文件，` : `您于“${formatterDate(Date.now(), 'YYYY-MM-DD HH:mm')}” 手动备份了该文件，`
   let passwordCount = passwordStore.allPasswordArray.length;
   let labelCount = getLabelCount();
 
@@ -40,7 +40,7 @@ const backup = (auto: boolean) => {
     backupTime: Date.now()
   };
 
-  let fileName = '密码备份 ' + formatterDate(Date.now(),'YYYY-MM-DD HH:mm:ss') + '.json'
+  let fileName = '密码备份 ' + formatterDate(Date.now(), 'YYYY-MM-DD HH:mm:ss') + '.json'
   const blob = new Blob([JSON.stringify(backupFile)], {type: 'text/plain;charset=utf-8'});
 
   console.log('密码备份 导出文件:', fileName)
@@ -73,7 +73,7 @@ const fileChange = () => {
       startRecovery(backupFile)
     } catch (e) {
       console.error(e)
-      ElNotification.error({title: '恢复失败',message: '请检查备份文件是否正确'})
+      ElNotification.error({title: '恢复失败', message: '请检查备份文件是否正确'})
     }
   }
   fileReader.readAsText(file)
@@ -82,7 +82,7 @@ const fileChange = () => {
 // 开始恢复密码
 const startRecovery = async (backupFile: BackupFile) => {
   console.log('密码备份,开始恢复密码')
-  let passwordText,labelText
+  let passwordText, labelText
   // 检查当前主密码是否可以解锁备份文件
   let checkUnlockFile = checkPassword(passwordStore.mainPassword, backupFile.storeData.passwordData)
   console.log('密码备份, 检查当前主密码是否可以解锁备份文件:', checkUnlockFile)
@@ -100,9 +100,9 @@ const startRecovery = async (backupFile: BackupFile) => {
     }
   }
 
-  if (!passwordText || !labelText){
+  if (!passwordText || !labelText) {
     console.log('密码恢复失败, 请检查备份文件及主密码是否正确')
-    ElNotification.error({title: '恢复失败',message: '请检查备份文件及主密码是否正确'})
+    ElNotification.error({title: '恢复失败', message: '请检查备份文件及主密码是否正确'})
     return false
   }
 
@@ -185,7 +185,7 @@ const syncPasswordAndLabel = async () => {
     ElMessage.success('密码恢复成功')
     visRecovery.value = false
   } else {
-    ElNotification.error({title: '系统异常',message: passwordSync.message})
+    ElNotification.error({title: '系统异常', message: passwordSync.message})
   }
 }
 
@@ -196,12 +196,12 @@ defineExpose({
 </script>
 
 <template>
-  <input type="file" style="display: none" ref="fileInput" @change="fileChange()" accept="application/json">
+  <input ref="fileInput" accept="application/json" style="display: none" type="file" @change="fileChange()">
   <el-dialog
-      :fullscreen="['xs', 'sm'].includes(displaySize().value)"
       v-model="visRecovery"
-      width="600px"
-      draggable>
+      :fullscreen="['xs', 'sm'].includes(displaySize().value)"
+      draggable
+      width="600px">
     <template #header>
       <el-text size="large" style="user-select: none;">
         <span class="iconfont icon-recovery"></span>
@@ -209,10 +209,10 @@ defineExpose({
       </el-text>
     </template>
     <el-row>
-      <el-col :sm="{span:24}" :md="{span:12}" class="recovery-col">
+      <el-col :md="{span:12}" :sm="{span:24}" class="recovery-col">
         <div class="recovery-type recovery-merge" @click="mergeRecovery">
           <div style="position: absolute;padding: 7px;">
-            <el-tag type="success" effect="dark">推荐</el-tag>
+            <el-tag effect="dark" type="success">推荐</el-tag>
           </div>
           <div class="icon-div">
             <span class="iconfont icon-merge"></span>
@@ -225,7 +225,7 @@ defineExpose({
           </div>
         </div>
       </el-col>
-      <el-col :sm="{span:24}" :md="{span:12}" class="recovery-col">
+      <el-col :md="{span:12}" :sm="{span:24}" class="recovery-col">
         <div class="recovery-type recovery-cover" @click="coverRecovery">
           <div class="icon-div">
             <span class="iconfont icon-cover"></span>

@@ -5,13 +5,13 @@ import {
     Database,
     Label,
     MainPasswordType,
-    TreeNoteData,
     Password,
     PasswordManager,
     PasswordStatus,
     RespData,
     ServiceStatus,
-    StoreData
+    StoreData,
+    TreeNoteData
 } from "@/types";
 import {checkPassword, decryptAES, encryptAES} from "@/utils/security.ts";
 import {compressArray, decompressionArray} from "@/utils/compress";
@@ -24,12 +24,12 @@ import {useNoteStore} from "@/stores/NoteStore.ts";
 
 export class PasswordManagerImpl implements PasswordManager {
 
-    // 数据库
-    private databaseClient: Database | null = null;
     // 原始密码文件
     public storeData: StoreData | null = null
     // 原始笔记树文件
     public treeNoteData: TreeNoteData | null = null
+    // 数据库
+    private databaseClient: Database | null = null;
     // 密码状态管理器
     private passwordStore = usePasswordStore()
     // 登录状态管理器
@@ -89,9 +89,9 @@ export class PasswordManagerImpl implements PasswordManager {
                     // 密码文件不存在-设置服务状态为待初始化
                     this.passwordStore.setServiceStatus(ServiceStatus.WAIT_INIT);
                 }
-                resolve({ status: true });
+                resolve({status: true});
             } catch (e) {
-                reject({ status: false, message: e });
+                reject({status: false, message: e});
             }
         });
     }
@@ -129,7 +129,7 @@ export class PasswordManagerImpl implements PasswordManager {
             console.log('passwordManager 主密码初始化成功');
             this.addDemoData()
             await this.syncStoreData()
-            nextTick(()=>{
+            nextTick(() => {
                 this.refStore.tourRef?.startTour()
             })
             return Promise.resolve({status: true});
@@ -220,7 +220,7 @@ export class PasswordManagerImpl implements PasswordManager {
             // 修改失败-回退
             this.storeData = JSON.parse(backStoreData)
             this.treeNoteData = JSON.parse(backTreeNoteData)
-            ElNotification.error({title: '系统异常',message: passwordResult.message})
+            ElNotification.error({title: '系统异常', message: passwordResult.message})
             return Promise.reject()
         }
 
@@ -406,7 +406,7 @@ export class PasswordManagerImpl implements PasswordManager {
     syncNoteData(): Promise<RespData> {
         this.serviceStatusAssert(ServiceStatus.UNLOCKED)
         if (!this.databaseClient) throw new Error('系统异常databaseClient isnull syncNoteData')
-        console.log('同步笔记数据',this.noteStore.noteData)
+        console.log('同步笔记数据', this.noteStore.noteData)
         let content = {
             noteData: encryptAES(this.passwordStore.mainPassword, JSON.stringify(this.noteStore.noteData)),
             mainPasswordType: this.passwordStore.mainPasswordType,
@@ -452,16 +452,16 @@ export class PasswordManagerImpl implements PasswordManager {
     }
 
     // 获取数据
-    getData = (name: string): Promise<string> =>{
-        if(!this.databaseClient) throw new Error('系统异常databaseClient isnull getData')
+    getData = (name: string): Promise<string> => {
+        if (!this.databaseClient) throw new Error('系统异常databaseClient isnull getData')
         // 从缓存中获取
         let data = this.nodeCacheMap.get(name)
-        if(data) {
-           return Promise.resolve(data)
+        if (data) {
+            return Promise.resolve(data)
         }
 
         return new Promise((resolve) => {
-            if(!this.databaseClient) throw new Error('系统异常databaseClient isnull getData')
+            if (!this.databaseClient) throw new Error('系统异常databaseClient isnull getData')
             this.databaseClient.getData(name).then((data) => {
                 // 缓存数据
                 this.nodeCacheMap.set(name, data)
@@ -471,9 +471,9 @@ export class PasswordManagerImpl implements PasswordManager {
     }
 
     // 设置数据
-    setData = (name: string, text: string): Promise<RespData> =>{
+    setData = (name: string, text: string): Promise<RespData> => {
         return new Promise((resolve) => {
-            if(!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
+            if (!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
             this.databaseClient.setData(name, text).then((data) => {
                 // 缓存数据
                 this.nodeCacheMap.set(name, text)
@@ -483,9 +483,9 @@ export class PasswordManagerImpl implements PasswordManager {
     }
 
     // 删除数据
-    delData = (name: string): Promise<RespData> =>{
+    delData = (name: string): Promise<RespData> => {
         return new Promise((resolve) => {
-            if(!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
+            if (!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
             this.databaseClient.deleteData(name).then((data) => {
                 resolve(data)
             })
@@ -493,8 +493,8 @@ export class PasswordManagerImpl implements PasswordManager {
     }
 
     // 删除数据
-    uploadImage = (file: File, prefix: string): Promise<any> =>{
-        if(!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
+    uploadImage = (file: File, prefix: string): Promise<any> => {
+        if (!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
         return this.databaseClient.uploadImage(file, prefix)
     }
 }

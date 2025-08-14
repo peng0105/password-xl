@@ -14,7 +14,7 @@ export const compressArray = (array) => {
         }
         dataArray.push(itemArray);
     }
-    return { keys, dataArray };
+    return {keys, dataArray};
 };
 
 // 解压数组

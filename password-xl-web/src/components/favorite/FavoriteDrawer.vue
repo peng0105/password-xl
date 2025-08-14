@@ -1,5 +1,5 @@
 <!-- 收藏夹抽屉组件 -->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {displaySize} from "@/utils/global.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 
@@ -25,9 +25,9 @@ watch(() => passwordStore.filterCondition.favoriteId, () => {
 <template>
   <div>
     <el-drawer
-        :size="['xs','sm'].includes(displaySize().value)?'60%':'350px'"
+        v-model="favoriteDialogVis"
         :direction="['xs','sm'].includes(displaySize().value)?'btt':'rtl'"
-        title="收藏" v-model="favoriteDialogVis">
+        :size="['xs','sm'].includes(displaySize().value)?'60%':'350px'" title="收藏">
       <div v-if="passwordStore.favoritePasswordArray.length" style="font-size: 12px;color: #999;margin-bottom: 20px">
         <span class="iconfont icon-info" style="font-size: 100%"></span>
         点击收藏内容即可查看密码

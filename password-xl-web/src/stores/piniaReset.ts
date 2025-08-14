@@ -1,5 +1,5 @@
-import { PiniaPluginContext } from "pinia";
-import { pick } from "lodash-es";
+import {PiniaPluginContext} from "pinia";
+import {pick} from "lodash-es";
 
 declare module "pinia" {
     export interface _StoreWithState<Id extends string, S extends StateTree, G, A>
@@ -8,9 +8,9 @@ declare module "pinia" {
     }
 }
 
-export default ({ options, store }: PiniaPluginContext): void => {
+export default ({options, store}: PiniaPluginContext): void => {
     store.$resetFields = (fields) => {
-        const { state } = options;
+        const {state} = options;
         let originalState = state ? state() : {};
         store.$patch(($state) => {
             if (fields) {
