@@ -91,6 +91,7 @@ export interface Setting {
     autoLogin: boolean,// 记住登录信息
     autoUnlock: boolean,// 记住主密码
     showPasswordStatistics: boolean, // 显示密码统计
+    showNote: boolean, // 显示笔记功能
     bgColors: Array<string>, // 背景色
     dynamicBackground: boolean, // 动态背景图
     passwordColor: boolean, // 密码颜色
