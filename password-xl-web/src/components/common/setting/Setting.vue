@@ -143,6 +143,13 @@ watch(() => settingStore.setting.showLabelCard, (newValue: boolean) => {
   })
 })
 
+// 监听启用笔记功能设置变更
+watch(() => settingStore.setting.showNote, (newValue: boolean) => {
+  if (!settingStore.visSetting) return
+  console.log('启用笔记功能设置变更:', newValue)
+  passwordStore.passwordManager.syncSetting()
+})
+
 // 监听动态背景图设置变更
 watch(() => settingStore.setting.dynamicBackground, (newValue: boolean) => {
   if (!settingStore.visSetting) return
@@ -454,6 +461,16 @@ const isAndroid = () => {
               <el-divider class="function-line"/>
               <el-text style="text-indent: 10px" tag="p" type="info">
                 显示标签卡片后，您可以在首页方便地管理所有标签，并使用标签功能筛选密码列表。
+              </el-text>
+            </div>
+            <div class="function-div">
+              <div class="function-header">
+                <el-text tag="b">启用笔记功能</el-text>
+                <el-switch v-model="settingStore.setting.showNote"></el-switch>
+              </div>
+              <el-divider class="function-line"/>
+              <el-text style="text-indent: 10px" tag="p" type="info">
+                启用笔记功能后可在首页进入笔记页面，如果需要记录图片请确保对象存储服务开启外网访问权限，否则图片无法正常显示。
               </el-text>
             </div>
             <div class="function-div">

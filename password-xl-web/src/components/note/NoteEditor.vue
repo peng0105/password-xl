@@ -50,6 +50,40 @@ const showNote = (treeNote: TreeNote): void => {
   })
 }
 
+
+
+const saveNote = (notification = false) => {
+  if (!noteData.value.id) {
+    return
+  }
+  if (!noteData.value.name) {
+    ElMessage.error('请输入标题')
+    return
+  }
+  if (lastSyncText.value === JSON.stringify(noteData.value)) {
+    if (notification) {
+      ElMessage.success('保存成功')
+    }
+    return;
+  }
+  noteData.value.updateTime = Date.now()
+  lastSyncText.value = JSON.stringify(noteData.value);
+  passwordStore.passwordManager.setData('note/' + noteData.value.id + '.html', lastSyncText.value).then(() => {
+    if (notification) {
+      ElMessage.success('保存成功')
+    }
+
+    let treeNote = noteStore.getTreeNoteById(noteData.value.id)
+    if (treeNote) {
+      treeNote.label = noteData.value.name
+      passwordStore.passwordManager.syncNoteData()
+    }
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+  })
+}
+
+const autoSaveTimeout:Ref<any> = ref()
+
 const initEditor = (content: string) => {
   aiEditor && aiEditor.destroy();
   aiEditor = new AiEditor({
@@ -92,37 +126,15 @@ const initEditor = (content: string) => {
     onChange: (aiEditor) => {
       noteData.value.content = aiEditor.getHtml()
       window.addEventListener('beforeunload', handleBeforeUnload);
-    }
-  })
-}
 
-const saveNote = (notification = false) => {
-  if (!noteData.value.id) {
-    return
-  }
-  if (!noteData.value.name) {
-    ElMessage.error('请输入标题')
-    return
-  }
-  if (lastSyncText.value === JSON.stringify(noteData.value)) {
-    if (notification) {
-      ElMessage.success('保存成功')
+      // 自动保存
+      if (autoSaveTimeout.value) {
+        clearTimeout(autoSaveTimeout.value)
+      }
+      autoSaveTimeout.value = setTimeout(() => {
+        saveNote()
+      }, 500);
     }
-    return;
-  }
-  noteData.value.updateTime = Date.now()
-  lastSyncText.value = JSON.stringify(noteData.value);
-  passwordStore.passwordManager.setData('note/' + noteData.value.id + '.html', lastSyncText.value).then(() => {
-    if (notification) {
-      ElMessage.success('保存成功')
-    }
-
-    let treeNote = noteStore.getTreeNoteById(noteData.value.id)
-    if (treeNote) {
-      treeNote.label = noteData.value.name
-      passwordStore.passwordManager.syncNoteData()
-    }
-    window.removeEventListener('beforeunload', handleBeforeUnload);
   })
 }
 
@@ -146,7 +158,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeyDown);
-  saveNote()
 });
 
 defineExpose({

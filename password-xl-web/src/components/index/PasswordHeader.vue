@@ -226,10 +226,10 @@ const aiAddPassword = () => {
       </el-button>
 
       <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED
-      && !['xs','sm'].includes(displaySize().value)" content="打开笔记">
+      && !['xs','sm'].includes(displaySize().value) && settingStore.setting.showNote" content="打开笔记">
         <el-button class="to-note-btn" plain @click="toNote">
           <span :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="iconfont icon-note"
-                style="font-size: 120%;font-weight: bold"/>
+                style="font-size: 125%;transform: scaleX(1.1);"/>
         </el-button>
       </el-tooltip>
       <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED" content="锁定">
@@ -283,7 +283,7 @@ const aiAddPassword = () => {
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
                 divided
                 @click="toNote">
-              <span class="iconfont icon-note menu-item" style="color: #409EFF"></span>
+              <span class="iconfont icon-note menu-item" style="color: #67C23A;transform: scaleX(1.1);"></span>
               打开笔记
             </el-dropdown-item>
             <el-dropdown-item
@@ -413,9 +413,7 @@ const aiAddPassword = () => {
   margin-top: 0;
   margin-bottom: 0;
 }
-
 </style>
 <style>
-
 
 </style>
