@@ -1,5 +1,5 @@
 export default {
-    apiServer: 'https://ai.password-xl.cn/extractPassword',
+    apiServer: 'https://ai.password-xl.cn',
     publicKey: `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvoEZ2yxmxt4mp8ipUmlI
 4re+2MLfKcNacXeFOQWh8C3TxumN7I2CLieBX5zRTUfJJalsWlvUjsrXB8NXGjpJ

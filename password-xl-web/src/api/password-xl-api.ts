@@ -23,7 +23,7 @@ export const extractPasswordApi = async (text: string) => {
             data: encryptData
         }
 
-        axios.post(config.apiServer, body).then((res) => {
+        axios.post(config.apiServer + '/extractPassword', body).then((res) => {
             let data: any = res.data
             if (data.code !== 200) {
                 reject(data.message)
