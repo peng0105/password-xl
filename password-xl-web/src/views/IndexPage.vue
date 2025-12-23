@@ -1,5 +1,5 @@
 <!--密码管理首页-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {PasswordDisplayMode, ServiceStatus} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {displaySize} from "@/utils/global.ts";
@@ -44,15 +44,15 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
       @contextmenu.prevent="refStore.contextmenuRef.showContextmenu($event)">
     <el-row class="password-body-row">
       <el-col
-          :md="{span: (!settingStore.setting.showLabelCard && !settingStore.setting.showFavoriteCard)?24:18}"
           :lg="{span: (!settingStore.setting.showLabelCard && !settingStore.setting.showFavoriteCard)?24:20}"
+          :md="{span: (!settingStore.setting.showLabelCard && !settingStore.setting.showFavoriteCard)?24:18}"
           :xl="{span: (!settingStore.setting.showLabelCard && !settingStore.setting.showFavoriteCard)?24:21}"
 
       >
         <el-card
-            class="password-card"
-            body-class="password-card-body"
             :style="{'background-color': passwordStore.isDark?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'}"
+            body-class="password-card-body"
+            class="password-card"
         >
           <!-- 密码表头 -->
           <PasswordHeader></PasswordHeader>
@@ -65,10 +65,10 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
         </el-card>
       </el-col>
       <el-col
-          :md="{span: 6}"
+          v-if="settingStore.setting.showLabelCard || settingStore.setting.showFavoriteCard"
           :lg="{span:4}"
-          :xl="{span:3}"
-          v-if="settingStore.setting.showLabelCard || settingStore.setting.showFavoriteCard">
+          :md="{span: 6}"
+          :xl="{span:3}">
         <!-- 标签卡片 -->
         <LabelCard></LabelCard>
         <!-- 收藏卡片 -->
@@ -78,8 +78,8 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
   </div>
 
   <!-- 手机版 -->
-  <div v-else style="backdrop-filter: blur(50px);height: 100vh"
-       :style="{'background-color': passwordStore.isDark?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'}">
+  <div v-else :style="{'background-color': passwordStore.isDark?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'}"
+       style="backdrop-filter: blur(50px);height: 100vh">
     <!-- 密码表头 -->
     <PasswordHeader></PasswordHeader>
     <!-- 正在过滤密码提示语 -->

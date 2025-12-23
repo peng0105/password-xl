@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {NoteData, TreeNote} from "@/types/types";
@@ -36,7 +36,7 @@ const showNote = (treeNote: TreeNote): void => {
   passwordStore.passwordManager.getData('note/' + treeNote.id + '.html').then((data) => {
     if (data) {
       noteData.value = JSON.parse(data);
-    }else{
+    } else {
       noteData.value = {
         id: treeNote.id,
         name: treeNote.label,
@@ -49,6 +49,40 @@ const showNote = (treeNote: TreeNote): void => {
     loading.value = false
   })
 }
+
+
+
+const saveNote = (notification = false) => {
+  if (!noteData.value.id) {
+    return
+  }
+  if (!noteData.value.name) {
+    ElMessage.error('请输入标题')
+    return
+  }
+  if (lastSyncText.value === JSON.stringify(noteData.value)) {
+    if (notification) {
+      ElMessage.success('保存成功')
+    }
+    return;
+  }
+  noteData.value.updateTime = Date.now()
+  lastSyncText.value = JSON.stringify(noteData.value);
+  passwordStore.passwordManager.setData('note/' + noteData.value.id + '.html', lastSyncText.value).then(() => {
+    if (notification) {
+      ElMessage.success('保存成功')
+    }
+
+    let treeNote = noteStore.getTreeNoteById(noteData.value.id)
+    if (treeNote) {
+      treeNote.label = noteData.value.name
+      passwordStore.passwordManager.syncNoteData()
+    }
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+  })
+}
+
+const autoSaveTimeout:Ref<any> = ref()
 
 const initEditor = (content: string) => {
   aiEditor && aiEditor.destroy();
@@ -92,37 +126,15 @@ const initEditor = (content: string) => {
     onChange: (aiEditor) => {
       noteData.value.content = aiEditor.getHtml()
       window.addEventListener('beforeunload', handleBeforeUnload);
-    }
-  })
-}
 
-const saveNote = (notification = false) => {
-  if (!noteData.value.id) {
-    return
-  }
-  if (!noteData.value.name) {
-    ElMessage.error('请输入标题')
-    return
-  }
-  if (lastSyncText.value === JSON.stringify(noteData.value)) {
-    if (notification) {
-      ElMessage.success('保存成功')
+      // 自动保存
+      if (autoSaveTimeout.value) {
+        clearTimeout(autoSaveTimeout.value)
+      }
+      autoSaveTimeout.value = setTimeout(() => {
+        saveNote()
+      }, 500);
     }
-    return;
-  }
-  noteData.value.updateTime = Date.now()
-  lastSyncText.value = JSON.stringify(noteData.value);
-  passwordStore.passwordManager.setData('note/' + noteData.value.id + '.html', lastSyncText.value).then(() => {
-    if (notification) {
-      ElMessage.success('保存成功')
-    }
-
-    let treeNote = noteStore.getTreeNoteById(noteData.value.id)
-    if (treeNote) {
-      treeNote.label = noteData.value.name
-      passwordStore.passwordManager.syncNoteData()
-    }
-    window.removeEventListener('beforeunload', handleBeforeUnload);
   })
 }
 
@@ -146,7 +158,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeyDown);
-  saveNote()
 });
 
 defineExpose({
@@ -155,13 +166,14 @@ defineExpose({
 </script>
 
 <template>
-  <el-card v-if="noteStore.noteData.currentNote" shadow="never" class="editor-card" style="height: calc(100% - 2px)">
+  <el-card v-if="noteStore.noteData.currentNote" class="editor-card" shadow="never" style="height: calc(100% - 2px)">
     <template #header>
       <div style="display: flex;justify-content: space-between">
-        <input :ref="(el: any) => refStore.noteTitleRef = el" class="title-input" placeholder="请输入标题" v-model="noteData.name"/>
+        <input :ref="(el: any) => refStore.noteTitleRef = el" v-model="noteData.name" class="title-input"
+               placeholder="请输入标题"/>
         <el-text>最后更新于：{{ dayjs(noteData.updateTime).format('YYYY-MM-DD HH:mm:ss') }}</el-text>
         <el-space size="large">
-          <el-button size="small" type="primary" @click="saveNote(true)" plain>保存</el-button>
+          <el-button plain size="small" type="primary" @click="saveNote(true)">保存</el-button>
         </el-space>
       </div>
     </template>
@@ -173,14 +185,17 @@ defineExpose({
 aie-footer, .aie-codeblock-tools-comments, .aie-codeblock-tools-explain {
   display: none !important;
 }
-.hljs{
+
+.hljs {
   font-size: 16px;
 }
+
 .aie-container {
   border: 0;
   background-color: rgba(255, 255, 255, 0);
 }
-.aie-container aie-header{
+
+.aie-container aie-header {
   background-color: rgba(255, 255, 255, 0);
 }
 </style>
@@ -208,7 +223,7 @@ aie-footer, .aie-codeblock-tools-comments, .aie-codeblock-tools-explain {
   padding: 0;
 }
 
-:deep(.aie-codeblock-tools){
+:deep(.aie-codeblock-tools) {
   padding-bottom: 5px;
 }
 </style>

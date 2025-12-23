@@ -1,5 +1,5 @@
 <!--查看密码-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {copyText, displaySize} from "@/utils/global.ts";
 import {Password} from "@/types";
 
@@ -24,20 +24,23 @@ defineExpose({
 
 <template>
   <!-- 查看密码弹窗 -->
-  <el-dialog append-to-body v-model="viewPassword.alertVisible" :width="['xs', 'sm'].includes(displaySize().value)?'95%':'40%'">
+  <el-dialog v-model="viewPassword.alertVisible" :width="['xs', 'sm'].includes(displaySize().value)?'95%':'40%'"
+             append-to-body>
     <template #header>
       <el-text size="large" style="user-select: none;">
         <span class="iconfont icon-show-password"></span>
         {{ viewPassword.title }}
       </el-text>
     </template>
-    <el-input type="textarea" :rows="10" v-model="viewPassword.content" readonly></el-input>
+    <el-input v-model="viewPassword.content" :rows="10" readonly type="textarea"></el-input>
     <template #footer>
-      <el-text type="info" class="password-length-tip">
+      <el-text class="password-length-tip" type="info">
         <span class="iconfont icon-info"></span>
         密码长度大于40会以弹框形式展示密码
       </el-text>
-      <el-button plain type="success" @click="copyText(viewPassword.content);viewPassword.alertVisible = false">一键复制</el-button>
+      <el-button plain type="success" @click="copyText(viewPassword.content);viewPassword.alertVisible = false">
+        一键复制
+      </el-button>
     </template>
   </el-dialog>
 </template>

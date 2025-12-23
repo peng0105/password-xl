@@ -1,5 +1,5 @@
 <!--标签树组件-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {Label, ServiceStatus} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
@@ -198,46 +198,47 @@ defineExpose({
 <template>
   <el-scrollbar height="calc(50vh - 106px)">
     <el-tree
+        :ref="(el: any) => refStore.labelTreeRef = el"
+        :allow-drag="labelDrag"
+        :check-strictly="true"
         :data="passwordStore.labelArray"
-        node-key="id"
+        :default-expanded-keys="getDefaultExpandedKeys()"
+        :expand-on-click-node="false"
         draggable
+        node-key="id"
         show-checkbox
         style="background-color: rgba(0,0,0,0);"
         @check-change="filterPassword"
-        :ref="(el: any) => refStore.labelTreeRef = el"
-        :check-strictly="true"
-        :expand-on-click-node="false"
         @node-drop="passwordStore.passwordManager.syncStoreData()"
-        :default-expanded-keys="getDefaultExpandedKeys()"
-        :allow-drag="labelDrag"
     >
       <template #empty>
         <el-button
             v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED"
+            plain
             size="small"
-            type="primary"
-            plain @click="addLabel(null,'sub')"
+            type="primary" @click="addLabel(null,'sub')"
         >
           创建密码标签
         </el-button>
       </template>
       <template #default="{ node, data }">
-        <el-dropdown :ref="(el: any) => dropdownRef[data.id] = el" :hide-timeout="0" trigger="contextmenu" :disabled="editLabelId !== 0" style="width: 100%">
+        <el-dropdown :ref="(el: any) => dropdownRef[data.id] = el" :disabled="editLabelId !== 0" :hide-timeout="0"
+                     style="width: 100%" trigger="contextmenu">
           <div
               v-if="data.id !== editLabelId"
+              class="label-content"
               @click="clickLabel(node)"
-              @contextmenu="contextmenu($event,data.id)"
-              class="label-content">
-              {{ data.name }}
+              @contextmenu="contextmenu($event,data.id)">
+            {{ data.name }}
           </div>
           <div v-if="data.id === editLabelId" style="width: 100%;">
             <el-input
                 :ref="(el) => labelNodeRefs[node.data.id] = el"
-                size="small"
+                v-model="data.name"
 
+                size="small"
                 @blur="saveLabel(data)"
                 @keyup.enter="saveLabel(data)"
-                v-model="data.name"
             ></el-input>
           </div>
           <template #dropdown>

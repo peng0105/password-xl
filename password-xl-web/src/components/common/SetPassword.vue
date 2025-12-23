@@ -1,5 +1,5 @@
 <!--设置主密码组件（初始化/修改密码）-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {MainPasswordType, RespData, ServiceStatus} from "@/types";
 import {useLoginStore} from "@/stores/LoginStore.ts";
@@ -177,11 +177,11 @@ defineExpose({
 <template>
   <!-- 初始化主密码 -->
   <el-dialog
-      :width="['xs'].includes(displaySize().value)?'95%':'550px'"
       v-model="setPasswordVis"
       :close-on-click-modal="false"
       :close-on-press-escape="passwordStore.serviceStatus !== ServiceStatus.WAIT_INIT"
       :show-close="passwordStore.serviceStatus !== ServiceStatus.WAIT_INIT"
+      :width="['xs'].includes(displaySize().value)?'95%':'550px'"
       @open="setPasswordFormRef?.resetFields()"
       @opened="firstPasswordInputRef?.focus()"
   >
@@ -191,42 +191,43 @@ defineExpose({
         设置主密码
       </el-text>
     </template>
-    <el-alert type="warning" show-icon :closable="false" style="margin-top: 10px" title="主密码一旦遗忘，所有密码均无法找回！请慎重设置您的主密码。"></el-alert>
+    <el-alert :closable="false" show-icon style="margin-top: 10px" title="主密码一旦遗忘，所有密码均无法找回！请慎重设置您的主密码。"
+              type="warning"></el-alert>
 
-    <el-tabs type="card" v-model="mainPasswordType" style="margin-top: 15px">
-      <el-tab-pane label="标准密码" :name="MainPasswordType.STANDARD">
+    <el-tabs v-model="mainPasswordType" style="margin-top: 15px" type="card">
+      <el-tab-pane :name="MainPasswordType.STANDARD" label="标准密码">
         <el-form
             ref="setPasswordFormRef"
-            @submit.native.prevent
             :model="setPasswordForm"
+            :rules="setPasswordFormRules"
             label-width="80px"
             style="width: 300px;margin: 20px auto;"
-            :rules="setPasswordFormRules">
-          <el-form-item prop="firstMainPassword" label="主密码">
+            @submit.native.prevent>
+          <el-form-item label="主密码" prop="firstMainPassword">
             <el-input
                 ref="firstPasswordInputRef"
-                type="password"
-                show-password
-                autocomplete="new-password"
-                @keyup.enter.native="secondMainPasswordRef.focus()"
                 v-model="setPasswordForm.firstMainPassword"
+                autocomplete="new-password"
                 placeholder="请输入主密码"
+                show-password
+                type="password"
+                @keyup.enter.native="secondMainPasswordRef.focus()"
             ></el-input>
           </el-form-item>
-          <el-form-item style="padding-top: 10px" prop="secondMainPassword" label="确认密码">
+          <el-form-item label="确认密码" prop="secondMainPassword" style="padding-top: 10px">
             <el-input
                 ref="secondMainPasswordRef"
-                type="password"
-                show-password
-                autocomplete="new-password"
-                @keyup.enter.native="setMainPasswordConfirm(setPasswordFormRef)"
                 v-model="setPasswordForm.secondMainPassword"
+                autocomplete="new-password"
                 placeholder="请再次输入主密码"
+                show-password
+                type="password"
+                @keyup.enter.native="setMainPasswordConfirm(setPasswordFormRef)"
             ></el-input>
           </el-form-item>
         </el-form>
       </el-tab-pane>
-      <el-tab-pane :disabled="passwordStore.globalLoading.vis" label="手势密码" :name="MainPasswordType.GESTURE">
+      <el-tab-pane :disabled="passwordStore.globalLoading.vis" :name="MainPasswordType.GESTURE" label="手势密码">
         <div v-if="mainPasswordType === MainPasswordType.GESTURE" style="margin-top: 10px;text-align: center">
           <el-text v-if="!gesturePassword">请绘制手势密码</el-text>
           <el-text v-else>请再次绘制手势密码</el-text>
@@ -236,7 +237,9 @@ defineExpose({
     </el-tabs>
 
     <template v-if="mainPasswordType === MainPasswordType.STANDARD" #footer>
-      <el-button type="primary" :disabled="passwordStore.globalLoading.vis" @click="setMainPasswordConfirm(setPasswordFormRef)">确定</el-button>
+      <el-button :disabled="passwordStore.globalLoading.vis" type="primary"
+                 @click="setMainPasswordConfirm(setPasswordFormRef)">确定
+      </el-button>
     </template>
   </el-dialog>
 </template>

@@ -34,7 +34,7 @@ export const useLoginStore = defineStore('loginStore', {
                     database = new DatabaseForPrivate()
                 } else if (loginForm.loginType === 'electron') {
                     database = new DatabaseForElectron()
-                }  else if (loginForm.loginType === 'android') {
+                } else if (loginForm.loginType === 'android') {
                     database = new DatabaseForAndroid()
                 } else {
                     console.error('未知的登录类型，无法自动登录：', loginForm.loginType)
@@ -125,7 +125,7 @@ export const useLoginStore = defineStore('loginStore', {
                 }
             }
             console.log('自动登录获取主密码 提示用户输入主密码')
-            return await useRefStore().verifyPasswordRef.getAndVerify((mainPassword: string) => checkPassword(mainPassword, loginInfo.loginForm),loginInfo.mainPasswordType);
+            return await useRefStore().verifyPasswordRef.getAndVerify((mainPassword: string) => checkPassword(mainPassword, loginInfo.loginForm), loginInfo.mainPasswordType);
         },
         // 自动登录+自动解锁
         setAutoLoginInfo(mainPassword: string) {

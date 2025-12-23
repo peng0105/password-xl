@@ -1,5 +1,5 @@
 <!--列表式密码组件-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {Password, Sort} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {
@@ -131,32 +131,32 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="password-card-table" v-if="passwordStore.visPasswordArray.length">
+  <div v-if="passwordStore.visPasswordArray.length" class="password-card-table">
     <el-table
-        :data="getPagePasswordArray()"
         ref="passwordTableRef"
+        :cell-style="{'background-color':'rgba(0,0,0,0)'}"
+        :data="getPagePasswordArray()"
+        :header-cell-style="{'background-color':'rgba(0,0,0,0)'}"
+        :header-row-style="{'background-color':'rgba(0,0,0,0)'}"
+        :row-style="tableRowStyle"
         height="calc(100vh - 120px)"
         style="background-color: rgba(0,0,0,0);"
-        :header-row-style="{'background-color':'rgba(0,0,0,0)'}"
-        :header-cell-style="{'background-color':'rgba(0,0,0,0)'}"
-        :row-style="tableRowStyle"
-        :cell-style="{'background-color':'rgba(0,0,0,0)'}"
     >
-      <el-table-column v-if="settingStore.setting.showStrength" prop="strength" width="30px" :sort-method="strengthSort"
-                       sortable>
+      <el-table-column v-if="settingStore.setting.showStrength" :sort-method="strengthSort" prop="strength" sortable
+                       width="30px">
         <template #default="scope">
           <el-tooltip :content="getPasswordStrengthTip(scope.row.password)" placement="top">
-            <div class="password-strength"
-                 :style="{'background-color':getPasswordStrengthColor(scope.row.password)}"></div>
+            <div :style="{'background-color':getPasswordStrengthColor(scope.row.password)}"
+                 class="password-strength"></div>
           </el-tooltip>
         </template>
       </el-table-column>
-      <el-table-column label="名称" min-width="130px" sortable prop="title"></el-table-column>
+      <el-table-column label="名称" min-width="130px" prop="title" sortable></el-table-column>
       <el-table-column label="地址" min-width="200px" prop="address">
         <template #default="scope">
           <div>
-            <el-link v-if="isUrl(scope.row.address)" type="primary" class="address-link" :href="scope.row.address"
-                     target="_blank">
+            <el-link v-if="isUrl(scope.row.address)" :href="scope.row.address" class="address-link" target="_blank"
+                     type="primary">
               {{ scope.row.address }}
             </el-link>
             <el-text v-else>
@@ -165,7 +165,7 @@ onMounted(() => {
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="用户名" min-width="180px" sortable prop="username">
+      <el-table-column label="用户名" min-width="180px" prop="username" sortable>
         <template #default="scope">
           <div v-if="scope.row.username" class="username-div">
             <div class="username-text">
@@ -178,7 +178,7 @@ onMounted(() => {
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="密码" width="220px" prop="password">
+      <el-table-column label="密码" prop="password" width="220px">
         <template #default="scope">
           <div v-if="scope.row.password" class="table-password-div">
             <div style="width: 150px">
@@ -195,14 +195,14 @@ onMounted(() => {
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="添加时间" min-width="150px" sortable
-                       :formatter="(row: any) => formatterDate(row.addTime,'YYYY-MM-DD HH:mm')"
-                       v-if="settingStore.setting.showTimeForTable === 'addTime'" prop="addTime"></el-table-column>
-      <el-table-column label="修改时间" min-width="150px" sortable
-                       :formatter="(row: any) => formatterDate(row.updateTime,'YYYY-MM-DD HH:mm')"
-                       v-if="settingStore.setting.showTimeForTable === 'updateTime'"
-                       prop="updateTime"></el-table-column>
-      <el-table-column label="标签" min-width="110px" v-if="settingStore.setting.showLabelForTable" prop="labels">
+      <el-table-column v-if="settingStore.setting.showTimeForTable === 'addTime'" :formatter="(row: any) => formatterDate(row.addTime,'YYYY-MM-DD HH:mm')" label="添加时间"
+                       min-width="150px"
+                       prop="addTime" sortable></el-table-column>
+      <el-table-column v-if="settingStore.setting.showTimeForTable === 'updateTime'" :formatter="(row: any) => formatterDate(row.updateTime,'YYYY-MM-DD HH:mm')" label="修改时间"
+                       min-width="150px"
+                       prop="updateTime"
+                       sortable></el-table-column>
+      <el-table-column v-if="settingStore.setting.showLabelForTable" label="标签" min-width="110px" prop="labels">
         <template #default="scope">
           <el-tag v-for="label in getPasswordLabelNames(scope.row)" class="table-label">
             {{ label.name }}
@@ -214,26 +214,26 @@ onMounted(() => {
         <template #default="scope">
           <div style="display: flex;justify-content: space-evenly;">
             <el-tooltip content="分享" placement="top">
-              <el-link type="success" @click="sharePassword(scope.row)" :underline="false">
+              <el-link :underline="false" type="success" @click="sharePassword(scope.row)">
                 <span class="iconfont icon-share table-opt-icon"/>
               </el-link>
             </el-tooltip>
             <el-tooltip content="修改" placement="top">
-              <el-link type="primary" @click="refStore.passwordFormRef.editPasswordForm(scope.row)" :underline="false">
+              <el-link :underline="false" type="primary" @click="refStore.passwordFormRef.editPasswordForm(scope.row)">
                 <span class="iconfont icon-edit table-opt-icon"/>
               </el-link>
             </el-tooltip>
             <el-tooltip :content="scope.row.favorite?'取消收藏':'收藏'" placement="top">
-              <el-link v-if="scope.row.favorite" type="primary" @click="favoritePassword(scope.row)" :underline="false">
+              <el-link v-if="scope.row.favorite" :underline="false" type="primary" @click="favoritePassword(scope.row)">
                 <span class="iconfont icon-favorited table-opt-icon" style="color: #FF9700"/>
               </el-link>
-              <el-link v-if="!scope.row.favorite" type="primary" @click="favoritePassword(scope.row)"
-                       :underline="false">
+              <el-link v-if="!scope.row.favorite" :underline="false" type="primary"
+                       @click="favoritePassword(scope.row)">
                 <span class="iconfont icon-collect table-opt-icon" style="color: #FF9700"/>
               </el-link>
             </el-tooltip>
             <el-tooltip content="删除" placement="top">
-              <el-link type="danger" @click="deletePassword(scope.row)" :underline="false">
+              <el-link :underline="false" type="danger" @click="deletePassword(scope.row)">
                 <span class="iconfont icon-delete table-opt-icon"/>
               </el-link>
             </el-tooltip>

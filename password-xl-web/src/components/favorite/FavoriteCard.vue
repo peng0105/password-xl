@@ -1,5 +1,5 @@
 <!-- 收藏夹卡片组件 -->
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
@@ -11,7 +11,8 @@ const settingStore = useSettingStore()
 <template>
   <el-card
       v-if="settingStore.setting.showFavoriteCard"
-      class="favorite-card" :style="{'background-color': passwordStore.isDark?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'}"
+      :style="{'background-color': passwordStore.isDark?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'}"
+      class="favorite-card"
   >
     <template #header>
       <div style="display: flex;justify-content: space-between">
@@ -20,11 +21,12 @@ const settingStore = useSettingStore()
           <el-text size="large">收藏</el-text>
         </div>
         <div>
-          <el-tooltip v-if="passwordStore.filterCondition.favoriteId !== 0" content="收藏过滤生效中，点击取消" placement="left">
-            <el-badge is-dot class="item">
+          <el-tooltip v-if="passwordStore.filterCondition.favoriteId !== 0" content="收藏过滤生效中，点击取消"
+                      placement="left">
+            <el-badge class="item" is-dot>
                   <span
-                      @click="passwordStore.filterCondition.favoriteId = 0"
-                      class="iconfont icon-filtration filter-icon"></span>
+                      class="iconfont icon-filtration filter-icon"
+                      @click="passwordStore.filterCondition.favoriteId = 0"></span>
             </el-badge>
           </el-tooltip>
         </div>
@@ -47,6 +49,7 @@ const settingStore = useSettingStore()
   color: #409eff;
   cursor: pointer;
 }
+
 :deep(.el-card__body) {
   padding: 14px 16px;
 }

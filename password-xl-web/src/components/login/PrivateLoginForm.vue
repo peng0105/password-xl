@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import {PrivateLoginForm} from "@/types/index.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -112,25 +112,29 @@ initForm()
   </div>
   <TextLine class="input-login-line hidden-xs-only" text="请输入登录信息"></TextLine>
   <el-row class="login-form-row">
-    <el-col :xs="{span: 24}" :sm="{span: 20, offset: 2}">
-      <el-form :model="form" ref="formRef" :rules="formRules" label-width="90px">
-        <el-form-item prop="serverUrl" label="服务地址" required>
-          <el-input v-model="form.serverUrl" placeholder="http://127.0.0.1:8080" clearable></el-input>
+    <el-col :sm="{span: 20, offset: 2}" :xs="{span: 24}">
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="90px">
+        <el-form-item label="服务地址" prop="serverUrl" required>
+          <el-input v-model="form.serverUrl" clearable placeholder="http://127.0.0.1:8080"></el-input>
         </el-form-item>
-        <el-form-item prop="username" label="用户名">
-          <el-input v-model="form.username" placeholder="用户名" clearable></el-input>
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="form.username" clearable placeholder="用户名"></el-input>
         </el-form-item>
-        <el-form-item prop="password" label="密码">
-          <el-input type="password" :show-password="showPassword()" @keyup.enter.native="login(formRef)" v-model="form.password" placeholder="密码"></el-input>
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="form.password" :show-password="showPassword()" placeholder="密码"
+                    type="password" @keyup.enter.native="login(formRef)"></el-input>
         </el-form-item>
-        <el-form-item >
-          <el-button @click="login(formRef)" class="login-btn" plain round type="primary">
+        <el-form-item>
+          <el-button class="login-btn" plain round type="primary" @click="login(formRef)">
             登 录
           </el-button>
         </el-form-item>
       </el-form>
       <div class="register-guide">
-        <el-link :underline="false" target="_blank" href="https://github.com/peng0105/password-xl/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker" type="primary">私有部署说明文档</el-link>
+        <el-link :underline="false" href="https://github.com/peng0105/password-xl/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker"
+                 target="_blank"
+                 type="primary">私有部署说明文档
+        </el-link>
       </div>
     </el-col>
   </el-row>

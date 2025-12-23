@@ -1,5 +1,5 @@
 <!--手势密码-->
-<script setup lang="ts">
+<script lang="ts" setup>
 import {GesturePoint, Point} from "@/types";
 import {isInCircle} from "@/utils/global.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -356,7 +356,7 @@ const initCanvas = () => {
   canvasRef.value.width = size
   canvasRef.value.height = size
 
-  ctx =  createHDCanvas(canvasRef.value, size, size) as CanvasRenderingContext2D
+  ctx = createHDCanvas(canvasRef.value, size, size) as CanvasRenderingContext2D
 
   let incrId = 0
   allPointArray.length = 0
@@ -400,12 +400,12 @@ onMounted(() => {
         ref="canvasRef"
         style="image-rendering: auto;"
         @mousedown="mousedown"
+        @mouseleave="mouseleave"
         @mousemove="mousemove"
         @mouseup="mouseup"
-        @mouseleave="mouseleave"
-        @touchstart="touchstart"
-        @touchmove="touchmove"
         @touchend="touchend"
+        @touchmove="touchmove"
+        @touchstart="touchstart"
     ></canvas>
   </div>
 </template>

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {PasswordDisplayMode, ServiceStatus} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
@@ -70,13 +70,13 @@ const openRecycleBin = () => {
 const createLabel = () => {
   console.log('右键菜单，添加标签')
   if (passwordStore.serviceStatus === ServiceStatus.UNLOCKED) {
-    refStore.labelTreeDivRef.addLabel(null,'sub')
+    refStore.labelTreeDivRef.addLabel(null, 'sub')
     contextmenu.value.show = false
     return
   }
   console.log('右键菜单，添加标签 需要解锁')
   refStore.verifyPasswordRef.verifyAndUnlock().then(() => {
-    refStore.labelTreeDivRef.addLabel(null,'sub')
+    refStore.labelTreeDivRef.addLabel(null, 'sub')
     contextmenu.value.show = false
   })
 }
@@ -89,15 +89,16 @@ defineExpose({
 
 <template>
   <div v-if="contextmenu.show"
-       class="contextmenu-div"
-       :style="{top: contextmenu.y + 'px', left: contextmenu.x + 'px'}">
+       :style="{top: contextmenu.y + 'px', left: contextmenu.x + 'px'}"
+       class="contextmenu-div">
     <el-card>
       <ul id="contextmenu-ul">
         <li @click="createPassword">
           <span class="iconfont icon-create" style="color: #409EFF"></span>
           创建密码
         </li>
-        <li v-if="passwordStore.serviceStatus === ServiceStatus.LOGGED" @click="refStore.verifyPasswordRef.verifyAndUnlock()">
+        <li v-if="passwordStore.serviceStatus === ServiceStatus.LOGGED"
+            @click="refStore.verifyPasswordRef.verifyAndUnlock()">
           <span class="iconfont icon-lock" style="color: #E6A23C"></span>
           解锁
         </li>
@@ -105,11 +106,13 @@ defineExpose({
           <span class="iconfont icon-unlock" style="color: #E6A23C"></span>
           锁定
         </li>
-        <li v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD" @click="switchDisplayMode(PasswordDisplayMode.TABLE)">
+        <li v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"
+            @click="switchDisplayMode(PasswordDisplayMode.TABLE)">
           <span class="iconfont icon-list" style="color: #67C23A"></span>
           表格视图
         </li>
-        <li v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE" @click="switchDisplayMode(PasswordDisplayMode.CARD)">
+        <li v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"
+            @click="switchDisplayMode(PasswordDisplayMode.CARD)">
           <span class="iconfont icon-card" style="color: #67C23A"></span>
           卡片视图
         </li>

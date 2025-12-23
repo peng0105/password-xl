@@ -2,7 +2,7 @@ import {defineStore} from "pinia";
 import {PasswordDisplayMode, Setting, Sort} from "@/types";
 
 export const useSettingStore = defineStore('settingStore', {
-    state: (): {visSetting: boolean, setting: Setting } => {
+    state: (): { visSetting: boolean, setting: Setting } => {
         return {
             visSetting: false,
             setting: {
@@ -52,6 +52,8 @@ export const useSettingStore = defineStore('settingStore', {
                 autoUnlock: false,
                 // 显示密码统计
                 showPasswordStatistics: false,
+                // 显示笔记功能
+                showNote: false,
                 // 背景色选项
                 bgColors: [
                     'rgb(255,0,0)',
