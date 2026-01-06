@@ -21,6 +21,16 @@ import java.io.PrintWriter;
 @Component
 public class LoginFilter extends OncePerRequestFilter {
 
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+
+        return "/".equals(uri) || "/index.html".equals(uri)
+                || uri.startsWith("/icons/")
+                || uri.startsWith("/assets/");
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain chain)
             throws ServletException, IOException {

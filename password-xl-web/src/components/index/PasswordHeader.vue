@@ -134,7 +134,7 @@ const toNote = () => {
 
 // 介绍页
 const goAbout = () => {
-  location.href = 'https://password-xl.cn/about'
+  location.href = 'https://home.password-xl.cn'
 }
 
 // ai创建密码

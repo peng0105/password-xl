@@ -700,7 +700,7 @@ const isAndroid = () => {
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">恢复备份密码</el-text>
-                <el-button plain size="small" type="primary" @click="refStore.backupAndRecoveryRef.recovery">恢复
+                <el-button plain size="small" type="primary" @click="refStore.backupAndRecoveryRef.recovery()">恢复
                 </el-button>
               </div>
               <el-divider class="function-line"/>
@@ -725,7 +725,7 @@ const isAndroid = () => {
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">导入密码</el-text>
                 <el-button plain size="small" type="primary"
-                           @click="refStore.importExcelRef && refStore.importExcelRef.importExcel">导入 Excel
+                           @click="refStore.importExcelRef && refStore.importExcelRef.importExcel()">导入 Excel
                 </el-button>
               </div>
               <el-divider class="function-line"/>

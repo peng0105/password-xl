@@ -52,6 +52,9 @@ const supportLocalFile = () => {
     </div>
     <div v-if="supportLocalFile()">
       <TextLine class="input-login-line" text="请选择"></TextLine>
+      <div style="padding: 0 10px">
+        <el-alert type="error">浏览器端本地存储可能有兼容性问题，建议使用其他存储方式</el-alert>
+      </div>
       <el-row style="padding: 10px">
         <el-col :md="{span:12}" :sm="{span:24}" class="local-type-col">
           <div class="local-type local-create" @click="useLocalLogin('create')">
@@ -110,7 +113,7 @@ const supportLocalFile = () => {
 }
 
 .local-type {
-  height: 300px;
+  height: 290px;
   width: 100%;
   border-radius: 5px;
   text-align: center;
