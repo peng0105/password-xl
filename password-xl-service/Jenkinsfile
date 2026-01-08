@@ -2,7 +2,7 @@ pipeline {
     agent { label 'jdk-21' }
 
      environment {
-        HARBOR_IMAGE = "harbor.huangyp.cn/password-xl/password-xl-service-jvm"
+        IMAGE_NAME = "harbor.huangyp.cn/password-xl/password-xl-service-jvm"
         GRADLE_USER_HOME = '/home/jenkins/.gradle'
     }
 
@@ -25,7 +25,7 @@ pipeline {
                     cd password-xl-service
                     chmod +x ./gradlew
                     ./gradlew jib \
-                      -Djib.to.image="${HARBOR_IMAGE}" \
+                      -Djib.to.image="${IMAGE_NAME}" \
                       -Djib.to.tags="${BUILD_NUMBER},latest" \
                       -Djib.to.auth.username="${HARBOR_USER}" \
                       -Djib.to.auth.password="${HARBOR_PASSWORD}" \
