@@ -2,8 +2,7 @@ pipeline {
     agent { label 'nodejs-24' }
 
     environment {
-        PROJECT_NAME    = "huangyp-todo-web"
-        IMAGE_NAME    = "harbor.huangyp.cn/huangyp/password-xl-web"
+        IMAGE_NAME    = "harbor.huangyp.cn/password-xl/password-xl-web"
         YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
 
     }
@@ -24,8 +23,6 @@ pipeline {
                     cd password-xl-web
 
                     echo "安装依赖..."
-                    id
-                    ls -ld /home/node /home/node/.cache
                     yarn install
 
                     echo "开始构建..."
