@@ -370,8 +370,8 @@ jobs:
       - name: 发布镜像
         uses: docker/build-push-action@v6
         with:
-          context: password-xl-service
-          file: Dockerfile
+          context: ./password-xl-web
+          file: ./password-xl-web/Dockerfile
           push: true
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{needs.build-project.outputs.REPO_VERSION}}
@@ -435,8 +435,8 @@ jobs:
       - name: 发布镜像
         uses: docker/build-push-action@v6
         with:
-          context: password-xl-web
-          file: Dockerfile
+          context: ./password-xl-web
+          file: ./password-xl-web/Dockerfile
           push: true
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME }}:${{needs.build-project.outputs.REPO_VERSION}}
