@@ -13,25 +13,6 @@ pipeline {
     }
 
     stages {
-        stage('Install & Build') {
-            steps {
-                container('node') {
-                    sh '''
-                    set -euo pipefail
-                    yarn config set registry ${YARN_REGISTRY}
-
-                    cd password-xl-home
-
-                    echo "安装依赖..."
-                    yarn install
-
-                    echo "开始构建..."
-                    yarn build
-                    '''
-                }
-            }
-        }
-
         stage('Build & Push Image (BuildKit)') {
           steps {
             container('buildkit') {
