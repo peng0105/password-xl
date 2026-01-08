@@ -18,6 +18,7 @@ pipeline {
                     sh '''#!/bin/bash
                     set -e
                     cd password-xl-service
+                    chmod +x ./gradlew
                     ./gradlew jib \
                       -Djib.to.image="${HARBOR_IMAGE}" \
                       -Djib.to.tags="${BUILD_NUMBER},latest" \
