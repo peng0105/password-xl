@@ -4,6 +4,8 @@ pipeline {
     environment {
         PROJECT_NAME    = "huangyp-todo-web"
         IMAGE_NAME    = "harbor.huangyp.cn/huangyp/password-xl-web"
+        YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
+
     }
 
     options {
