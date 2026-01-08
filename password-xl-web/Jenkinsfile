@@ -24,6 +24,9 @@ pipeline {
                     cd password-xl-web
 
                     echo "安装依赖..."
+                    id
+                    ls -ld /home/node /home/node/.cache
+                    chmod 2775 /home/node/.cache
                     ls -ld /home/node /home/node/.cache
                     yarn install
 
