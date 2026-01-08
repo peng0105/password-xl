@@ -25,7 +25,7 @@ jobs:
       - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
-          node-version: 20.16.x
+          node-version: 20.19.x
 
       - name: 缓存 yarn 模块
         uses: actions/cache@v3
