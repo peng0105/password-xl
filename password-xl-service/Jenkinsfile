@@ -17,6 +17,7 @@ pipeline {
                     echo "=== 构建并推送镜像 ==="
                     sh '''#!/bin/bash
                     set -e
+                    cd password-xl-service
                     ./gradlew jib \
                       -Djib.to.image="${HARBOR_IMAGE}" \
                       -Djib.to.tags="${BUILD_NUMBER},latest" \
