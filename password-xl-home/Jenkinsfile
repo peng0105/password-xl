@@ -1,0 +1,56 @@
+pipeline {
+    agent { label 'nodejs-24' }
+
+    environment {
+        IMAGE_NAME    = "harbor.huangyp.cn/password-xl/password-xl-home-web"
+        YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
+
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '5'))
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('Install & Build') {
+            steps {
+                container('node') {
+                    sh '''
+                    set -euo pipefail
+                    yarn config set registry ${YARN_REGISTRY}
+
+                    cd password-xl-home
+
+                    echo "安装依赖..."
+                    yarn install
+
+                    echo "开始构建..."
+                    yarn build
+                    '''
+                }
+            }
+        }
+
+        stage('Build & Push Image (BuildKit)') {
+          steps {
+            container('buildkit') {
+              sh '''
+              set -e
+
+              mkdir -p /root/.docker
+              cp /root/.dockerconfigjson/.dockerconfigjson /root/.docker/config.json
+
+              echo "构建并推送镜像..."
+              buildctl-daemonless.sh build \
+                --frontend dockerfile.v0 \
+                --local context="${WORKSPACE}/password-xl-home-web" \
+                --local dockerfile="${WORKSPACE}/password-xl-home-web" \
+                --opt filename=Dockerfile \
+                --output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
+              '''
+            }
+          }
+        }
+    }
+}
