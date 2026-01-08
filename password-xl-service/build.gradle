@@ -46,3 +46,10 @@ dependencies {
     implementation 'com.alibaba.fastjson2:fastjson2:2.0.60'
     implementation 'io.hotmoka:toml4j:0.7.3'
 }
+
+
+tasks.register('printVersion') {
+    doLast {
+        println project.version
+    }
+}
