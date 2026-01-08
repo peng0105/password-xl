@@ -52,33 +52,5 @@ pipeline {
             }
           }
         }
-
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                container('kubectl') {
-                    sh '''
-                    set -euo pipefail
-
-                    echo "🔁 使用当前构建镜像更新 Deployment，触发滚动发布..."
-                    kubectl set image deployment/${PROJECT_NAME} \
-                      ${PROJECT_NAME}=${IMAGE_NAME}:${BUILD_NUMBER} \
-                      -n huangyp
-
-                    echo "⏳ 等待 Deployment 完成滚动更新..."
-                    kubectl rollout status deployment/${PROJECT_NAME} -n huangyp --timeout=120s
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        success {
-            echo "✅ 部署成功"
-        }
-        failure {
-            echo "❌ 部署失败"
-        }
     }
 }
