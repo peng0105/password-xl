@@ -15,6 +15,16 @@ java {
     }
 }
 
+ext{
+    harborRegistry = 'harbor.huangyp.cn'
+}
+
+jib {
+    from {
+        image = "${harborRegistry}/dockerhub/library/eclipse-temurin:21-jre-alpine"
+    }
+}
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
@@ -22,6 +32,7 @@ configurations {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
