@@ -24,7 +24,7 @@ pipeline {
                     cd password-xl-web
 
                     echo "安装依赖..."
-                    ls -l /home/node
+                    ls -l /home/node/.cache/yarn
                     yarn install
 
                     echo "开始构建..."
