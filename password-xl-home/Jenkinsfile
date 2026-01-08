@@ -25,8 +25,8 @@ pipeline {
               echo "构建并推送镜像..."
               buildctl-daemonless.sh build \
                 --frontend dockerfile.v0 \
-                --local context="${WORKSPACE}/password-xl-home-web" \
-                --local dockerfile="${WORKSPACE}/password-xl-home-web" \
+                --local context="${WORKSPACE}/password-xl-home" \
+                --local dockerfile="${WORKSPACE}/password-xl-home" \
                 --opt filename=Dockerfile \
                 --output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
               '''
