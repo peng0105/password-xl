@@ -1,0 +1,34 @@
+pipeline {
+    agent { label 'jdk-21' }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('Build & Push Image with Jib') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'harbor-jenkins',
+                    usernameVariable: 'HARBOR_USER',
+                    passwordVariable: 'HARBOR_PASSWORD'
+                )]) {
+                    echo "=== 构建并推送镜像 ==="
+                    sh '''#!/bin/bash
+                    set -e
+                    ./gradlew jib \
+                      -Djib.to.image="${HARBOR_IMAGE}" \
+                      -Djib.to.tags="${BUILD_NUMBER},latest" \
+                      -Djib.to.auth.username="${HARBOR_USER}" \
+                      -Djib.to.auth.password="${HARBOR_PASSWORD}" \
+                      --no-daemon \
+                      --console=plain \
+                      --build-cache \
+                      -x test
+                    '''
+                }
+            }
+        }
+    }
+}
