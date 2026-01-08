@@ -1,4 +1,4 @@
-FROM harbor.huangyp.cn/dockerhub/nginx:alpine
+FROM harbor.huangyp.cn/dockerhub/nginx:alpine-slim
 MAINTAINER password-xl-home
 EXPOSE 80
 RUN mkdir -p /html/images
