@@ -36,6 +36,15 @@ repositories {
     mavenCentral()
 }
 
+graalvmNative {
+    binaries {
+        main {
+            buildArgs.add('--initialize-at-build-time=com.alibaba.fastjson2')
+            buildArgs.add('-H:Class=com.passwordxl.PasswordXlApplication')
+        }
+    }
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'cn.hutool:hutool-core:5.8.42'

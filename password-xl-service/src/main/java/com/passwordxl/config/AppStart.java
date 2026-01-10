@@ -56,7 +56,7 @@ public class AppStart implements ApplicationRunner {
         }
 
         if (!configFile.exists()) {
-            throw new RuntimeException("配置文件不存在. 请参考官方部署说明文档：" + deployDoc);
+            throw new RuntimeException("\n\n\n配置文件不存在. 请在/password-xl-service/password-xl.toml文件中配置用户信息，配置示例：\n\n[[user]]\nusername = \"admin\"\npassword = \"123456\"\n\n\n或参考官方部署说明文档：" + deployDoc + "\n");
         }
 
         log.info("数据存储目录: {}", DataService.workPath);
