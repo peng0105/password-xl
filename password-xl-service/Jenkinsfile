@@ -23,23 +23,20 @@ pipeline {
             steps {
                 container('graalvm') {
                     sh '''
+                    #!/usr/bin/env bash
                     set -euo pipefail
 
                     cd password-xl-service
 
-                    cat >nexus.init.gradle <<EOF
+                    cat <<'EOF' > password-xl-service/nexus.init.gradle
                     allprojects {
                       buildscript {
-                          repositories {
-                              maven {
-                                  url = uri("https://nexus.huangyp.cn/repository/maven-public/")
-                              }
-                          }
+                        repositories {
+                          maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
+                        }
                       }
                       repositories {
-                          maven {
-                              url = uri("https://nexus.huangyp.cn/repository/maven-public/")
-                          }
+                        maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
                       }
                     }
                     EOF
