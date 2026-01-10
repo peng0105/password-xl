@@ -28,7 +28,7 @@ pipeline {
 
                     cd password-xl-service
 
-                    cat <<'EOF' > password-xl-service/nexus.init.gradle
+                    cat <<'EOF' > nexus.init.gradle
                     allprojects {
                       buildscript {
                         repositories {
