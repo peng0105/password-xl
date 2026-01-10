@@ -1,0 +1,8 @@
+[
+  {
+    "name": "java.util.HashMap",
+    "constructors": [
+      { "parameterTypes": [] }
+    ]
+  }
+]
