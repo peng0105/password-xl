@@ -36,7 +36,7 @@ public class AppStart implements ApplicationRunner {
 
         // 从环境变量读取 DATA_DIR
         String dataDir = System.getenv("DATA_DIR");
-        if (StrUtil.isBlank(dataDir)) {
+        if (StrUtil.isNotBlank(dataDir)) {
             DataService.workPath = dataDir;
             if (DataService.workPath.endsWith("/")) {
                 DataService.workPath = DataService.workPath.substring(0, DataService.workPath.length() - 1);
