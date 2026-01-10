@@ -22,24 +22,24 @@ pipeline {
         stage('Install & Build') {
             steps {
                 container('graalvm') {
+                    writeFile file: 'password-xl-service/nexus.init.gradle', text: '''
+allprojects {
+  buildscript {
+    repositories {
+      maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
+    }
+  }
+  repositories {
+    maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
+  }
+}
+'''.stripIndent()
                     sh '''
                     #!/usr/bin/env bash
                     set -euo pipefail
 
                     cd password-xl-service
 
-                    cat <<'EOF' > nexus.init.gradle
-                    allprojects {
-                      buildscript {
-                        repositories {
-                          maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
-                        }
-                      }
-                      repositories {
-                        maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
-                      }
-                    }
-                    EOF
                     sed -i 's/\r$//' gradlew
                     ./gradlew --version
                     ./gradlew clean nativeCompile --init-script nexus.init.gradle --info --stacktrace
