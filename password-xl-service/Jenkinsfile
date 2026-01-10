@@ -21,9 +21,11 @@ pipeline {
 
         stage('Install & Build') {
             steps {
-                container('graalvm-jdk-25') {
+                container('graalvm') {
                     sh '''
                     set -euo pipefail
+
+                    cd password-xl-service
 
                     cat >nexus.init.gradle <<EOF
                     allprojects {
@@ -41,8 +43,6 @@ pipeline {
                       }
                     }
                     EOF
-
-                    cd password-xl-service
                     sed -i 's/\r$//' gradlew
                     ./gradlew --version
                     ./gradlew clean nativeCompile --init-script nexus.init.gradle --info --stacktrace
