@@ -15,7 +15,7 @@ pipeline {
 
         stage('Prepare') {
             steps {
-                sh 'chmod +x ./gradlew'
+                sh 'chmod +x ./password-xl-service/gradlew'
             }
         }
 
