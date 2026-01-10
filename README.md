@@ -9,6 +9,7 @@ password-XL 是一个开源的密码管理工具，项目功能丰富、安全�
 
 <img src="https://foruda.gitee.com/images/1730195271822729849/c8d74856_9560465.png" width="20%"/>
 <br/><br/>
+
 [点击查看完整文档](https://gitee.com/huanyp/password-xl/wikis/Home)
 
 ## 部分页面截图
