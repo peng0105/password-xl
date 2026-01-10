@@ -1,4 +1,4 @@
-FROM nginx:alpine-slim
+FROM harbor.huangyp.cn/dockerhub/nginx:alpine-slim
 MAINTAINER password-xl-web
 EXPOSE 80
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf

@@ -1,0 +1,41 @@
+pipeline {
+    agent { label 'jdk-21' }
+
+     environment {
+        IMAGE_NAME = "harbor.huangyp.cn/password-xl/password-xl-service-jvm"
+        GRADLE_USER_HOME = '/home/jenkins/.gradle'
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('Build & Push Image with Jib') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'harbor-jenkins',
+                    usernameVariable: 'HARBOR_USER',
+                    passwordVariable: 'HARBOR_PASSWORD'
+                )]) {
+                    echo "=== 构建并推送镜像 ==="
+                    sh '''#!/bin/bash
+                    set -e
+                    cd password-xl-service
+                    chmod +x ./gradlew
+                    ./gradlew jib \
+                      -Djib.to.image="${IMAGE_NAME}" \
+                      -Djib.to.tags="${BUILD_NUMBER},latest" \
+                      -Djib.to.auth.username="${HARBOR_USER}" \
+                      -Djib.to.auth.password="${HARBOR_PASSWORD}" \
+                      --no-daemon \
+                      --console=plain \
+                      --build-cache \
+                      -x test
+                    '''
+                }
+            }
+        }
+    }
+}

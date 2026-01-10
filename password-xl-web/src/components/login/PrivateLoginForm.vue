@@ -90,8 +90,14 @@ const initForm = () => {
     form.username = autoLogin.username || ''
     form.password = autoLogin.password || ''
   } else {
-    form.serverUrl = (route.query.serverUrl || '') + 'http://127.0.0.1:8080';
-    form.username = (route.query.username || '') + ''
+    if (route.query.serverUrl) {
+      form.serverUrl = route.query.serverUrl + ''
+    } else if(location.host !== 'password-xl.cn'){
+      form.serverUrl = location.origin
+    } else{
+      form.serverUrl = 'http://127.0.0.1:8080'
+    }
+    form.username = (route.query.username || '') + '';
     form.password = (route.query.password || '') + ''
   }
 }

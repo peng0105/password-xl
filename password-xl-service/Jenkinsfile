@@ -1,8 +1,8 @@
 pipeline {
-    agent { label 'jdk-21' }
+    agent { label 'graalvm-jdk-25' }
 
-     environment {
-        IMAGE_NAME = "harbor.huangyp.cn/password-xl/password-xl-service-jvm"
+    environment {
+        IMAGE_NAME = "harbor.huangyp.cn/password-xl/password-xl-service"
         GRADLE_USER_HOME = '/home/jenkins/.gradle'
     }
 
@@ -12,27 +12,60 @@ pipeline {
     }
 
     stages {
-        stage('Build & Push Image with Jib') {
+
+        stage('Prepare') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'harbor-jenkins',
-                    usernameVariable: 'HARBOR_USER',
-                    passwordVariable: 'HARBOR_PASSWORD'
-                )]) {
-                    echo "=== 构建并推送镜像 ==="
-                    sh '''#!/bin/bash
-                    set -e
+                sh 'pwd && ls -l &&chmod +x ./password-xl-service/gradlew'
+            }
+        }
+
+        stage('Install & Build') {
+            steps {
+                container('graalvm') {
+                    writeFile file: 'password-xl-service/nexus.init.gradle', text: '''
+allprojects {
+  buildscript {
+    repositories {
+      maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
+    }
+  }
+  repositories {
+    maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
+  }
+}
+'''.stripIndent()
+                    sh '''
+                    #!/usr/bin/env bash
+                    set -euo pipefail
+
                     cd password-xl-service
-                    chmod +x ./gradlew
-                    ./gradlew jib \
-                      -Djib.to.image="${IMAGE_NAME}" \
-                      -Djib.to.tags="${BUILD_NUMBER},latest" \
-                      -Djib.to.auth.username="${HARBOR_USER}" \
-                      -Djib.to.auth.password="${HARBOR_PASSWORD}" \
-                      --no-daemon \
-                      --console=plain \
-                      --build-cache \
-                      -x test
+
+                    sed -i 's/\r$//' gradlew
+                    ./gradlew --version
+                    ./gradlew clean nativeCompile --init-script nexus.init.gradle --info --stacktrace
+
+                    '''
+                }
+            }
+        }
+
+        stage('Build & Push Image (BuildKit)') {
+            steps {
+                container('buildkit') {
+                    sh '''
+                    set -euo pipefail
+                    cd password-xl-service
+
+                    mkdir -p /root/.docker
+                    cp /root/.dockerconfigjson/.dockerconfigjson /root/.docker/config.json
+
+                    echo "🏗️ 使用 BuildKit 构建并推送镜像..."
+                    buildctl-daemonless.sh build \
+                      --frontend dockerfile.v0 \
+                      --local context="${WORKSPACE}/password-xl-service" \
+                      --local dockerfile="${WORKSPACE}/password-xl-service" \
+                      --opt filename=Dockerfile \
+                      --output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
                     '''
                 }
             }
