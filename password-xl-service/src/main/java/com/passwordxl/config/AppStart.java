@@ -1,5 +1,6 @@
 package com.passwordxl.config;
 
+import cn.hutool.core.util.StrUtil;
 import com.moandjiezana.toml.Toml;
 import com.passwordxl.bean.User;
 import com.passwordxl.service.DataService;
@@ -32,6 +33,15 @@ public class AppStart implements ApplicationRunner {
 
         log.info("\n\n========================================\n\n");
         log.info("欢迎使用password-xl，项目开源地址：{}", openSource);
+
+        // 从环境变量读取 DATA_DIR
+        String dataDir = System.getenv("DATA_DIR");
+        if (StrUtil.isBlank(dataDir)) {
+            DataService.workPath = dataDir;
+            if (DataService.workPath.endsWith("/")) {
+                DataService.workPath = DataService.workPath.substring(0, DataService.workPath.length() - 1);
+            }
+        }
 
         String[] nonOptionArgs = args.getSourceArgs();
         for (String arg : nonOptionArgs) {
