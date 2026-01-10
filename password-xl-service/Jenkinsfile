@@ -1,7 +1,7 @@
 pipeline {
     agent { label 'graalvm-jdk-25' }
 
-     environment {
+    environment {
         IMAGE_NAME = "harbor.huangyp.cn/password-xl/password-xl-service"
         GRADLE_USER_HOME = '/home/jenkins/.gradle'
     }
@@ -15,7 +15,7 @@ pipeline {
 
         stage('Prepare') {
             steps {
-                sh 'chmod +x ./password-xl-service/gradlew'
+                sh 'pwd && ls -l &&chmod +x ./password-xl-service/gradlew'
             }
         }
 
@@ -25,10 +25,27 @@ pipeline {
                     sh '''
                     set -euo pipefail
 
+                    cat >nexus.init.gradle <<EOF
+                    allprojects {
+                      buildscript {
+                          repositories {
+                              maven {
+                                  url = uri("https://nexus.huangyp.cn/repository/maven-public/")
+                              }
+                          }
+                      }
+                      repositories {
+                          maven {
+                              url = uri("https://nexus.huangyp.cn/repository/maven-public/")
+                          }
+                      }
+                    }
+                    EOF
+
                     cd password-xl-service
                     sed -i 's/\r$//' gradlew
                     ./gradlew --version
-                    ./gradlew clean nativeCompile --init-script /data/nexus.init.gradle --info --stacktrace
+                    ./gradlew clean nativeCompile --init-script nexus.init.gradle --info --stacktrace
 
                     '''
                 }
