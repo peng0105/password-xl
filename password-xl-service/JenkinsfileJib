@@ -14,6 +14,7 @@ pipeline {
     stages {
         stage('Build & Push Image with Jib') {
             steps {
+              container('graalvm') {
                 withCredentials([usernamePassword(
                     credentialsId: 'harbor-jenkins',
                     usernameVariable: 'HARBOR_USER',
@@ -36,6 +37,7 @@ pipeline {
                       -x test
                     '''
                 }
+              }
             }
         }
     }
