@@ -17,7 +17,7 @@ const router = createRouter({
 // 全局前置守卫，用户登录判断
 router.beforeEach((to, from, next) => {
     console.log('路由变化：', from.path, to.path)
-    if (to.path === "/login" || to.path === "/test") {
+    if (to.path === "/login") {
         useLoginStore().logging = false
         next()
         return
