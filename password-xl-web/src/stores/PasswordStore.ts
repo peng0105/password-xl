@@ -24,6 +24,10 @@ export const usePasswordStore = defineStore('passwordStore', {
             topicMode: TopicMode.AUTO,
             // 主密码类型
             mainPasswordType: MainPasswordType.GESTURE,
+            // 密码表单抽屉是否显示
+            passwordFormDrawerVis: false,
+            // 是否显示密码回收站弹窗
+            recycleBinDialogVis: false,
             // 超时锁
             timeoutLock: null,
             // 加载中动画

@@ -2,7 +2,7 @@
 <script lang="ts" setup>
 import {PasswordDisplayMode, ServiceStatus, TopicMode} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
-import {displaySize} from "@/utils/global.ts";
+import {displaySize, supportAI} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useRouter} from "vue-router";
@@ -177,6 +177,7 @@ const aiAddPassword = () => {
 
           :fetch-suggestions="querySearch"
           class="search-input"
+          popper-class="header-autocomplete-suggestion"
           clearable
           placeholder="搜索.."
 
@@ -206,7 +207,7 @@ const aiAddPassword = () => {
     </div>
     <div style="display: flex;">
       <el-button
-          v-if="settingStore.setting.enableAiAdd"
+          v-if="settingStore.setting.enableAiAdd && supportAI()"
           :ref="(el: any) => refStore.aiCreatePasswordBtnRef = el"
           :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
           class="ai-add-password-btn"
@@ -228,8 +229,7 @@ const aiAddPassword = () => {
       <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED
       && !['xs','sm'].includes(displaySize().value) && settingStore.setting.showNote" content="打开笔记">
         <el-button class="to-note-btn" plain @click="toNote">
-          <span :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="iconfont icon-note"
-                style="font-size: 125%;transform: scaleX(1.1);"/>
+          <span class="iconfont icon-note" style="font-size: 125%;transform: scaleX(1.1);color: #67C23A"/>
         </el-button>
       </el-tooltip>
       <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED" content="锁定">
@@ -413,7 +413,10 @@ const aiAddPassword = () => {
   margin-top: 0;
   margin-bottom: 0;
 }
+
 </style>
 <style>
-
+.header-autocomplete-suggestion .el-autocomplete-suggestion li:hover {
+  color: #409eff;
+}
 </style>

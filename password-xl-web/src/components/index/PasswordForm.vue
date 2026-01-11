@@ -11,8 +11,6 @@ const refStore = useRefStore()
 const passwordStore = usePasswordStore()
 const settingStore = useSettingStore()
 
-// 弹框状态
-const alertVisStatus = ref(false)
 // 表单类型 add 或 edit
 const formType = ref('')
 // 随机密码动画
@@ -76,7 +74,7 @@ const addPasswordForm = (title?: string) => {
   // 初始化生成规则表单
   generateForm.value = JSON.parse(JSON.stringify(settingStore.setting.generateRule))
   // 显示密码表单
-  alertVisStatus.value = true
+  passwordStore.passwordFormDrawerVis = true
   // 清除校验结果
   refStore.passwordFormFormRef?.clearValidate();
   // 生成密码
@@ -132,7 +130,7 @@ const editPasswordForm = (password: Password) => {
   // 设置密码表单
   passwordForm.value = JSON.parse(JSON.stringify(password))
   // 显示密码表单
-  alertVisStatus.value = true
+  passwordStore.passwordFormDrawerVis = true
   // 清除校验结果
   refStore.passwordFormFormRef?.clearValidate();
 }
@@ -140,7 +138,7 @@ const editPasswordForm = (password: Password) => {
 // 关闭密码表单
 const closePasswordForm = () => {
   console.log('关闭密码表单')
-  alertVisStatus.value = false
+  passwordStore.passwordFormDrawerVis = false
 }
 
 // 用户名自动预测
@@ -201,6 +199,7 @@ const addField = () => {
   passwordForm.value.customFields.push({
     key: '',
     val: '',
+    hidden: false,
   })
 }
 
@@ -216,7 +215,7 @@ const savePassword = async (passwordFormFormRef: any) => {
       passwordStore.passwordManager.addPassword(JSON.parse(JSON.stringify(passwordForm.value))).then(resp => {
         if (resp.status) {
           ElMessage.success('保存成功')
-          alertVisStatus.value = false
+          passwordStore.passwordFormDrawerVis = false
         } else {
           ElNotification.error({title: '系统异常', message: resp.message,})
         }
@@ -227,7 +226,7 @@ const savePassword = async (passwordFormFormRef: any) => {
       passwordStore.passwordManager.updatePassword(JSON.parse(JSON.stringify(passwordForm.value))).then(resp => {
         if (resp.status) {
           ElMessage.success('修改成功')
-          alertVisStatus.value = false
+          passwordStore.passwordFormDrawerVis = false
         } else {
           ElNotification.error({title: '系统异常', message: resp.message})
         }
@@ -249,7 +248,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
   if (!settingStore.setting.enableShortcutKey) {
     return
   }
-  if (event.ctrlKey && event.key.toUpperCase() === 'S') {
+  if (event.ctrlKey && event.key.toUpperCase() === 'S' && passwordStore.passwordFormDrawerVis) {
     console.log('使用快捷键 Ctrl + S')
     // 阻止浏览器默认功能
     event.preventDefault();
@@ -272,7 +271,7 @@ onBeforeUnmount(() => {
 
 <template>
   <el-drawer
-      v-model="alertVisStatus"
+      v-model="passwordStore.passwordFormDrawerVis"
       :direction="['xs','sm'].includes(displaySize().value)?'btt':'rtl'"
       :show-close="false"
       :size="['xs','sm'].includes(displaySize().value)?'80%':'540px'"
@@ -286,6 +285,7 @@ onBeforeUnmount(() => {
         :ref="(el: any) => refStore.passwordFormFormRef = el"
         :model="passwordForm"
         :rules="passwordFormRules"
+        autocomplete="off"
         label-width="60px">
       <el-form-item label="名称" prop="title">
         <el-input :ref="(el: any) => refStore.passwordFormTitleRef = el" v-model="passwordForm.title"
@@ -413,10 +413,21 @@ onBeforeUnmount(() => {
       </el-form-item>
       <el-form-item label="自定义">
         <el-card v-if="passwordForm.customFields && passwordForm.customFields.length > 0" style="width: 100%">
-          <div v-for="(field,index) in passwordForm.customFields" :style="{'margin-bottom': index !== passwordForm.customFields.length - 1?'15px':'0'}"
+          <div v-for="(field,index) in passwordForm.customFields"
+               :style="{'margin-bottom': index !== passwordForm.customFields.length - 1?'15px':'0'}"
                style="display: flex">
-            <el-input v-model="field.key" placeholder="名称" style="margin-right: 10px;flex: 1"></el-input>
-            <el-input v-model="field.val" placeholder="内容" style="margin-right: 10px;flex: 2"></el-input>
+            <div style="margin-right: 10px;">
+              <el-icon v-if="field.hidden" style="cursor: pointer;" @click="field.hidden = false">
+                <span class="iconfont icon-hide"/>
+              </el-icon>
+              <el-icon v-else style="cursor: pointer;" @click="field.hidden = true">
+                <span class="iconfont icon-show"/>
+              </el-icon>
+            </div>
+            <el-input v-model="field.key" autocomplete="off" placeholder="名称"
+                      style="margin-right: 10px;flex: 1"></el-input>
+            <el-input v-model="field.val" autocomplete="off" :type="field.hidden?'password':'text'" placeholder="内容"
+                      style="margin-right: 10px;flex: 2"></el-input>
             <el-button plain title="删除" type="danger" @click="delField(index)">
               <span class="iconfont icon-clean"></span>
             </el-button>

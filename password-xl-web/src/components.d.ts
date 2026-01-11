@@ -13,6 +13,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     About: typeof import('./components/common/setting/About.vue')['default']
     AiAddPassword: typeof import('./components/index/AiAddPassword.vue')['default']
+    AiImport: typeof import('./components/common/setting/AiImport.vue')['default']
     AndroidLoginForm: typeof import('./components/login/AndroidLoginForm.vue')['default']
     BackupAndRecovery: typeof import('./components/common/setting/BackupAndRecovery.vue')['default']
     CancelAccount: typeof import('./components/common/setting/CancelAccount.vue')['default']
@@ -43,6 +44,7 @@ declare module 'vue' {
     ElectronLoginForm: typeof import('./components/login/ElectronLoginForm.vue')['default']
     ElForm: typeof import('element-plus/es')['ElForm']
     ElFormItem: typeof import('element-plus/es')['ElFormItem']
+    ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElLink: typeof import('element-plus/es')['ElLink']
     ElMain: typeof import('element-plus/es')['ElMain']

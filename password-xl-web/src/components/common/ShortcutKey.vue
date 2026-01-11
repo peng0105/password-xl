@@ -4,6 +4,7 @@ import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {PasswordDisplayMode, ServiceStatus, TopicMode} from "@/types";
+import {isEditableTarget} from "@/utils/global.ts";
 
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
@@ -15,17 +16,17 @@ const handleKeyDown = (event: KeyboardEvent) => {
     return
   }
   if (event.ctrlKey && event.key.toUpperCase() === 'F') {
-    console.log('使用快捷键 Ctrl + F')
+    console.log('使用快捷键 Ctrl + F 搜索')
     // 阻止浏览器默认功能
     event.preventDefault();
     refStore.searchInputRef?.focus()
   } else if (event.altKey && event.key.toUpperCase() === 'N') {
-    console.log('使用快捷键 Alt + N')
+    console.log('使用快捷键 Alt + N 新建密码')
     // 阻止浏览器默认功能
     event.preventDefault();
     refStore.passwordFormRef.addPasswordForm()
   } else if (event.altKey && event.key.toUpperCase() === 'L') {
-    console.log('使用快捷键 Alt + L')
+    console.log('使用快捷键 Alt + L 锁定/解锁密码库')
     // 阻止浏览器默认功能
     event.preventDefault();
     if (passwordStore.serviceStatus === ServiceStatus.LOGGED) {
@@ -34,7 +35,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
       passwordStore.passwordManager.lock();
     }
   } else if (event.altKey && event.key.toUpperCase() === 'V') {
-    console.log('使用快捷键 Alt + V')
+    console.log('使用快捷键 Alt + V 切换密码展示方式')
     // 阻止浏览器默认功能
     event.preventDefault();
     if (settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD) {
@@ -43,13 +44,20 @@ const handleKeyDown = (event: KeyboardEvent) => {
       switchDisplayMode(PasswordDisplayMode.CARD)
     }
   } else if (event.altKey && event.key.toUpperCase() === 'T') {
-    console.log('使用快捷键 Alt + T')
+    console.log('使用快捷键 Alt + T 切换主题')
     // 阻止浏览器默认功能
     event.preventDefault();
     if (passwordStore.isDark) {
       switchTopicMode(TopicMode.LIGHT)
     } else {
       switchTopicMode(TopicMode.DARK)
+    }
+  } else if (event.key.toUpperCase() === '/') {
+    if (!isEditableTarget(event.target) && !passwordStore.passwordFormDrawerVis && !settingStore.visSetting && !passwordStore.recycleBinDialogVis) {
+      console.log('使用快捷键 / 聚焦搜索')
+      // 阻止浏览器默认功能
+      event.preventDefault();
+      refStore.searchInputRef?.focus()
     }
   }
 };

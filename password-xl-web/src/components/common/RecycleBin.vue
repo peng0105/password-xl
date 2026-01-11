@@ -9,13 +9,10 @@ import {Password} from "@/types";
 const passwordStore = usePasswordStore()
 const settingStore = useSettingStore()
 
-// 是否显示回收站组件
-const visRecycleBin = ref(false);
-
 // 打开回收站
 const openRecycleBin = () => {
   console.log('打开回收站')
-  visRecycleBin.value = true;
+  passwordStore.recycleBinDialogVis = true;
 }
 
 // 启用回收站功能
@@ -52,7 +49,7 @@ defineExpose({
 
 <template>
   <el-dialog
-      v-model="visRecycleBin"
+      v-model="passwordStore.recycleBinDialogVis"
       :fullscreen="['xs'].includes(displaySize().value)"
       class="recycle-bin"
       draggable

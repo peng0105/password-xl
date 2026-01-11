@@ -211,7 +211,8 @@ const importData = async (buffer: any) => {
         let field = fieldStr[j].split("：")
         password.customFields.push({
           key: field[0],
-          val: field.length > 1 ? field[1] : ''
+          val: field.length > 1 ? field[1] : '',
+          hidden: false
         })
       }
     }

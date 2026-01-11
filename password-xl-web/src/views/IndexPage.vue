@@ -61,7 +61,9 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
           <!-- 密码表 -->
           <PasswordTable v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"></PasswordTable>
           <!-- 密码卡片 -->
-          <PasswordCards v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"></PasswordCards>
+          <div :style="{height: 'calc(100vh - 84px)'}">
+            <PasswordCards v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"></PasswordCards>
+          </div>
         </el-card>
       </el-col>
       <el-col
@@ -87,7 +89,9 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
     <!-- 密码表 -->
     <PasswordTable v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"></PasswordTable>
     <!-- 密码卡片 -->
-    <PasswordCards v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"></PasswordCards>
+    <div :style="{height: 'calc(100vh - 60px)'}">
+      <PasswordCards v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"></PasswordCards>
+    </div>
   </div>
 
   <!-- 注销账号 -->
@@ -120,6 +124,8 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
   <Contextmenu :ref="(el: any) => refStore.contextmenuRef = el"></Contextmenu>
   <!-- 快捷键 -->
   <ShortcutKey></ShortcutKey>
+  <!-- AI批量导入 -->
+  <AiImport :ref="(el: any) => refStore.aiImportRef = el"></AiImport>
 </template>
 
 <style>
