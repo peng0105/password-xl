@@ -76,6 +76,13 @@ const fileChange = () => {
   reader.readAsArrayBuffer(files[0]);
 }
 
+const normalizeCell = (cell: any) => {
+  if (cell?.value && typeof cell.value === 'object' && 'text' in cell.value) {
+    cell.value = cell.value.text
+  }
+}
+
+
 // 开始解析数据
 const importData = async (buffer: any) => {
   console.log('导入excel 解析excel')
@@ -150,18 +157,11 @@ const importData = async (buffer: any) => {
     let favorite = columnIndex.favorite !== -1 ? row.getCell(columnIndex.favorite) : null
     let customFields = columnIndex.customFields !== -1 ? row.getCell(columnIndex.customFields) : null
 
-    if (address && typeof address.value === 'object') {
-      address.value = address.value.text
-    }
-    if (username && typeof username.value === 'object') {
-      username.value = username.value.text
-    }
-    if (passwordValue && typeof passwordValue.value === 'object') {
-      passwordValue.value = passwordValue.value.text
-    }
-    if (remark && typeof remark.value === 'object') {
-      remark.value = remark.value.text
-    }
+    normalizeCell(address)
+    normalizeCell(username)
+    normalizeCell(passwordValue)
+    normalizeCell(remark)
+
 
     // 收藏
     let favoriteValue = favorite && favorite.value === '是'
