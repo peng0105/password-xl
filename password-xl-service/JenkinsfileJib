@@ -15,6 +15,18 @@ pipeline {
         stage('Build & Push Image with Jib') {
             steps {
               container('graalvm') {
+                    writeFile file: 'password-xl-service/nexus.init.gradle', text: '''
+allprojects {
+  buildscript {
+    repositories {
+      maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
+    }
+  }
+  repositories {
+    maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
+  }
+}
+'''.stripIndent()
                 withCredentials([usernamePassword(
                     credentialsId: 'harbor-jenkins',
                     usernameVariable: 'HARBOR_USER',
@@ -31,7 +43,7 @@ pipeline {
                     mkdir -p "${XDG_CONFIG_HOME}/google-cloud-tools-java/jib"
 
                     java -version
-                    ./gradlew jib \
+                    ./gradlew clean jib --init-script nexus.init.gradle --info --stacktrace \
                       -Djib.to.image="${IMAGE_NAME}" \
                       -Djib.to.tags="${BUILD_NUMBER},latest" \
                       -Djib.to.auth.username="${HARBOR_USER}" \
