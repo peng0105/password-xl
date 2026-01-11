@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'jdk-21' }
+    agent { label 'graalvm-jdk-25' }
 
      environment {
         IMAGE_NAME = "harbor.huangyp.cn/password-xl/password-xl-service-jvm"
