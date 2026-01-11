@@ -62,6 +62,8 @@ export const useRefStore = defineStore('refStore', {
             searchInputRef: ref(),
             // 笔记标题
             noteTitleRef: ref(),
+            // Ai批量导入
+            aiImportRef: ref(),
         }
     }
 })

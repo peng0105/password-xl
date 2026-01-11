@@ -124,6 +124,8 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
   <Contextmenu :ref="(el: any) => refStore.contextmenuRef = el"></Contextmenu>
   <!-- 快捷键 -->
   <ShortcutKey></ShortcutKey>
+  <!-- AI批量导入 -->
+  <AiImport :ref="(el: any) => refStore.aiImportRef = el"></AiImport>
 </template>
 
 <style>

@@ -352,7 +352,7 @@ const isAndroid = () => {
         设置
       </el-text>
     </template>
-    <el-form v-model="settingStore" label-position="right" label-width="140px">
+    <el-form :model="settingStore.setting" label-position="right" label-width="140px">
       <el-tabs :before-leave="switchTab" style="margin-top: 10px;" tab-position="left">
         <el-tab-pane>
           <template #label>
@@ -465,7 +465,7 @@ const isAndroid = () => {
             </div>
             <div class="function-div">
               <div class="function-header">
-                <el-text tag="b">启用笔记功能</el-text>
+                <el-text tag="b">在标题栏显示笔记功能入口</el-text>
                 <el-switch v-model="settingStore.setting.showNote"></el-switch>
               </div>
               <el-divider class="function-line"/>
@@ -685,6 +685,7 @@ const isAndroid = () => {
             </el-text>
           </template>
           <el-scrollbar :height="scrollbarHeight()">
+            <el-alert style="margin-bottom: 10px" v-if="supportAI()" type="success">AI批量导入功能已上线，可以快速导入已有密码，欢迎体验!</el-alert>
             <el-alert style="margin-bottom: 10px" type="warning">笔记数据不会被备份或导出，请注意</el-alert>
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
@@ -697,6 +698,17 @@ const isAndroid = () => {
                 密码备份功能可以安全的将加密后的密码文件导出，在需要时通过
                 <el-text>恢复备份密码</el-text>
                 功能还原。
+              </el-text>
+            </div>
+            <div v-if="supportAI()" class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">AI批量导入</el-text>
+                <el-button plain size="small" type="primary" @click="refStore.aiImportRef.batchImport()">导入
+                </el-button>
+              </div>
+              <el-divider class="function-line"/>
+              <el-text style="text-indent: 10px" tag="p" type="info">
+                AI导入功能支持批量导入非结构化密码，例如从一段文本中导入多个密码
               </el-text>
             </div>
             <div class="function-div">
@@ -837,11 +849,6 @@ const isAndroid = () => {
   font-size: 110%;
   color: #409EFF;
   margin-right: 5px;
-}
-
-.el-alert {
-  padding: 2px 10px;
-  margin-top: 10px;
 }
 
 .function-div {

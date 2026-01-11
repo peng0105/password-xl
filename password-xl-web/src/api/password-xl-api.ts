@@ -4,7 +4,8 @@ import axios from "axios";
 import config from "@/config";
 
 
-export const extractPasswordApi = async (text: string) => {
+export const extractPasswordApi = async (text: string, batch: boolean = false) => {
+    console.log('AI解析密码')
     // 随机一个密码作为服务端对称加密的密钥
     let key = randomPassword({length: 16, number: true, lowercase: true, uppercase: true, symbol: false})
 
@@ -20,9 +21,10 @@ export const extractPasswordApi = async (text: string) => {
 
         let body = {
             encryptKey: encryptKey,
-            data: encryptData
+            data: encryptData,
+            batch: batch,
         }
-
+        console.log("AI解析发送请求")
         axios.post(config.apiServer + '/extractPassword', body).then((res) => {
             let data: any = res.data
             if (data.code !== 200) {

@@ -323,6 +323,8 @@ export interface RefStore {
     searchInputRef: Ref,
     // 笔记标题
     noteTitleRef: Ref,
+    // Ai批量导入
+    aiImportRef: Ref,
 }
 
 // 备份文件格式
