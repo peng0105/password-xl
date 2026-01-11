@@ -1,6 +1,10 @@
 ## 项目简介
 password-XL 是一个开源的密码管理工具，项目功能丰富、安全可靠、界面美观、支持私有部署，欢迎使用！
 
+- 📦 NAS 部署教程已上线，手把手教你在 NAS 上部署 password-xl，[点击查看部署文档](https://github.com/peng0105/password-xl/wiki/NAS-%E9%83%A8%E7%BD%B2-password%E2%80%90xl-%E6%95%99%E7%A8%8B)
+- 🤖 新增AI批量导入功能，支持快速导入大量密码笔记，系统设置 ➡ 备份恢复 ➡ AI批量导入
+- ⚡ 优化快捷键体验：锁定/解锁：Alt + L、搜索：Ctrl + F、创建：Alt + N、保存：Ctrl + S、聚焦搜索：/
+
 ## 项目地址
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;官方服务地址：[https://password-xl.cn](https://password-xl.cn)
 
