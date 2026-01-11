@@ -24,6 +24,7 @@ pipeline {
                     set -e
                     cd password-xl-service
                     chmod +x ./gradlew
+                    java -version
                     ./gradlew jib \
                       -Djib.to.image="${IMAGE_NAME}" \
                       -Djib.to.tags="${BUILD_NUMBER},latest" \
