@@ -52,5 +52,25 @@ pipeline {
             }
           }
         }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                container('kubectl') {
+                    sh '''#!/bin/bash
+                    set -euo pipefail
+
+                    echo "🔁 使用当前构建镜像更新 Deployment，触发滚动发布..."
+                    kubectl set image deployment/password-xl-web \
+                      password-xl-web=${IMAGE_NAME}:${BUILD_NUMBER} \
+                      -n "password-xl"
+
+                    echo "⏳ 等待 Deployment 完成滚动更新..."
+                    kubectl rollout status deployment/password-xl-web -n "password-xl" --timeout=270s
+
+                    echo "✅ 部署完成: password-xl-web"
+                    '''
+                }
+            }
+        }
     }
 }
