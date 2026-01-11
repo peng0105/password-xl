@@ -24,6 +24,7 @@ const settingStore = useSettingStore()
 const showPasswordId = ref(0)
 const passwordCardScrollbar = ref()
 
+const fieldShows: Ref<Record<string, boolean>> = ref({})
 
 // 收藏密码
 const favoritePassword = (password: Password) => {
@@ -99,9 +100,9 @@ const cardStyle = (password: Password) => {
   };
 }
 
-const getBackStype = () => {
+const getBackStyle = () => {
   if (settingStore.setting.dynamicBackground) {
-    return {'background-color': passwordStore.isDark ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}
+    return {'background-color': passwordStore.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)'}
   } else {
     return {'background-color': passwordStore.isDark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,1)'}
   }
@@ -140,14 +141,14 @@ onMounted(() => {
 <template>
   <el-scrollbar
       ref="passwordCardScrollbar"
-      height="calc(100vh - 85px)"
+      height="100%"
   >
     <div
         v-if="passwordStore.visPasswordArray.length"
         :style="{'grid-template-columns':'repeat('+getRowCount()+', 1fr)'}"
         style="display: grid;padding: 6px;">
-      <div v-for="password in getPagePasswordArray()">
-        <el-card :style="getBackStype" body-style="height: 100%;" class="password-card">
+      <div v-for="password in getPagePasswordArray()" @dblclick="refStore.passwordFormRef.editPasswordForm(password)">
+        <el-card :style="getBackStyle()" body-style="height: 100%;" class="password-card">
           <template #header>
             <div :style="cardStyle(password)" class="password-header-div">
               <div>
@@ -158,7 +159,7 @@ onMounted(() => {
                       class="password-strength"
                   ></div>
                 </el-tooltip>
-                <el-text style="font-size: 17px">{{ password.title }}</el-text>
+                <el-text style="font-size: 17px;color: #555">{{ password.title }}</el-text>
               </div>
               <div>
                 <el-tooltip :content="password.favorite?'取消收藏':'收藏'" placement="top">
@@ -218,8 +219,7 @@ onMounted(() => {
                 <span v-if="showPasswordId === password.id" class="iconfont icon-hide password-card-icon"
                       @click="showPasswordId = 0"/>
                 <span v-else class="iconfont icon-show password-card-icon" @click="showLongPassword(password)"/>
-                <span class="iconfont icon-copy password-card-icon" style=""
-                      @click="copyText(password.password)"></span>
+                <span class="iconfont icon-copy password-card-icon"  @click="copyText(password.password)"></span>
               </el-text>
               <div class="clear"></div>
             </li>
@@ -239,10 +239,22 @@ onMounted(() => {
               </el-text>
               <div class="clear"></div>
             </li>
-            <template v-for="field in password.customFields">
+            <template v-for="(field, index) in password.customFields">
               <li v-if="field.key || field.val">
                 <el-text class="password-field-name">{{ field.key }}:</el-text>
-                <el-text class="password-field-value">{{ field.val }}</el-text>
+                <el-text class="password-field-value">
+<!--                  这里不能直接使用field.hidden因为这个是用于永久是否隐藏的，不是临时显示用的-->
+                  <span v-if="field.hidden">
+                     <span v-if="fieldShows[password.id + '_' + index]" class="card-password-span">{{ field.val }}</span>
+                    <span v-else style="position: relative;top: 3px;">**********</span>
+                    <span v-if="fieldShows[password.id + '_' + index]" class="iconfont icon-hide password-card-icon" @click="fieldShows[password.id + '_' + index] = false"/>
+                    <span v-else class="iconfont icon-show password-card-icon" @click="fieldShows[password.id + '_' + index] = true"/>
+                    <span class="iconfont icon-copy password-card-icon" @click="copyText(field.val)"></span>
+                  </span>
+                  <span v-else>
+                     {{ field.val }}
+                  </span>
+                </el-text>
                 <div class="clear"></div>
               </li>
             </template>
@@ -260,7 +272,7 @@ onMounted(() => {
                 <el-tooltip content="修改" placement="top">
                   <el-button plain size="small" type="primary"
                              @click="refStore.passwordFormRef.editPasswordForm(password)">
-                    <span class="iconfont icon-edit card-opt-icon"/>
+                    <span class="iconfont icon-edit card-opt-icon" style="font-size: 145%;" />
                   </el-button>
                 </el-tooltip>
                 <el-tooltip content="分享" placement="top">

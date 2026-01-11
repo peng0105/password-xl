@@ -1,7 +1,7 @@
 <!--设置组件-->
 <script lang="ts" setup>
 
-import {displaySize} from "@/utils/global.ts";
+import {displaySize, supportAI} from "@/utils/global.ts";
 import {GenerateRule, Password, Sort, TopicMode} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
@@ -443,7 +443,7 @@ const isAndroid = () => {
             </el-text>
           </template>
           <el-scrollbar :height="scrollbarHeight()">
-            <div class="function-div">
+            <div class="function-div" v-if="supportAI()">
               <div class="function-header">
                 <el-text tag="b">启用AI创建</el-text>
                 <el-switch v-model="settingStore.setting.enableAiAdd"></el-switch>
@@ -508,6 +508,8 @@ const isAndroid = () => {
                 <el-tag size="small" style="text-indent:0;margin-right: 10px;" type="primary">Alt + N</el-tag>
                 保存：
                 <el-tag size="small" style="text-indent:0;margin-right: 10px;" type="primary">Ctrl + S</el-tag>
+                聚焦搜索：
+                <el-tag size="small" style="text-indent:0;margin-right: 10px;" type="primary">/</el-tag>
               </el-text>
             </div>
             <el-alert :closable="false" show-icon title="若您需要更多密码显示空间，可以选择关闭标签和收藏卡片并在更多功能中使用。"

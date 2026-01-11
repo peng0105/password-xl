@@ -6,6 +6,7 @@ import {TreeNote} from "@/types/types";
 export interface CustomField {
     key: string;
     val: string;
+    hidden: boolean;
 }
 
 // 密码
@@ -239,6 +240,10 @@ export interface PasswordStore {
     topicMode: TopicMode,
     // 主密码类型
     mainPasswordType: MainPasswordType,
+    // 密码表单抽屉是否显示
+    passwordFormDrawerVis: boolean,
+    // 是否显示密码回收站弹窗
+    recycleBinDialogVis: boolean,
     // 超时锁
     timeoutLock: any,
     // 加载中动画

@@ -467,3 +467,26 @@ export const generateRandomId = (): string => {
     const wordArray = CryptoJS.lib.WordArray.random(8);
     return wordArray.toString(CryptoJS.enc.Hex);
 }
+
+// 判断是否支持调用AI
+export const supportAI = () => {
+    // 一般在http访问时不支持加解密，https或本地访问时支持
+    return !!window.crypto.subtle
+}
+
+// 判断当前元素是否可编辑
+export const isEditableTarget = (target: EventTarget | null): boolean => {
+    const el = target as HTMLElement | null;
+    if (!el) return false;
+
+    // 任何输入控件内都不抢
+    const tag = el.tagName?.toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return true;
+
+    // contenteditable（富文本）也不抢
+    if (el.isContentEditable) return true;
+
+    // 有些组件会把焦点放在内部元素（如 div role="textbox"）
+    const role = el.getAttribute?.("role");
+    return role === "textbox";
+}
