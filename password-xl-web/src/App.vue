@@ -14,12 +14,19 @@ let topicMode = localStorage.getItem("topicMode") || 'auto';
 passwordStore.setTopicMode(topicMode as TopicMode);
 
 // 监听系统主题变化
-let isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)")
-isDarkTheme.addEventListener('change', () => {
-  let topicMode = localStorage.getItem("topicMode") || 'auto';
+const mql = window.matchMedia("(prefers-color-scheme: dark)");
+
+const onChange = () => {
+  const topicMode = localStorage.getItem("topicMode") || 'auto';
   console.log('系统主题变动，设置主题为：', topicMode)
   passwordStore.setTopicMode(topicMode as TopicMode);
-})
+};
+
+if (typeof mql.addEventListener === 'function') {
+  mql.addEventListener('change', onChange);
+} else if (typeof (mql as any).addListener === 'function') {
+  (mql as any).addListener(onChange);
+}
 
 // 是否显示动态背景
 const dynamicBackground = ref(false)
@@ -45,7 +52,7 @@ watch(() => settingStore.setting.dynamicBackground, (newValue: boolean) => {
   <img v-if="dynamicBackground" alt="" class="back-img hidden-xs-only" src="~@/assets/images/background.svg">
   <img v-if="dynamicBackground" alt="" class="back-img hidden-sm-and-up" src="~@/assets/images/background-m.svg">
 
-  <div id="app" v-loading="passwordStore.globalLoading.vis" :element-loading-text="passwordStore.globalLoading.content"
+  <div id="password-app" v-loading="passwordStore.globalLoading.vis" :element-loading-text="passwordStore.globalLoading.content"
        @click="passwordStore.resetTimeoutLock()">
     <el-config-provider :locale="zhCn">
       <router-view></router-view>
@@ -77,7 +84,7 @@ body, html {
   z-index: -2;
 }
 
-#app {
+#password-app {
   height: 100vh;
 }
 
