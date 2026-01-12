@@ -21,11 +21,7 @@ function safeSetLS(key: string, val: string) {
 /** 主题初始化 */
 function applyTopicModeFromLS() {
   const topicMode = (safeGetLS("topicMode") || "auto") as TopicMode;
-  try {
-    passwordStore.setTopicMode(topicMode);
-  } catch (e) {
-    console.warn("[topicMode] setTopicMode failed:", e);
-  }
+  passwordStore.setTopicMode(topicMode);
 }
 applyTopicModeFromLS();
 
@@ -35,11 +31,7 @@ const mql = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)"
 const onThemeChange = () => {
   const topicMode = (safeGetLS("topicMode") || "auto") as TopicMode;
   console.log("系统主题变动，设置主题为：", topicMode);
-  try {
-    passwordStore.setTopicMode(topicMode);
-  } catch (e) {
-    console.warn("[topicMode] setTopicMode failed:", e);
-  }
+  passwordStore.setTopicMode(topicMode);
 };
 
 onMounted(() => {
