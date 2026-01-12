@@ -14,12 +14,19 @@ let topicMode = localStorage.getItem("topicMode") || 'auto';
 passwordStore.setTopicMode(topicMode as TopicMode);
 
 // 监听系统主题变化
-let isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)")
-isDarkTheme.addEventListener('change', () => {
-  let topicMode = localStorage.getItem("topicMode") || 'auto';
+const mql = window.matchMedia("(prefers-color-scheme: dark)");
+
+const onChange = () => {
+  const topicMode = localStorage.getItem("topicMode") || 'auto';
   console.log('系统主题变动，设置主题为：', topicMode)
   passwordStore.setTopicMode(topicMode as TopicMode);
-})
+};
+
+if (typeof mql.addEventListener === 'function') {
+  mql.addEventListener('change', onChange);
+} else if (typeof (mql as any).addListener === 'function') {
+  (mql as any).addListener(onChange);
+}
 
 // 是否显示动态背景
 const dynamicBackground = ref(false)
