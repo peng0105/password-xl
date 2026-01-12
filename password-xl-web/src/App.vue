@@ -12,29 +12,16 @@ const passwordStore = usePasswordStore();
 
 /** 安全读写 localStorage：避免某些环境（WebView/隐私模式/沙箱）抛异常导致 App 直接空渲染 */
 function safeGetLS(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch (e) {
-    console.warn("[LS:get] failed:", key, e);
-    return null;
-  }
+  return localStorage.getItem(key);
 }
 function safeSetLS(key: string, val: string) {
-  try {
-    localStorage.setItem(key, val);
-  } catch (e) {
-    console.warn("[LS:set] failed:", key, e);
-  }
+  localStorage.setItem(key, val);
 }
 
 /** 主题初始化 */
 function applyTopicModeFromLS() {
   const topicMode = (safeGetLS("topicMode") || "auto") as TopicMode;
-  try {
-    passwordStore.setTopicMode(topicMode);
-  } catch (e) {
-    console.warn("[topicMode] setTopicMode failed:", e);
-  }
+  passwordStore.setTopicMode(topicMode);
 }
 applyTopicModeFromLS();
 
@@ -44,36 +31,24 @@ const mql = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)"
 const onThemeChange = () => {
   const topicMode = (safeGetLS("topicMode") || "auto") as TopicMode;
   console.log("系统主题变动，设置主题为：", topicMode);
-  try {
-    passwordStore.setTopicMode(topicMode);
-  } catch (e) {
-    console.warn("[topicMode] setTopicMode failed:", e);
-  }
+  passwordStore.setTopicMode(topicMode);
 };
 
 onMounted(() => {
   if (!mql) return;
-  try {
-    if (typeof (mql as any).addEventListener === "function") {
-      (mql as any).addEventListener("change", onThemeChange);
-    } else if (typeof (mql as any).addListener === "function") {
-      (mql as any).addListener(onThemeChange);
-    }
-  } catch (e) {
-    console.warn("[mql] bind change listener failed:", e);
+  if (typeof (mql as any).addEventListener === "function") {
+    (mql as any).addEventListener("change", onThemeChange);
+  } else if (typeof (mql as any).addListener === "function") {
+    (mql as any).addListener(onThemeChange);
   }
 });
 
 onBeforeUnmount(() => {
   if (!mql) return;
-  try {
-    if (typeof (mql as any).removeEventListener === "function") {
-      (mql as any).removeEventListener("change", onThemeChange);
-    } else if (typeof (mql as any).removeListener === "function") {
-      (mql as any).removeListener(onThemeChange);
-    }
-  } catch (e) {
-    // ignore
+  if (typeof (mql as any).removeEventListener === "function") {
+    (mql as any).removeEventListener("change", onThemeChange);
+  } else if (typeof (mql as any).removeListener === "function") {
+    (mql as any).removeListener(onThemeChange);
   }
 });
 
@@ -82,11 +57,7 @@ const dynamicBackground = ref(false);
 
 /** store.setting 可能会在某些启动顺序下短暂为 undefined，做安全 computed */
 const storeDynamicBackground = computed<boolean | undefined>(() => {
-  try {
-    return (settingStore as any)?.setting?.dynamicBackground;
-  } catch {
-    return undefined;
-  }
+  return (settingStore as any)?.setting?.dynamicBackground;
 });
 
 function syncDynamicBackgroundFromLSOrStore() {
@@ -120,26 +91,14 @@ watch(
 
 /** Loading 容错：globalLoading 可能短暂为空，避免模板直接炸掉导致全局空渲染 */
 const loadingVisible = computed<boolean>(() => {
-  try {
-    return !!(passwordStore as any)?.globalLoading?.vis;
-  } catch {
-    return false;
-  }
+  return !!(passwordStore as any)?.globalLoading?.vis;
 });
 const loadingText = computed<string>(() => {
-  try {
-    return String((passwordStore as any)?.globalLoading?.content ?? "");
-  } catch {
-    return "";
-  }
+  return String((passwordStore as any)?.globalLoading?.content ?? "");
 });
 
 function safeResetTimeoutLock() {
-  try {
-    (passwordStore as any)?.resetTimeoutLock?.();
-  } catch (e) {
-    console.warn("[resetTimeoutLock] failed:", e);
-  }
+  (passwordStore as any)?.resetTimeoutLock?.();
 }
 </script>
 
