@@ -2,6 +2,7 @@ import {createApp} from 'vue'
 import App from './App.vue'
 import router from './router'
 import {createPinia} from 'pinia'
+
 import piniaReset from "./stores/piniaReset";
 
 import 'element-plus/theme-chalk/display.css'
@@ -17,8 +18,6 @@ let app = createApp(App);
 app.use(router)
 app.use(pinia)
 app.mount('#app')
-;(window as any).__BUILD_MARK__ = "2026-01-12-main-ts-001";
-console.log("[main.ts] BUILD_MARK", (window as any).__BUILD_MARK__);
 
 axios.get(config.apiServer + '/getVersion', { withCredentials: true }).then((res) => {
     console.log('v' + res.data.data)
