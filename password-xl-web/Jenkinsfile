@@ -33,9 +33,9 @@ pipeline {
         }
 
         stage('Build & Push Image (BuildKit)') {
-          steps {
-            container('buildkit') {
-              sh '''
+            steps {
+                container('buildkit') {
+                    sh '''
               set -e
 
               mkdir -p /root/.docker
@@ -49,8 +49,8 @@ pipeline {
                 --opt filename=Dockerfile \
                 --output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
               '''
+                }
             }
-          }
         }
 
         stage('Deploy to Kubernetes') {

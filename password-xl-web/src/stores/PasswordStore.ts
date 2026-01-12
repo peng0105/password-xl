@@ -204,18 +204,30 @@ export const usePasswordStore = defineStore('passwordStore', {
                 let isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)")
                 useDark().value = isDarkTheme.matches
                 this.topicMode = isDarkTheme.matches ? TopicMode.DARK : TopicMode.LIGHT
-                window.electronAPI?.setTopic('system');
-                window.androidAPI?.setTopic('system');
+                if(window.electronAPI?.setTopic){
+                    window.electronAPI?.setTopic('system');
+                }
+                if (window.androidAPI?.setTopic) {
+                    window.androidAPI?.setTopic('system');
+                }
             } else if (topic === TopicMode.DARK) {
                 useDark().value = true
                 this.topicMode = TopicMode.DARK
-                window.electronAPI?.setTopic(this.topicMode);
-                window.androidAPI?.setTopic(this.topicMode);
+                if(window.electronAPI?.setTopic){
+                    window.electronAPI?.setTopic(this.topicMode);
+                }
+                if (window.androidAPI?.setTopic) {
+                    window.androidAPI?.setTopic(this.topicMode);
+                }
             } else if (topic === TopicMode.LIGHT) {
                 useDark().value = false
                 this.topicMode = TopicMode.LIGHT
-                window.electronAPI?.setTopic(this.topicMode);
-                window.androidAPI?.setTopic(this.topicMode);
+                if(window.electronAPI?.setTopic){
+                    window.electronAPI?.setTopic(this.topicMode);
+                }
+                if (window.androidAPI?.setTopic) {
+                    window.androidAPI?.setTopic(this.topicMode);
+                }
             }
         },
         // 全局加载
