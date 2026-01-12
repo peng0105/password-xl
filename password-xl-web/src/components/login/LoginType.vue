@@ -8,10 +8,10 @@ const androidLoginFormRef = ref()
 const emits = defineEmits(['loginTypeChange'])
 
 const isElectron = () => {
-  return !!window.electronAPI
+  return window.electronAPI && window.electronAPI.setTopic
 }
 const isAndroid = () => {
-  return !!window.androidAPI
+  return window.androidAPI && window.androidAPI.setTopic
 }
 
 const electronStore = () => {

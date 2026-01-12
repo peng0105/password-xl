@@ -14,7 +14,7 @@ const visFastLogin = ref(false)
 // 触发快速登录提示
 const fastLoginTip = (form: any) => {
   console.log('快速登录提示')
-  if (location.href.indexOf('autoLogin') !== -1 || window.electronAPI || window.androidAPI) {
+  if (location.href.indexOf('autoLogin') !== -1 || !!window.electronAPI?.setTopic || !!window.androidAPI?.setTopic) {
     router.push('/')
     return
   }
