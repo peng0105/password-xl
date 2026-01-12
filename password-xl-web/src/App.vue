@@ -21,7 +21,11 @@ function safeSetLS(key: string, val: string) {
 /** 主题初始化 */
 function applyTopicModeFromLS() {
   const topicMode = (safeGetLS("topicMode") || "auto") as TopicMode;
-  passwordStore.setTopicMode(topicMode);
+  try {
+    passwordStore.setTopicMode(topicMode);
+  } catch (e) {
+    console.warn("[topicMode] setTopicMode failed:", e);
+  }
 }
 applyTopicModeFromLS();
 
@@ -31,15 +35,23 @@ const mql = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)"
 const onThemeChange = () => {
   const topicMode = (safeGetLS("topicMode") || "auto") as TopicMode;
   console.log("系统主题变动，设置主题为：", topicMode);
-  passwordStore.setTopicMode(topicMode);
+  try {
+    passwordStore.setTopicMode(topicMode);
+  } catch (e) {
+    console.warn("[topicMode] setTopicMode failed:", e);
+  }
 };
 
 onMounted(() => {
   if (!mql) return;
-  if (typeof (mql as any).addEventListener === "function") {
-    (mql as any).addEventListener("change", onThemeChange);
-  } else if (typeof (mql as any).addListener === "function") {
-    (mql as any).addListener(onThemeChange);
+  try {
+    if (typeof (mql as any).addEventListener === "function") {
+      (mql as any).addEventListener("change", onThemeChange);
+    } else if (typeof (mql as any).addListener === "function") {
+      (mql as any).addListener(onThemeChange);
+    }
+  } catch (e) {
+    console.warn("[mql] bind change listener failed:", e);
   }
 });
 
