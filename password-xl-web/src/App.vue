@@ -45,7 +45,7 @@ watch(() => settingStore.setting.dynamicBackground, (newValue: boolean) => {
   <img v-if="dynamicBackground" alt="" class="back-img hidden-xs-only" src="~@/assets/images/background.svg">
   <img v-if="dynamicBackground" alt="" class="back-img hidden-sm-and-up" src="~@/assets/images/background-m.svg">
 
-  <div id="password-app" v-loading="passwordStore.globalLoading.vis" :element-loading-text="passwordStore.globalLoading.content"
+  <div id="app" v-loading="passwordStore.globalLoading.vis" :element-loading-text="passwordStore.globalLoading.content"
        @click="passwordStore.resetTimeoutLock()">
     <el-config-provider :locale="zhCn">
       <router-view></router-view>
@@ -77,7 +77,7 @@ body, html {
   z-index: -2;
 }
 
-#password-app {
+#app {
   height: 100vh;
 }
 
