@@ -208,7 +208,7 @@ export const usePasswordStore = defineStore('passwordStore', {
                 useDark().value = isDarkTheme.matches
                 alert('useDark().value 设置完成')
                 this.topicMode = isDarkTheme.matches ? TopicMode.DARK : TopicMode.LIGHT
-
+                alert(typeof window.electronAPI?.setTopic)
                 if (typeof window.electronAPI?.setTopic !== "function"){
                     alert('electronAPI 不存在 setTopic 方法')
                 }else{
