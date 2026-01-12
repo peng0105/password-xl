@@ -200,8 +200,11 @@ export const usePasswordStore = defineStore('passwordStore', {
         setTopicMode(topic: TopicMode) {
             console.log('设置主题:', topic)
             localStorage.setItem('topicMode', topic)
+            alert('设置主题为：' + topic)
             if (topic === TopicMode.AUTO) {
                 let isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)")
+                alert('系统主题为：' + isDarkTheme)
+                alert('系统主题为：' + isDarkTheme.matches)
                 useDark().value = isDarkTheme.matches
                 this.topicMode = isDarkTheme.matches ? TopicMode.DARK : TopicMode.LIGHT
                 window.electronAPI?.setTopic('system');

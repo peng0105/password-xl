@@ -10,8 +10,9 @@ const settingStore = useSettingStore()
 const passwordStore = usePasswordStore()
 
 // 系统加载初始化主题
-// let topicMode = localStorage.getItem("topicMode") || 'auto';
-// passwordStore.setTopicMode(topicMode as TopicMode);
+let topicMode = localStorage.getItem("topicMode") || 'auto';
+alert(topicMode)
+passwordStore.setTopicMode(topicMode as TopicMode);
 
 // 监听系统主题变化
 let isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)")
