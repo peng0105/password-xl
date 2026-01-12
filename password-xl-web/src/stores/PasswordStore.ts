@@ -200,34 +200,34 @@ export const usePasswordStore = defineStore('passwordStore', {
         setTopicMode(topic: TopicMode) {
             console.log('设置主题:', topic)
             localStorage.setItem('topicMode', topic)
-            alert('设置主题为：' + topic)
             if (topic === TopicMode.AUTO) {
                 let isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)")
-                alert('系统主题为：' + isDarkTheme)
-                alert('系统主题为：' + isDarkTheme.matches)
                 useDark().value = isDarkTheme.matches
-                alert('useDark().value 设置完成')
                 this.topicMode = isDarkTheme.matches ? TopicMode.DARK : TopicMode.LIGHT
-                alert(typeof window.electronAPI?.setTopic)
-                if (typeof window.electronAPI?.setTopic !== "function"){
-                    alert('electronAPI 不存在 setTopic 方法')
-                }else{
-                    alert('electronAPI.setTopic 方法存在')
+                if(window.electronAPI?.setTopic){
+                    window.electronAPI?.setTopic('system');
                 }
-                window.electronAPI?.setTopic('system');
-                alert('2')
-                window.androidAPI?.setTopic('system');
-                alert('end')
+                if (window.androidAPI?.setTopic) {
+                    window.androidAPI?.setTopic('system');
+                }
             } else if (topic === TopicMode.DARK) {
                 useDark().value = true
                 this.topicMode = TopicMode.DARK
-                window.electronAPI?.setTopic(this.topicMode);
-                window.androidAPI?.setTopic(this.topicMode);
+                if(window.electronAPI?.setTopic){
+                    window.electronAPI?.setTopic(this.topicMode);
+                }
+                if (window.androidAPI?.setTopic) {
+                    window.androidAPI?.setTopic(this.topicMode);
+                }
             } else if (topic === TopicMode.LIGHT) {
                 useDark().value = false
                 this.topicMode = TopicMode.LIGHT
-                window.electronAPI?.setTopic(this.topicMode);
-                window.androidAPI?.setTopic(this.topicMode);
+                if(window.electronAPI?.setTopic){
+                    window.electronAPI?.setTopic(this.topicMode);
+                }
+                if (window.androidAPI?.setTopic) {
+                    window.androidAPI?.setTopic(this.topicMode);
+                }
             }
         },
         // 全局加载
