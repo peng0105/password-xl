@@ -6,10 +6,10 @@ import {useLoginStore} from "@/stores/LoginStore.ts";
 const loginStore = useLoginStore()
 
 const isElectron = () => {
-  return !!window.electronAPI
+  return window.electronAPI && window.electronAPI.setTopic
 }
 const isAndroid = () => {
-  return !!window.androidAPI
+  return window.androidAPI && window.androidAPI.setTopic
 }
 </script>
 
