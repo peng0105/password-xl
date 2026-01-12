@@ -45,10 +45,14 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (!mql) return;
-  if (typeof (mql as any).removeEventListener === "function") {
-    (mql as any).removeEventListener("change", onThemeChange);
-  } else if (typeof (mql as any).removeListener === "function") {
-    (mql as any).removeListener(onThemeChange);
+  try {
+    if (typeof (mql as any).removeEventListener === "function") {
+      (mql as any).removeEventListener("change", onThemeChange);
+    } else if (typeof (mql as any).removeListener === "function") {
+      (mql as any).removeListener(onThemeChange);
+    }
+  } catch (e) {
+    // ignore
   }
 });
 
@@ -57,7 +61,11 @@ const dynamicBackground = ref(false);
 
 /** store.setting 可能会在某些启动顺序下短暂为 undefined，做安全 computed */
 const storeDynamicBackground = computed<boolean | undefined>(() => {
-  return (settingStore as any)?.setting?.dynamicBackground;
+  try {
+    return (settingStore as any)?.setting?.dynamicBackground;
+  } catch {
+    return undefined;
+  }
 });
 
 function syncDynamicBackgroundFromLSOrStore() {
@@ -91,14 +99,26 @@ watch(
 
 /** Loading 容错：globalLoading 可能短暂为空，避免模板直接炸掉导致全局空渲染 */
 const loadingVisible = computed<boolean>(() => {
-  return !!(passwordStore as any)?.globalLoading?.vis;
+  try {
+    return !!(passwordStore as any)?.globalLoading?.vis;
+  } catch {
+    return false;
+  }
 });
 const loadingText = computed<string>(() => {
-  return String((passwordStore as any)?.globalLoading?.content ?? "");
+  try {
+    return String((passwordStore as any)?.globalLoading?.content ?? "");
+  } catch {
+    return "";
+  }
 });
 
 function safeResetTimeoutLock() {
-  (passwordStore as any)?.resetTimeoutLock?.();
+  try {
+    (passwordStore as any)?.resetTimeoutLock?.();
+  } catch (e) {
+    console.warn("[resetTimeoutLock] failed:", e);
+  }
 }
 </script>
 
