@@ -11,7 +11,6 @@ const passwordStore = usePasswordStore()
 
 // 系统加载初始化主题
 let topicMode = localStorage.getItem("topicMode") || 'auto';
-alert(topicMode)
 passwordStore.setTopicMode(topicMode as TopicMode);
 
 // 监听系统主题变化

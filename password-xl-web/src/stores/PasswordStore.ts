@@ -206,9 +206,11 @@ export const usePasswordStore = defineStore('passwordStore', {
                 alert('系统主题为：' + isDarkTheme)
                 alert('系统主题为：' + isDarkTheme.matches)
                 useDark().value = isDarkTheme.matches
+                alert('useDark().value 设置完成')
                 this.topicMode = isDarkTheme.matches ? TopicMode.DARK : TopicMode.LIGHT
                 window.electronAPI?.setTopic('system');
                 window.androidAPI?.setTopic('system');
+                alert('end')
             } else if (topic === TopicMode.DARK) {
                 useDark().value = true
                 this.topicMode = TopicMode.DARK
