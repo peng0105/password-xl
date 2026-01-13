@@ -15,7 +15,7 @@
 
 * 📦 **NAS 部署教程已上线**
   手把手教你在 NAS 上部署 password-XL
-  👉 [点击查看部署文档](https://gitee.com/huanyp/password-xl/wikis/NAS%20%E9%83%A8%E7%BD%B2%20password-xl%20%E6%95%99%E7%A8%8B)
+  👉 [点击查看部署文档](https://github.com/peng0105/password-xl/wiki/NAS-%E9%83%A8%E7%BD%B2-password%E2%80%90xl-%E6%95%99%E7%A8%8B)
 
 * 🤖 **AI 批量导入功能**
   支持通过 AI 快速导入大量密码 / 笔记
