@@ -44,7 +44,7 @@
 <br/>
 
 📘 **完整使用文档 / 部署说明**
-👉 [点击查看 Wiki 文档](https://gitee.com/huanyp/password-xl/wikis/Home)
+👉 [点击查看 Wiki 文档](https://github.com/peng0105/password-xl/wiki)
 
 ---
 
