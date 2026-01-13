@@ -7,6 +7,8 @@ import {useRefStore} from "@/stores/RefStore.ts";
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
 
+const dropdownRef: Ref<{ [key: number]: any }> = ref({})
+
 // 当前鼠标悬停的tag
 const mouseoverId = ref(0)
 
@@ -46,6 +48,18 @@ const tagEffect = (password: Password) => {
   return 'plain'
 };
 
+// 右键菜单
+const contextmenu = (event: MouseEvent) => {
+  console.log('收藏 右键菜单')
+  event.stopPropagation()
+  refStore.contextmenuRef.hideContextmenu()
+  for (let key in dropdownRef.value) {
+    if (dropdownRef.value[key]) {
+      dropdownRef.value[key].handleClose();
+    }
+  }
+};
+
 </script>
 
 <template>
@@ -54,7 +68,7 @@ const tagEffect = (password: Password) => {
       暂无收藏
     </div>
     <div v-if="passwordStore.favoritePasswordArray.length">
-      <el-dropdown v-for="password in passwordStore.favoritePasswordArray" trigger="contextmenu">
+      <el-dropdown :ref="(el: any) => dropdownRef[password.id] = el" v-for="password in passwordStore.favoritePasswordArray" trigger="contextmenu">
         <el-tag
             :effect="tagEffect(password)"
             class="favorite-tag"
@@ -62,13 +76,14 @@ const tagEffect = (password: Password) => {
             type="warning"
             @click="filterPassword(password.id)"
             @mouseenter="mouseoverId = password.id"
+            @contextmenu="contextmenu($event)"
             @mouseleave="mouseoverId = 0">
           {{ password.title }}
         </el-tag>
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item @click="cancelFavorite(password)">
-              <span class="iconfont icon-edit cancel-favorite"></span>
+              <span style="color: #FF9700;font-size: 110%" class="iconfont icon-collect cancel-favorite"></span>
               取消收藏
             </el-dropdown-item>
           </el-dropdown-menu>
