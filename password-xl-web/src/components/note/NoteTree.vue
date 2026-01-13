@@ -172,8 +172,8 @@ defineExpose({
         highlight-current
         node-key="id"
         style="max-width: 600px"
-        @node-expand="(node) => nodeExpand(node.id)"
-        @node-collapse="(node) => nodeCollapse(node.id)"
+        @node-expand="(node: any) => nodeExpand(node.id)"
+        @node-collapse="(node: any) => nodeCollapse(node.id)"
         @current-change="currentChange"
         @node-drop="() => passwordStore.passwordManager.syncNoteData()"
     >

@@ -68,8 +68,8 @@ defineExpose({
       <el-table-column prop="title"></el-table-column>
       <el-table-column width="150px">
         <template #default="scope">
-          <el-link :underline="false" type="primary" @click="cancelDeletePassword(scope.row)">还原</el-link>
-          <el-link :underline="false" style="margin-left: 15px" type="danger" @click="completelyDelete(scope.row)">
+          <el-link underline="never" type="primary" @click="cancelDeletePassword(scope.row)">还原</el-link>
+          <el-link underline="never" style="margin-left: 15px" type="danger" @click="completelyDelete(scope.row)">
             彻底删除
           </el-link>
         </template>

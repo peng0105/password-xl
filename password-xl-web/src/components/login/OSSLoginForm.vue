@@ -141,7 +141,7 @@ initForm()
         登 录
       </el-button>
       <div class="register-guide">
-        <el-link :underline="false" href="https://gitee.com/huanyp/password-xl/wikis/%E9%98%BF%E9%87%8C%E4%BA%91OSS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95"
+        <el-link underline="never" href="https://gitee.com/huanyp/password-xl/wikis/%E9%98%BF%E9%87%8C%E4%BA%91OSS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95"
                  target="_blank"
                  type="primary">阿里云OSS注册指引
         </el-link>

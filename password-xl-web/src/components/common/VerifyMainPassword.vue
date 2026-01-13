@@ -236,7 +236,7 @@ defineExpose({
     <template #footer>
       <div style="display: flex;justify-content: space-between">
         <div>
-          <el-link v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN" :underline="false" type="primary"
+          <el-link v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN" underline="never" type="primary"
                    @click="toLogin">返回登录页
           </el-link>
         </div>

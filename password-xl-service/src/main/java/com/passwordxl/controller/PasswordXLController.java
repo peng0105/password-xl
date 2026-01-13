@@ -23,6 +23,15 @@ public class PasswordXLController {
     private final PasswordXLService passwordXLService;
 
     /**
+     * 检测
+     *
+     */
+    @GetMapping("service/health")
+    public RestResult<String> health() {
+        return RestResult.genSuccessResult();
+    }
+
+    /**
      * 登录
      *
      * @param loginParam 登录参数

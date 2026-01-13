@@ -8,6 +8,7 @@ import {useLoginStore} from "@/stores/LoginStore.ts";
 import {browserFingerprint, encryptAES} from "@/utils/security.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {DatabaseForPrivate} from "@/database/DatabaseForPrivate.ts";
+import axios from "axios";
 
 const route = useRoute()
 const passwordStore = usePasswordStore();
@@ -44,6 +45,9 @@ const login = async (formRef: any) => {
     try {
       // 登录
       let database = new DatabaseForPrivate()
+      if(form.serverUrl && form.serverUrl.endsWith('/')){
+        form.serverUrl = form.serverUrl.substring(0, form.serverUrl.length - 1)
+      }
       let result = await database.login(form)
       console.log('private 登录 数据库登录结果：', result)
       if (!result.status) {
@@ -93,9 +97,12 @@ const initForm = () => {
     if (route.query.serverUrl) {
       form.serverUrl = route.query.serverUrl + ''
     } else if(location.host !== 'password-xl.cn'){
-      form.serverUrl = location.origin
-    } else{
-      form.serverUrl = 'http://127.0.0.1:8080'
+      axios.get(location.origin + '/service/health?random=' + Math.random()).then((resp) => {
+        if(resp.status === 200 && resp.headers['content-type'] === 'application/json' && resp.data.code === 200){
+          console.log('private 登录 服务地址存在', resp)
+          form.serverUrl = location.origin
+        }
+      })
     }
     form.username = (route.query.username || '') + '';
     form.password = (route.query.password || '') + ''
@@ -121,7 +128,7 @@ initForm()
     <el-col :sm="{span: 20, offset: 2}" :xs="{span: 24}">
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="90px">
         <el-form-item label="服务地址" prop="serverUrl" required>
-          <el-input v-model="form.serverUrl" clearable placeholder="http://127.0.0.1:8080"></el-input>
+          <el-input v-model="form.serverUrl" clearable placeholder="后端服务地址：http://127.0.0.1:8080"></el-input>
         </el-form-item>
         <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username" clearable placeholder="用户名"></el-input>
@@ -137,7 +144,7 @@ initForm()
         </el-form-item>
       </el-form>
       <div class="register-guide">
-        <el-link :underline="false" href="https://github.com/peng0105/password-xl/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker"
+        <el-link underline="never" href="https://github.com/peng0105/password-xl/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker"
                  target="_blank"
                  type="primary">私有部署说明文档
         </el-link>

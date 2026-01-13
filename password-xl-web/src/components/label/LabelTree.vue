@@ -233,7 +233,7 @@ defineExpose({
           </div>
           <div v-if="data.id === editLabelId" style="width: 100%;">
             <el-input
-                :ref="(el) => labelNodeRefs[node.data.id] = el"
+                :ref="(el: any) => labelNodeRefs[node.data.id] = el"
                 v-model="data.name"
 
                 size="small"

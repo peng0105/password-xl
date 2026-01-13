@@ -214,26 +214,26 @@ onMounted(() => {
         <template #default="scope">
           <div style="display: flex;justify-content: space-evenly;">
             <el-tooltip content="分享" placement="top">
-              <el-link :underline="false" type="success" @click="sharePassword(scope.row)">
+              <el-link underline="never" type="success" @click="sharePassword(scope.row)">
                 <span class="iconfont icon-share table-opt-icon"/>
               </el-link>
             </el-tooltip>
             <el-tooltip content="修改" placement="top">
-              <el-link :underline="false" type="primary" @click="refStore.passwordFormRef.editPasswordForm(scope.row)">
+              <el-link underline="never" type="primary" @click="refStore.passwordFormRef.editPasswordForm(scope.row)">
                 <span class="iconfont icon-edit table-opt-icon"/>
               </el-link>
             </el-tooltip>
             <el-tooltip :content="scope.row.favorite?'取消收藏':'收藏'" placement="top">
-              <el-link v-if="scope.row.favorite" :underline="false" type="primary" @click="favoritePassword(scope.row)">
+              <el-link v-if="scope.row.favorite" underline="never" type="primary" @click="favoritePassword(scope.row)">
                 <span class="iconfont icon-favorited table-opt-icon" style="color: #FF9700"/>
               </el-link>
-              <el-link v-if="!scope.row.favorite" :underline="false" type="primary"
+              <el-link v-if="!scope.row.favorite" underline="never" type="primary"
                        @click="favoritePassword(scope.row)">
                 <span class="iconfont icon-collect table-opt-icon" style="color: #FF9700"/>
               </el-link>
             </el-tooltip>
             <el-tooltip content="删除" placement="top">
-              <el-link :underline="false" type="danger" @click="deletePassword(scope.row)">
+              <el-link underline="never" type="danger" @click="deletePassword(scope.row)">
                 <span class="iconfont icon-delete table-opt-icon"/>
               </el-link>
             </el-tooltip>

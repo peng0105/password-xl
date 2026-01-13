@@ -20,7 +20,7 @@ const donateArray = [
       <el-text size="large">
         <span class="iconfont icon-praise support-icon" style="color: #E6A23C;"></span>
         在项目
-        <el-link :href="packageJson.repository.url" :underline="false"
+        <el-link :href="packageJson.repository.url" underline="never"
                  style="font-size: 16px;position: relative;top: -2px" target="_blank" type="primary">开源地址
         </el-link>
         中为项目点赞，增加项目的曝光度。
@@ -30,7 +30,7 @@ const donateArray = [
       <el-text size="large">
         <span class="iconfont icon-report support-icon" style="color: #F56C6C;"></span>
         在Github上
-        <el-link :href="packageJson.repository.url+'/issues'" :underline="false"
+        <el-link :href="packageJson.repository.url+'/issues'" underline="never"
                  style="font-size: 16px;position: relative;top: -2px" target="_blank" type="primary">报告您遇到的错误
         </el-link>
         ，帮助我们持续改进。
@@ -40,7 +40,7 @@ const donateArray = [
       <el-text size="large">
         <span class="iconfont icon-idea support-icon" style="color: #67C23A;"></span>
         提出您的
-        <el-link :href="packageJson.repository.url+'/issues'" :underline="false"
+        <el-link :href="packageJson.repository.url+'/issues'" underline="never"
                  style="font-size: 16px;position: relative;top: -2px" target="_blank" type="primary">建议和想法
         </el-link>
         ，帮助我们更好地满足用户需求。

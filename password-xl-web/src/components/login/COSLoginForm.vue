@@ -136,7 +136,7 @@ initForm()
         登 录
       </el-button>
       <div class="register-guide">
-        <el-link :underline="false" href="https://github.com/peng0105/password-xl/wiki/%E8%85%BE%E8%AE%AF%E4%BA%91COS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95"
+        <el-link underline="never" href="https://github.com/peng0105/password-xl/wiki/%E8%85%BE%E8%AE%AF%E4%BA%91COS%E6%B3%A8%E5%86%8C%E6%8C%87%E5%BC%95"
                  target="_blank"
                  type="primary">腾讯云COS注册指引
         </el-link>

@@ -24,30 +24,27 @@ public class LoginFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        String method = request.getMethod();
+        if("OPTIONS".equals(method)) {
+            return true;
+        }
+
         String uri = request.getRequestURI();
 
-        return "/".equals(uri) || "/index.html".equals(uri)
+        return "/".equals(uri)
+                || "/login".equals(uri)
+                || "/service/health".equals(uri)
+                || "/index.html".equals(uri)
+
                 || uri.startsWith("/icons/")
-                || uri.startsWith("/assets/");
+                || uri.startsWith("/assets/")
+                || uri.startsWith("/image/");
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain chain)
             throws ServletException, IOException {
-
-        String method = request.getMethod();
-        if("OPTIONS".equals(method)) {
-            chain.doFilter(request, response);
-            return;
-        }
-
-        // 获取请求的URI
-        String uri = request.getRequestURI();
-
-        if ("/login".equals(uri) || uri.startsWith("/image/")) {
-            chain.doFilter(request, response);
-            return;
-        }
 
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {

@@ -69,7 +69,7 @@ initForm()
                   <div v-else v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText"
                        class="sliding-element">
                     <div style="padding: 8px">
-                      <el-link v-if="loginStep === 2" :underline="false" type="primary" @click="loginStep = 1">
+                      <el-link v-if="loginStep === 2" underline="hover" type="primary" @click="loginStep = 1">
                         <span class="iconfont icon-back login-back"></span>返回
                       </el-link>
                     </div>
