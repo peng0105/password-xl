@@ -15,7 +15,7 @@ pipeline {
 
         stage('Prepare') {
             steps {
-                sh 'pwd && ls -l &&chmod +x ./password-xl-service/gradlew'
+                sh 'chmod +x ./password-xl-service/gradlew'
             }
         }
 
@@ -23,27 +23,24 @@ pipeline {
             steps {
                 container('graalvm') {
                     writeFile file: 'password-xl-service/nexus.init.gradle', text: '''
-allprojects {
-  buildscript {
-    repositories {
-      maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
-    }
-  }
-  repositories {
-    maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
-  }
-}
-'''.stripIndent()
+                    allprojects {
+                      buildscript {
+                        repositories {
+                          maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
+                        }
+                      }
+                      repositories {
+                        maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
+                      }
+                    }
+                    '''.stripIndent()
                     sh '''
                     #!/usr/bin/env bash
                     set -euo pipefail
 
                     cd password-xl-service
-
                     sed -i 's/\r$//' gradlew
-                    ./gradlew --version
                     ./gradlew clean nativeCompile --init-script nexus.init.gradle --info --stacktrace
-
                     '''
                 }
             }

@@ -39,30 +39,35 @@ import packageJson from "../../../../package.json";
         <el-text style="text-indent: 15px;display: inline-block" tag="b">仅部署前端服务：</el-text>
         可以使用阿里云OSS、腾讯云COS、和本地存储功能<br>
         <el-text style="text-indent: 15px;display: inline-block" tag="b">仅部署后端服务：</el-text>
-        可以使用官网提供的页面或安装程序将密码文件存储在您的私有服务中<br>
+        最新后端服务已整合前后端，部署后端服务后即可访问前端页面与使用私有存储<br>
         <el-text style="text-indent: 15px;display: inline-block" tag="b">两个服务都部署：</el-text>
-        可以使用部署的前端页面将密码文件存储在私有服务中<br>
+        因为前后端已经整合，不建议两个服务都部署<br>
       </el-text>
       <br>
       <el-text>
         <el-text size="large">部署文档：</el-text>
         <div style="padding-left: 15px">
-          <el-link :href="packageJson.repository.url+'/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker'" target="_blank"
+          <el-link :href="packageJson.repository.url+'/wiki/NAS-部署-password‐xl-教程'" target="_blank"
+                   type="primary">
+            NAS整合包部署
+          </el-link>
+          <br>
+          <el-link :href="packageJson.repository.url+'/wiki/后端项目部署文档‐docker'" target="_blank"
                    type="primary">
             后端-docker部署
           </el-link>
           <br>
-          <el-link :href="packageJson.repository.url+'/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90jar'" target="_blank"
+          <el-link :href="packageJson.repository.url+'/wiki/后端项目部署文档‐jar'" target="_blank"
                    type="primary">
             后端-jar包部署
           </el-link>
           <br>
-          <el-link :href="packageJson.repository.url+'/wiki/%E5%89%8D%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90docker'" target="_blank"
+          <el-link :href="packageJson.repository.url+'/wiki/前端项目部署文档‐docker'" target="_blank"
                    type="primary">
             前端-docker部署
           </el-link>
           <br>
-          <el-link :href="packageJson.repository.url+'/wiki/%E5%89%8D%E7%AB%AF%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3%E2%80%90nginx'" target="_blank"
+          <el-link :href="packageJson.repository.url+'/wiki/前端项目部署文档‐nginx'" target="_blank"
                    type="primary">
             前端-nginx部署
           </el-link>

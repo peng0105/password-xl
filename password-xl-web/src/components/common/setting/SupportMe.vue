@@ -3,10 +3,10 @@
 import packageJson from '../../../../package.json'
 
 const donateArray = [
+  {name: '123456zx', money: 20, time: '2026-01-12'},
+  {name: '希君', money: 38.88, time: '2026-01-11'},
   {name: 'Seeking dream', money: 10, time: '2024-10-11'},
   {name: 'Ching', money: 10, time: '2024-07-13'},
-  {name: '李春雨', money: 5, time: '2024-07-12'},
-  {name: '张博文', money: 50, time: '2024-07-12'},
 ]
 </script>
 

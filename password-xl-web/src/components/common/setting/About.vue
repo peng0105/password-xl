@@ -3,10 +3,12 @@
 import packageJson from '../../../../package.json'
 
 const newFunctions = ref([
-  '密码支持自定义信息',
+  'AI批量导入密码',
+  '支持快捷键 ‘/’ 聚焦搜索',
+  '支持双击卡片编辑密码',
+  '支持自定义密码信息',
   '导出、导入Excel',
-  '支持Windows、Android客户端',
-  '支持停用动态壁纸',
+  '支持Windows、Android 客户端',
 ])
 </script>
 
