@@ -11,6 +11,13 @@ const alertInfo = ref({
   text: ''
 })
 
+
+const normalizeAiResponse = (resp: string) => {
+  const content = resp.trim()
+  const markdownMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  return markdownMatch ? markdownMatch[1].trim() : content
+}
+
 const show = () => {
   alertInfo.value.text = ''
   alertInfo.value.loading = false
@@ -21,7 +28,7 @@ const extractPassword = () => {
   alertInfo.value.loading = true
   extractPasswordApi(alertInfo.value.text).then((resp: any) => {
     refStore.passwordFormRef.addPasswordForm()
-    refStore.passwordFormRef.setPasswordForm(JSON.parse(resp))
+    refStore.passwordFormRef.setPasswordForm(JSON.parse(normalizeAiResponse(resp)))
     alertInfo.value.vis = false
     alertInfo.value.loading = false
     alertInfo.value.text = ''
