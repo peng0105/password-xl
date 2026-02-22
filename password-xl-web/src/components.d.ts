@@ -101,6 +101,7 @@ declare module 'vue' {
     SupportMe: typeof import('./components/common/setting/SupportMe.vue')['default']
     TextLine: typeof import('./components/login/TextLine.vue')['default']
     VerifyMainPassword: typeof import('./components/common/VerifyMainPassword.vue')['default']
+    WebDAVLoginForm: typeof import('./components/login/WebDAVLoginForm.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
