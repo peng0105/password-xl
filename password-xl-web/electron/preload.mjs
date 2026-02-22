@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteFile: async (fileName) => ipcRenderer.invoke('delete-file', fileName),
     setTopic: async (topic) => ipcRenderer.invoke('set-topic', topic),
     uploadImage: async (fileName, arrayBuffer, prefix) => ipcRenderer.invoke('upload-image', fileName, arrayBuffer, prefix),
+    webDavRequest: async (options) => ipcRenderer.invoke('webdav-request', options),
 })

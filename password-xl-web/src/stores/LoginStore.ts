@@ -8,6 +8,7 @@ import {useRefStore} from "@/stores/RefStore.ts";
 import {DatabaseForPrivate} from "@/database/DatabaseForPrivate.ts";
 import {DatabaseForElectron} from "@/database/DatabaseForElectron.ts";
 import {DatabaseForAndroid} from "@/database/DatabaseForAndroid.ts";
+import {DatabaseForWebDAV} from "@/database/DatabaseForWebDAV.ts";
 
 
 export const useLoginStore = defineStore('loginStore', {
@@ -36,6 +37,8 @@ export const useLoginStore = defineStore('loginStore', {
                     database = new DatabaseForElectron()
                 } else if (loginForm.loginType === 'android') {
                     database = new DatabaseForAndroid()
+                } else if (loginForm.loginType === 'webdav') {
+                    database = new DatabaseForWebDAV()
                 } else {
                     console.error('未知的登录类型，无法自动登录：', loginForm.loginType)
                     resolve(false)

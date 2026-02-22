@@ -63,6 +63,14 @@ const androidStore = () => {
           </div>
         </div>
       </el-col>
+      <el-col v-if="isElectron() && navigator.userAgent.includes('Windows')" :span="12">
+        <div class="login-type-item webdav" @click="emits('loginTypeChange','webdav')">
+          <img alt="" src="../../assets/images/login/private.png">
+          <div>
+            <el-text>WebDAV</el-text>
+          </div>
+        </div>
+      </el-col>
       <el-col v-if="isElectron()" :span="12">
         <div class="login-type-item local" @click="electronStore">
           <img alt="" src="../../assets/images/login/local.png">
@@ -166,6 +174,15 @@ const androidStore = () => {
 
 .login-type-item.local:hover {
   background: rgba(40, 193, 39, 0.4);
+  box-shadow: 0 0 10px #bbb;
+}
+
+.login-type-item.webdav {
+  background: rgba(39, 131, 193, 0.25);
+}
+
+.login-type-item.webdav:hover {
+  background: rgba(39, 131, 193, 0.35);
   box-shadow: 0 0 10px #bbb;
 }
 
