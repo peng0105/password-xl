@@ -68,6 +68,13 @@ export const useSettingStore = defineStore('settingStore', {
                 dynamicBackground: true,
                 // 密码颜色
                 passwordColor: false,
+                // AI模型配置
+                aiModel: {
+                    provider: 'official',
+                    baseUrl: '',
+                    apiKey: '',
+                    model: '',
+                },
             }
         }
     }

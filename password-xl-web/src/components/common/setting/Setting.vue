@@ -2,7 +2,7 @@
 <script lang="ts" setup>
 
 import {displaySize, supportAI} from "@/utils/global.ts";
-import {GenerateRule, Password, Sort, TopicMode} from "@/types";
+import {AiModelSetting, GenerateRule, Password, Sort, TopicMode} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {browserFingerprint, encryptAES} from "@/utils/security.ts";
@@ -215,6 +215,15 @@ watch(() => settingStore.setting.enableAiAdd, (newValue: boolean) => {
   if (!settingStore.visSetting) return
   console.log('AI创建密码设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
+})
+
+// 监听AI模型配置变更
+watch(() => settingStore.setting.aiModel, (newValue: AiModelSetting) => {
+  if (!settingStore.visSetting) return
+  console.log('AI模型配置变更:', newValue)
+  passwordStore.passwordManager.syncSetting()
+}, {
+  deep: true
 })
 
 // 监听密码列表中显示时间设置变更
@@ -452,6 +461,30 @@ const isAndroid = () => {
               <el-text style="text-indent: 10px" tag="p" type="info">
                 在首页启用AI创建密码，AI创建可以把包含账号信息的文本解析成结构化的密码。
               </el-text>
+            </div>
+            <div class="function-div" v-if="supportAI()">
+              <div class="function-header">
+                <el-text tag="b">AI模型服务</el-text>
+                <el-select v-model="settingStore.setting.aiModel.provider" size="small" style="width: 180px">
+                  <el-option label="官方服务（默认）" value="official"></el-option>
+                  <el-option label="第三方OpenAI兼容" value="openai-compatible"></el-option>
+                </el-select>
+              </div>
+              <el-divider class="function-line"/>
+              <div v-if="settingStore.setting.aiModel.provider !== 'official'" style="margin-top: 10px;width: 100%">
+                <el-input v-model="settingStore.setting.aiModel.baseUrl" placeholder="Base URL，例如：https://api.openai.com/v1" size="small"></el-input>
+              </div>
+              <div v-if="settingStore.setting.aiModel.provider !== 'official'" style="margin-top: 10px;width: 100%">
+                <el-input v-model="settingStore.setting.aiModel.apiKey" placeholder="API Key" show-password size="small"></el-input>
+              </div>
+              <div v-if="settingStore.setting.aiModel.provider !== 'official'" style="margin-top: 10px;width: 100%">
+                <el-input v-model="settingStore.setting.aiModel.model" placeholder="模型名称，例如：gpt-4o-mini / Qwen/Qwen2.5-72B-Instruct" size="small"></el-input>
+              </div>
+              <div style="margin-top: 10px">
+                <el-text style="text-indent: 10px" tag="p" type="info">
+                  默认使用官方AI服务。若切换到第三方OpenAI兼容服务，可配置OpenAI、硅基流动等支持 /chat/completions 的模型服务。
+                </el-text>
+              </div>
             </div>
             <div class="function-div">
               <div class="function-header">
