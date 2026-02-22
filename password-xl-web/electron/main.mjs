@@ -153,7 +153,7 @@ ipcMain.handle('webdav-request', async (_event, options) => {
                     if (response.statusCode >= 200 && response.statusCode < 400) {
                         resolve({status: response.statusCode, data: responseData})
                     } else {
-                        reject({status: response.statusCode, message: responseData || 'WebDAV请求失败'})
+                        reject({status: response.statusCode, message: responseData || 'WebDAV request failed'})
                     }
                 })
             })

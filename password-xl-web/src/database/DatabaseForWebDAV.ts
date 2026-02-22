@@ -114,7 +114,7 @@ export class DatabaseForWebDAV implements Database {
             try {
                 await this.request('MKCOL', this.getAbsoluteUrl(currentPath))
             } catch (e: any) {
-                if (![405, 409, 301].includes(e?.status || e?.response?.status)) throw e
+                if (![400, 405, 409, 301].includes(e?.status || e?.response?.status)) throw e
             }
         }
     }
@@ -143,5 +143,9 @@ export class DatabaseForWebDAV implements Database {
     private getAuthHeaders() { return {Authorization: `Basic ${btoa(`${this.username}:${this.password}`)}`} }
     private normalizeRootPath(rootPath?: string) { return (!rootPath || !rootPath.trim()) ? '/password-xl' : this.normalizePath(rootPath) }
     private normalizePath(path: string) { return (path.startsWith('/') ? path : '/' + path).replace(/\/+/g, '/') }
-    private errorDispose(err: string) { return err.indexOf('Network Error') !== -1 ? '无法连接到WebDAV服务' : err }
+    private errorDispose(err: string) {
+        if (err.indexOf('Network Error') !== -1) return '无法连接到WebDAV服务'
+        if (err.indexOf('WebDAV request failed') !== -1) return 'WebDAV请求失败，请检查服务地址和权限'
+        return err
+    }
 }
