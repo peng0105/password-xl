@@ -3,6 +3,7 @@ import {useLoginStore} from "@/stores/LoginStore.ts";
 import {useRoute} from "vue-router";
 
 const OSSLoginForm = defineAsyncComponent(() => import('@/components/login/OSSLoginForm.vue'))
+const WebDAVLoginForm = defineAsyncComponent(() => import('@/components/login/WebDAVLoginForm.vue'))
 
 const route = useRoute()
 const loginStore = useLoginStore()
@@ -79,6 +80,7 @@ initForm()
                     <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                     <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                     <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>
+                    <WebDAVLoginForm v-if="loginStore.loginType === 'webdav'"></WebDAVLoginForm>
                   </div>
                 </transition>
               </div>
@@ -115,6 +117,7 @@ initForm()
                 <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                 <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                 <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>
+                <WebDAVLoginForm v-if="loginStore.loginType === 'webdav'"></WebDAVLoginForm>
               </el-col>
             </el-row>
           </div>
