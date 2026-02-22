@@ -168,6 +168,51 @@ const isAndroid = () => {
         </el-form-item>
       </div>
     </template>
+    <template v-else-if="loginStore.loginType === 'webdav'">
+      <div style="text-align: center;margin-bottom: 15px;width: 100%">
+        <img alt="" class="login-type-image" src="@/assets/images/login/private.png" style="height: 28px">
+        <el-text style="font-size: 24px">WebDAV</el-text>
+      </div>
+      <el-divider></el-divider>
+      <div>
+        <el-form-item label="服务地址">
+          <el-input :model-value="loginStore.loginForm.serverUrl" :readonly="true">
+            <template #append>
+              <el-button class="copy-btn" @click="copyText(loginStore.loginForm.serverUrl)">
+                <span class="iconfont icon-copy"></span>
+              </el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="用户名">
+          <el-input :model-value="loginStore.loginForm.username" :readonly="true">
+            <template #append>
+              <el-button class="copy-btn" @click="copyText(loginStore.loginForm.username)">
+                <span class="iconfont icon-copy"></span>
+              </el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input :model-value="loginStore.loginForm.password" :readonly="true">
+            <template #append>
+              <el-button class="copy-btn" @click="copyText(loginStore.loginForm.password)">
+                <span class="iconfont icon-copy"></span>
+              </el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="根目录">
+          <el-input :model-value="loginStore.loginForm.rootPath" :readonly="true">
+            <template #append>
+              <el-button class="copy-btn" @click="copyText(loginStore.loginForm.rootPath)">
+                <span class="iconfont icon-copy"></span>
+              </el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+      </div>
+    </template>
     <template v-else>
       <div style="text-align: center;margin-top: 50px;width: 100%">
         <img alt="" class="login-type-image" src="@/assets/images/login/local.png" style="height: 130px">

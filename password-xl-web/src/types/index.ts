@@ -376,6 +376,14 @@ export interface PrivateLoginForm {
     password: string,
 }
 
+// WebDAV登录Form
+export interface WebDAVLoginForm {
+    serverUrl: string,
+    username: string,
+    password: string,
+    rootPath: string,
+}
+
 // 对象存储登录COS
 export interface COSLoginForm {
     region: string,

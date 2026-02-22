@@ -1,6 +1,6 @@
 import path from 'node:path'
 import fs from 'fs'
-import {app, BrowserWindow, ipcMain, nativeTheme, shell} from 'electron'
+import {app, BrowserWindow, ipcMain, nativeTheme, shell, net} from 'electron'
 import {fileURLToPath} from "node:url";
 import CryptoJS from "crypto-js";
 import { protocol } from 'electron';
@@ -128,6 +128,44 @@ ipcMain.handle('upload-image', (_event, fileName, arrayBuffer, prefix) => {
             resolve(`appimg://${objectKey}`)
         } catch (err) {
             reject({status: 'error', message: err})
+        }
+    })
+})
+
+ipcMain.handle('webdav-request', async (_event, options) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const request = net.request({
+                method: options.method,
+                url: options.url,
+            })
+
+            const headers = options.headers || {}
+            Object.keys(headers).forEach((key) => request.setHeader(key, headers[key]))
+
+            let responseData = ''
+            request.on('response', (response) => {
+                response.setEncoding('utf8')
+                response.on('data', (chunk) => {
+                    responseData += chunk
+                })
+                response.on('end', () => {
+                    if (response.statusCode >= 200 && response.statusCode < 400) {
+                        resolve({status: response.statusCode, data: responseData})
+                    } else {
+                        reject({status: response.statusCode, message: responseData || 'WebDAV请求失败'})
+                    }
+                })
+            })
+
+            request.on('error', (err) => reject({status: 500, message: err.message || err + ''}))
+
+            if (options.data) {
+                request.write(options.data)
+            }
+            request.end()
+        } catch (err) {
+            reject({status: 500, message: err.message || err + ''})
         }
     })
 })

@@ -46,6 +46,13 @@ declare global {
             deleteFile(fileName: string): Promise<RespData>;
             setTopic(topic: string): void;
             uploadImage(fileName: string, arrayBuffer: ArrayBuffer, prefix: string): any;
+            webDavRequest(options: {
+                method: string;
+                url: string;
+                headers?: Record<string, string>;
+                data?: string;
+                responseType?: 'text' | 'arraybuffer';
+            }): Promise<{status: number; data: string}>;
         }
         androidAPI: {
             getFile(fileName: string): Promise<string>;
