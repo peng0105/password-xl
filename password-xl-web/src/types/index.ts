@@ -70,6 +70,13 @@ export interface GenerateRule {
     symbol: boolean,// 是否使用特殊符号
 }
 
+export interface AiModelSetting {
+    provider: string,
+    baseUrl: string,
+    apiKey: string,
+    model: string,
+}
+
 // 设置
 export interface Setting {
     sortField: keyof Password, // 排序字段
@@ -96,6 +103,7 @@ export interface Setting {
     bgColors: Array<string>, // 背景色
     dynamicBackground: boolean, // 动态背景图
     passwordColor: boolean, // 密码颜色
+    aiModel: AiModelSetting, // AI模型配置
 }
 
 // 密码管理器

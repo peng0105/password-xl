@@ -17,6 +17,13 @@ const refStore = useRefStore()
 
 const passwordText = ref('')
 
+
+const normalizeAiResponse = (resp: string) => {
+  const content = resp.trim()
+  const markdownMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  return markdownMatch ? markdownMatch[1].trim() : content
+}
+
 // 存储解析后的密码数组
 const importPasswords: Ref<Array<Password>> = ref([]);
 
@@ -92,7 +99,7 @@ const startAnalysis = () => {
   extractPasswordApi(passwordText.value, true).then((resp: any) => {
     step.value = 3
     console.log('AI解析，解析密码完成')
-    const passwordArray = JSON.parse(resp)
+    const passwordArray = JSON.parse(normalizeAiResponse(resp))
     for (let i = 0; i < passwordArray.length; i++) {
       importPasswords.value.push({
         id: incrId(),
