@@ -19,14 +19,19 @@ pipeline {
                     set -euo pipefail
 
                     # =========================
-                    # 代理设置
+                    # 代理配置
                     # =========================
                     export HTTP_PROXY=http://192.168.31.3:7890
                     export HTTPS_PROXY=http://192.168.31.3:7890
                     export http_proxy=$HTTP_PROXY
                     export https_proxy=$HTTPS_PROXY
 
+                    export NO_PROXY=localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,192.168.0.0/16
+                    export no_proxy=$NO_PROXY
+
+                    # =========================
                     # git 代理
+                    # =========================
                     git config --global http.proxy $HTTP_PROXY
                     git config --global https.proxy $HTTPS_PROXY
 
@@ -34,7 +39,7 @@ pipeline {
                     git config --global http.version HTTP/1.1
 
                     # =========================
-                    # yarn 镜像
+                    # yarn 国内镜像
                     # =========================
                     yarn config set registry ${YARN_REGISTRY}
 
