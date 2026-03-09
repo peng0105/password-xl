@@ -2,7 +2,7 @@ pipeline {
     agent { label 'nodejs-24' }
 
     environment {
-        IMAGE_NAME    = "repo.huangyp.cn/password-xl/password-xl-home-web"
+        IMAGE_NAME    = "repo.huangyp.cn/password-xl/password-xl-home"
         YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
 
     }
