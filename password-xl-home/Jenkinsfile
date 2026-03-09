@@ -2,7 +2,7 @@ pipeline {
     agent { label 'nodejs-24' }
 
     environment {
-        IMAGE_NAME    = "harbor.huangyp.cn/password-xl/password-xl-home-web"
+        IMAGE_NAME    = "repo.huangyp.cn/password-xl/password-xl-home-web"
         YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
 
     }
@@ -18,9 +18,6 @@ pipeline {
             container('buildkit') {
               sh '''
               set -e
-
-              mkdir -p /root/.docker
-              cp /root/.dockerconfigjson/.dockerconfigjson /root/.docker/config.json
 
               echo "构建并推送镜像..."
               buildctl-daemonless.sh build \
