@@ -17,12 +17,31 @@ pipeline {
                 container('node') {
                     sh '''
                     set -euo pipefail
+
+                    # =========================
+                    # 代理设置
+                    # =========================
+                    export HTTP_PROXY=http://192.168.31.3:7890
+                    export HTTPS_PROXY=http://192.168.31.3:7890
+                    export http_proxy=$HTTP_PROXY
+                    export https_proxy=$HTTPS_PROXY
+
+                    # git 代理
+                    git config --global http.proxy $HTTP_PROXY
+                    git config --global https.proxy $HTTPS_PROXY
+
+                    # 避免 HTTP2 EOF 问题
+                    git config --global http.version HTTP/1.1
+
+                    # =========================
+                    # yarn 镜像
+                    # =========================
                     yarn config set registry ${YARN_REGISTRY}
 
                     cd password-xl-web
 
                     echo "安装依赖..."
-                    yarn install
+                    yarn install --network-timeout 600000
 
                     echo "开始构建..."
                     yarn build
