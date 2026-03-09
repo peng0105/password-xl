@@ -30,5 +30,24 @@ pipeline {
             }
           }
         }
+
+        // 部署到 Kubernetes 集群
+        stage('Deploy to Kubernetes') {
+            steps {
+                container('kubectl') {
+                    sh '''
+                    set -euo pipefail
+
+                    echo "🔁 使用当前构建镜像更新 Deployment，触发滚动发布..."
+                    kubectl set image deployment/password-xl-home \
+                      password-xl-home=${IMAGE_NAME}:${BUILD_NUMBER} \
+                      -n password-xl
+
+                    echo "⏳ 等待 Deployment 完成滚动更新..."
+                    kubectl rollout status deployment/password-xl-home -n password-xl --timeout=120s
+                    '''
+                }
+            }
+        }
     }
 }
