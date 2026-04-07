@@ -15,7 +15,7 @@ pipeline {
         stage('Install & Build') {
             steps {
                 container('node') {
-                    sh '''
+                    sh '''#!/bin/bash
                     set -euo pipefail
 
                     # =========================
