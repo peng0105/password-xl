@@ -1,10 +1,30 @@
+def BRANCH = 'master'
+def PROJECT = 'password-xl'
+def MODULE = 'password-xl-home'
+
 pipeline {
     agent { label 'nodejs-24' }
 
-    environment {
-        IMAGE_NAME    = "repo.huangyp.cn/password-xl/password-xl-home"
-        YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref'],
+                [key: 'files', value: '$.commits[*].modified[*]'],
+                [key: 'files_added', value: '$.commits[*].added[*]'],
+                [key: 'files_removed', value: '$.commits[*].removed[*]']
+            ],
+            causeString: 'Gitea 推送触发构建: $ref',
+            token: "${PROJECT}",
+            regexpFilterText: '$ref $files $files_added $files_removed',
+            regexpFilterExpression: "(?s)^refs/heads/${BRANCH}.*(${MODULE}/|k8s/home/).*"
+        )
+    }
 
+    environment {
+        IMAGE_NAME    = "repo.huangyp.cn/${PROJECT}/${MODULE}"
+        YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
+        MODULE_NAME   = "${MODULE}"
+        PROJECT_NAME  = "${PROJECT}"
     }
 
     options {
@@ -22,8 +42,8 @@ pipeline {
               echo "构建并推送镜像..."
               buildctl-daemonless.sh build \
                 --frontend dockerfile.v0 \
-                --local context="${WORKSPACE}/password-xl-home" \
-                --local dockerfile="${WORKSPACE}/password-xl-home" \
+                --local context="${WORKSPACE}/${MODULE_NAME}" \
+                --local dockerfile="${WORKSPACE}/${MODULE_NAME}" \
                 --opt filename=Dockerfile \
                 --output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
               '''
@@ -38,13 +58,18 @@ pipeline {
                     sh '''
                     set -euo pipefail
 
-                    echo "🔁 使用当前构建镜像更新 Deployment，触发滚动发布..."
-                    kubectl set image deployment/password-xl-home \
-                      password-xl-home=${IMAGE_NAME}:${BUILD_NUMBER} \
-                      -n password-xl
+                    echo "🚀 部署 Home 相关 K8s 配置..."
+                    kubectl apply -f k8s/home/service.yaml
+                    kubectl apply -f k8s/home/deployment.yaml
+                    kubectl apply -f k8s/home/ingress.yaml
+
+                    echo "🔄 更新 Deployment 镜像..."
+                    kubectl set image deployment/${MODULE_NAME} \
+                      ${MODULE_NAME}=${IMAGE_NAME}:${BUILD_NUMBER} \
+                      -n ${PROJECT_NAME}
 
                     echo "⏳ 等待 Deployment 完成滚动更新..."
-                    kubectl rollout status deployment/password-xl-home -n password-xl --timeout=120s
+                    kubectl rollout status deployment/${MODULE_NAME} -n ${PROJECT_NAME} --timeout=120s
                     '''
                 }
             }

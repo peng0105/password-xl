@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: password-xl-home
+  namespace: password-xl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: password-xl-home
+  template:
+    metadata:
+      labels:
+        app: password-xl-home
+    spec:
+      containers:
+        - name: password-xl-home
+          image: repo.huangyp.cn/password-xl/password-xl-home:latest
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: TZ
+              value: "Asia/Shanghai"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 1
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              memory: 128Mi

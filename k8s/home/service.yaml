@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: password-xl-home
+  namespace: password-xl
+spec:
+  type: ClusterIP
+  selector:
+    app: password-xl-home
+  ports:
+    - name: http
+      targetPort: 80
+      port: 80
