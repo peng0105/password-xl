@@ -1,0 +1,17 @@
+.git
+.gitignore
+.vscode
+node_modules
+build
+dist-extension
+electron
+extension
+src
+public
+*.iml
+*.log
+HELP.md
+package.json
+tsconfig.json
+vite.config.ts
+yarn.lock
