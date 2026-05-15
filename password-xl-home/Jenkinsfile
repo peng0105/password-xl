@@ -3,7 +3,9 @@ def PROJECT = 'password-xl'
 def MODULE = 'password-xl-home'
 
 pipeline {
-    agent { label 'nodejs-24' }
+    agent {
+        label 'nodejs-24'
+    }
 
     triggers {
         GenericTrigger(
@@ -21,55 +23,59 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME    = "repo.huangyp.cn/${PROJECT}/${MODULE}"
-        YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
-        MODULE_NAME   = "${MODULE}"
-        PROJECT_NAME  = "${PROJECT}"
+        IMAGE_NAME = "repo.huangyp.cn/${PROJECT}/${MODULE}"
+        MODULE_NAME = "${MODULE}"
+        PROJECT_NAME = "${PROJECT}"
     }
 
     options {
-        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '5'))
-        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 10, unit: 'MINUTES')
     }
 
     stages {
-        stage('Build & Push Image (BuildKit)') {
+        stage('Build & Push Image') {
           steps {
             container('buildkit') {
               sh '''
-              set -e
 
-              echo "构建并推送镜像..."
-              buildctl-daemonless.sh build \
-                --frontend dockerfile.v0 \
-                --local context="${WORKSPACE}/${MODULE_NAME}" \
-                --local dockerfile="${WORKSPACE}/${MODULE_NAME}" \
-                --opt filename=Dockerfile \
-                --output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
+set -euo pipefail
+
+echo "🛠️ 使用 BuildKit 构建并推送镜像..."
+buildctl-daemonless.sh build \
+--frontend dockerfile.v0 \
+--local context="${WORKSPACE}/${MODULE_NAME}" \
+--local dockerfile="${WORKSPACE}/${MODULE_NAME}" \
+--opt filename=Dockerfile \
+--output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
+
               '''
             }
           }
         }
 
-        // 部署到 Kubernetes 集群
         stage('Deploy to Kubernetes') {
             steps {
                 container('kubectl') {
-                    sh '''
-                    set -euo pipefail
+                    sh '''#!/bin/bash
 
-                    echo "🚀 部署 Home 相关 K8s 配置..."
-                    kubectl apply -f k8s/home/service.yaml
-                    kubectl apply -f k8s/home/deployment.yaml
-                    kubectl apply -f k8s/home/ingress.yaml
+set -euo pipefail
 
-                    echo "🔄 更新 Deployment 镜像..."
-                    kubectl set image deployment/${MODULE_NAME} \
-                      ${MODULE_NAME}=${IMAGE_NAME}:${BUILD_NUMBER} \
-                      -n ${PROJECT_NAME}
+echo "🚀 部署 Home 相关 K8s 配置..."
+kubectl apply -f k8s/home/service.yaml
+kubectl apply -f k8s/home/deployment.yaml
+kubectl apply -f k8s/home/ingress.yaml
 
-                    echo "⏳ 等待 Deployment 完成滚动更新..."
-                    kubectl rollout status deployment/${MODULE_NAME} -n ${PROJECT_NAME} --timeout=120s
+echo "🔄 更新 Deployment 镜像..."
+kubectl set image deployment/${MODULE_NAME} \
+${MODULE_NAME}=${IMAGE_NAME}:${BUILD_NUMBER} \
+-n ${PROJECT_NAME}
+
+echo "⏳ 等待滚动更新完成..."
+kubectl rollout status deployment/${MODULE_NAME} -n ${PROJECT_NAME} --timeout=60s
+
+echo "✅ 部署完成"
+
                     '''
                 }
             }

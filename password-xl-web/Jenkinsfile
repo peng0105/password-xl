@@ -3,7 +3,9 @@ def PROJECT = 'password-xl'
 def MODULE = 'password-xl-web'
 
 pipeline {
-    agent { label 'nodejs-24' }
+    agent {
+        label 'nodejs-24'
+    }
 
     triggers {
         GenericTrigger(
@@ -21,15 +23,15 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME    = "repo.huangyp.cn/${PROJECT}/${MODULE}"
+        IMAGE_NAME = "repo.huangyp.cn/${PROJECT}/${MODULE}"
         YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
-        MODULE_NAME   = "${MODULE}"
-        PROJECT_NAME  = "${PROJECT}"
+        MODULE_NAME = "${MODULE}"
+        PROJECT_NAME = "${PROJECT}"
     }
 
     options {
-        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '5'))
-        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 10, unit: 'MINUTES')
     }
 
     stages {
@@ -37,83 +39,67 @@ pipeline {
             steps {
                 container('node') {
                     sh '''#!/bin/bash
-                    set -euo pipefail
 
-                    # =========================
-                    # 代理配置
-                    # =========================
-                    export HTTP_PROXY=http://192.168.31.3:7890
-                    export HTTPS_PROXY=http://192.168.31.3:7890
-                    export http_proxy=$HTTP_PROXY
-                    export https_proxy=$HTTPS_PROXY
+set -euo pipefail
 
-                    export NO_PROXY=localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8,192.168.0.0/16
-                    export no_proxy=$NO_PROXY
+echo "🏗️ 设置npm仓库..."
+yarn config set registry ${YARN_REGISTRY}
 
-                    # =========================
-                    # git 代理
-                    # =========================
-                    git config --global http.proxy $HTTP_PROXY
-                    git config --global https.proxy $HTTPS_PROXY
+cd ${MODULE_NAME}
 
-                    # 避免 HTTP2 EOF 问题
-                    git config --global http.version HTTP/1.1
+echo "📦 安装依赖..."
+yarn install
 
-                    # =========================
-                    # yarn 国内镜像
-                    # =========================
-                    yarn config set registry ${YARN_REGISTRY}
+echo "🛠️ 构建前端静态资源..."
+yarn build
 
-                    cd ${MODULE_NAME}
-
-                    echo "安装依赖..."
-                    yarn install --network-timeout 600000
-
-                    echo "开始构建..."
-                    yarn build
                     '''
                 }
             }
         }
 
-        stage('Build & Push Image (BuildKit)') {
-            steps {
-                container('buildkit') {
-                    sh '''
-                    set -e
+        stage('Build & Push Image') {
+          steps {
+            container('buildkit') {
+              sh '''
 
-                    echo "构建并推送镜像..."
-                    buildctl-daemonless.sh build \
-                      --frontend dockerfile.v0 \
-                      --local context="${WORKSPACE}/${MODULE_NAME}" \
-                      --local dockerfile="${WORKSPACE}/${MODULE_NAME}" \
-                      --opt filename=Dockerfile \
-                      --output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
-                    '''
-                }
+set -euo pipefail
+
+echo "🛠️ 使用 BuildKit 构建并推送镜像..."
+buildctl-daemonless.sh build \
+--frontend dockerfile.v0 \
+--local context="${WORKSPACE}/${MODULE_NAME}" \
+--local dockerfile="${WORKSPACE}/${MODULE_NAME}" \
+--opt filename=Dockerfile \
+--output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
+
+              '''
             }
+          }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
                 container('kubectl') {
                     sh '''#!/bin/bash
-                    set -euo pipefail
 
-                    echo "🚀 部署 Web 相关 K8s 配置..."
-                    kubectl apply -f k8s/web/service.yaml
-                    kubectl apply -f k8s/web/deployment.yaml
-                    kubectl apply -f k8s/web/ingress.yaml
+set -euo pipefail
 
-                    echo "🔄 更新 Deployment 镜像..."
-                    kubectl set image deployment/${MODULE_NAME} \
-                      ${MODULE_NAME}=${IMAGE_NAME}:${BUILD_NUMBER} \
-                      -n ${PROJECT_NAME}
+echo "🚀 部署 Web 相关 K8s 配置..."
+kubectl apply -f k8s/web/service.yaml
+kubectl apply -f k8s/web/deployment.yaml
+kubectl apply -f k8s/web/ingress.yaml
 
-                    echo "⏳ 等待 Deployment 完成滚动更新..."
-                    kubectl rollout status deployment/${MODULE_NAME} -n ${PROJECT_NAME} --timeout=270s
+echo "🔄 更新 Deployment 镜像..."
+kubectl set image deployment/${MODULE_NAME} \
+${MODULE_NAME}=${IMAGE_NAME}:${BUILD_NUMBER} \
+-n ${PROJECT_NAME}
 
-                    echo "✅ 部署完成: ${MODULE_NAME}"
+echo "⏳ 等待滚动更新完成..."
+kubectl rollout status deployment/${MODULE_NAME} -n ${PROJECT_NAME} --timeout=60s
+
+echo "✅ 部署完成"
+
                     '''
                 }
             }
