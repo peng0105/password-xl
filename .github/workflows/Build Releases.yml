@@ -7,6 +7,9 @@ on:
     paths-ignore:
       - '**/package.json'
 
+permissions:
+  contents: write
+
 jobs:
   build-project:
     runs-on: ubuntu-latest
@@ -15,7 +18,6 @@ jobs:
       volumes:
         - ubuntu_dockercache:/opt/dockercache
     outputs:
-      UPLOAD_URL: ${{ steps.set_output.outputs.UPLOAD_URL }}
       REPO_VERSION: ${{ steps.set_output.outputs.REPO_VERSION }}
 
     steps:
@@ -95,46 +97,24 @@ jobs:
           zip -r password-xl-web/dist.zip password-xl-web/dist
           tar -zcvf password-xl-web/dist.tar.gz password-xl-web/dist
 
-      - name: 创建发布版本
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 准备发布文件
+        run: |
+          cp password-xl-web/dist.zip password-xl-web-dist-${REPO_VERSION}.zip
+          cp password-xl-web/dist.tar.gz password-xl-web-dist-${REPO_VERSION}.tar.gz
+          cp password-xl-service/build/libs/password-xl-service-${REPO_SERVER_VERSION}.jar password-xl-service-${REPO_VERSION}.jar
+
+      - name: 创建或更新发布版本
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.REPO_VERSION }}
-          release_name: Release ${{ env.REPO_VERSION }}
+          name: Release ${{ env.REPO_VERSION }}
           draft: false
           prerelease: false
-
-      - name: 上传前端Zip包
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-web/dist.zip
-          asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.zip
-          asset_content_type: application/zip
-
-      - name: 上传前端Gzip包
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-web/dist.tar.gz
-          asset_name: password-xl-web-dist-${{ env.REPO_VERSION }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: 上传后端Jar包
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: password-xl-service/build/libs/password-xl-service-${{ env.REPO_SERVER_VERSION }}.jar
-          asset_name: password-xl-service-${{ env.REPO_VERSION }}.jar
-          asset_content_type: application/octet-stream
+          overwrite_files: true
+          files: |
+            password-xl-web-dist-${{ env.REPO_VERSION }}.zip
+            password-xl-web-dist-${{ env.REPO_VERSION }}.tar.gz
+            password-xl-service-${{ env.REPO_VERSION }}.jar
 
       - name: 更新 package.json 版本
         run: |
@@ -150,10 +130,9 @@ jobs:
           git commit -m "发布前版本号更新"
           git push
 
-      - name: 设置发布版本上传url
+      - name: 设置发布版本输出
         id: set_output
         run: |
-          echo "UPLOAD_URL=${{ steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
           echo "REPO_VERSION=${{ env.REPO_VERSION }}" >> "$GITHUB_OUTPUT"
 
   build-windows:
@@ -193,15 +172,15 @@ jobs:
         working-directory: ./password-xl-web
         run: yarn run dist-to-windows
 
+      - name: 准备Windows发布文件
+        run: Copy-Item -LiteralPath "password-xl-web/build/password-XL-Windows-${{ needs.build-project.outputs.REPO_VERSION }}.exe" -Destination "password-xl-win-${{ needs.build-project.outputs.REPO_VERSION }}.exe"
+
       - name: 上传Windows应用
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v3
         with:
-          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
-          asset_path: password-xl-web/build/password-XL-Windows-${{needs.build-project.outputs.REPO_VERSION}}.exe
-          asset_name: password-xl-win-${{needs.build-project.outputs.REPO_VERSION}}.exe
-          asset_content_type: application/octet-stream
+          tag_name: ${{ needs.build-project.outputs.REPO_VERSION }}
+          overwrite_files: true
+          files: password-xl-win-${{ needs.build-project.outputs.REPO_VERSION }}.exe
 
   build-macos:
     runs-on: macos-latest
@@ -244,15 +223,15 @@ jobs:
       - name: 显示编译后的文件
         run: ls -la password-xl-web/build/
 
+      - name: 准备mac发布文件
+        run: cp password-xl-web/build/password-XL-Mac-${{ needs.build-project.outputs.REPO_VERSION }}.dmg password-xl-mac-${{ needs.build-project.outputs.REPO_VERSION }}.dmg
+
       - name: 上传mac应用程序
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v3
         with:
-          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
-          asset_path: password-xl-web/build/password-XL-Mac-${{needs.build-project.outputs.REPO_VERSION}}.dmg
-          asset_name: password-xl-mac-${{needs.build-project.outputs.REPO_VERSION}}.dmg
-          asset_content_type: application/octet-stream
+          tag_name: ${{ needs.build-project.outputs.REPO_VERSION }}
+          overwrite_files: true
+          files: password-xl-mac-${{ needs.build-project.outputs.REPO_VERSION }}.dmg
 
   build-linux:
     runs-on: ubuntu-latest
@@ -294,32 +273,18 @@ jobs:
       - name: 显示编译后的文件
         run: ls -la password-xl-web/build/
 
-      - name: 上传Linux应用程序 AppImage
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
-          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.AppImage
-          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.AppImage
-          asset_content_type: application/gzip
+      - name: 准备Linux发布文件
+        run: |
+          cp password-xl-web/build/password-XL-Linux-${{ needs.build-project.outputs.REPO_VERSION }}.AppImage password-xl-linux-${{ needs.build-project.outputs.REPO_VERSION }}.AppImage
+          cp password-xl-web/build/password-XL-Linux-${{ needs.build-project.outputs.REPO_VERSION }}.rpm password-xl-linux-${{ needs.build-project.outputs.REPO_VERSION }}.rpm
+          cp password-xl-web/build/password-XL-Linux-${{ needs.build-project.outputs.REPO_VERSION }}.snap password-xl-linux-${{ needs.build-project.outputs.REPO_VERSION }}.snap
 
-      - name: 上传Linux应用程序 rpm
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 上传Linux应用程序
+        uses: softprops/action-gh-release@v3
         with:
-          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
-          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.rpm
-          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.rpm
-          asset_content_type: application/gzip
-
-      - name: 上传Linux应用程序 snap
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{needs.build-project.outputs.UPLOAD_URL}}
-          asset_path: password-xl-web/build/password-XL-Linux-${{needs.build-project.outputs.REPO_VERSION}}.snap
-          asset_name: password-xl-linux-${{needs.build-project.outputs.REPO_VERSION}}.snap
-          asset_content_type: application/gzip
+          tag_name: ${{ needs.build-project.outputs.REPO_VERSION }}
+          overwrite_files: true
+          files: |
+            password-xl-linux-${{ needs.build-project.outputs.REPO_VERSION }}.AppImage
+            password-xl-linux-${{ needs.build-project.outputs.REPO_VERSION }}.rpm
+            password-xl-linux-${{ needs.build-project.outputs.REPO_VERSION }}.snap
