@@ -5980,6 +5980,7 @@ __metadata:
     file-saver: "npm:^2.0.5"
     node-forge: "npm:^1.4.0"
     pinia: "npm:^3.0.4"
+    pinyin-pro: "npm:^3.28.1"
     terser: "npm:^5.48.0"
     typescript: "npm:^6.0.3"
     unplugin-auto-import: "npm:^21.0.0"
@@ -6090,6 +6091,13 @@ __metadata:
     typescript:
       optional: true
   checksum: 10c0/4123efbf28c6d11f3dd052dbcf08da7ef85747fd3499807b9ca1d32dcda7807b2e68f9a7e31a06148b05093a9ebcd0c3b26e6a31b62775c6421429bd03265949
+  languageName: node
+  linkType: hard
+
+"pinyin-pro@npm:^3.28.1":
+  version: 3.28.1
+  resolution: "pinyin-pro@npm:3.28.1"
+  checksum: 10c0/203a5433e4c7019dfb5a54eba27296eb454395d6859b4b63a10a3df1311331d8120fca410261899493428f5f3b01f0cdfe8fa75db3c79cdfc19a1b45181711c7
   languageName: node
   linkType: hard
 

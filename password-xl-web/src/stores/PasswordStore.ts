@@ -1,7 +1,7 @@
 import {defineStore} from 'pinia'
 import {MainPasswordType, Password, PasswordStatus, PasswordStore, ServiceStatus, Sort, TopicMode} from "@/types";
 import {useDark} from '@vueuse/core'
-import {getLocationUrl, getPasswordStrength, searchStr} from "@/utils/global.ts";
+import {getLocationUrl, getPasswordStrength, searchFields} from "@/utils/global.ts";
 import {PasswordManagerImpl} from "@/service/PasswordManager.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
@@ -127,7 +127,7 @@ export const usePasswordStore = defineStore('passwordStore', {
                 // 文本搜索
                 if (this.filterCondition.searchText) {
                     textSearchResult = false
-                    const searchFields = [
+                    const searchFieldValues = [
                         password.title,
                         password.address,
                         password.username,
@@ -136,16 +136,11 @@ export const usePasswordStore = defineStore('passwordStore', {
                     ].filter(Boolean);
                     if (password.customFields) {
                         for (let i = 0; i < password.customFields.length; i++) {
-                            searchFields.push(password.customFields[i].key);
-                            searchFields.push(password.customFields[i].val);
+                            searchFieldValues.push(password.customFields[i].key);
+                            searchFieldValues.push(password.customFields[i].val);
                         }
                     }
-                    for (const field of searchFields) {
-                        if (searchStr(this.filterCondition.searchText.trim(), field)) {
-                            textSearchResult = true
-                            break
-                        }
-                    }
+                    textSearchResult = searchFields(this.filterCondition.searchText, searchFieldValues)
                 }
 
                 // 标签搜索

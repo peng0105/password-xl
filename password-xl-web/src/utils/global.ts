@@ -4,6 +4,7 @@ import {GenerateRule, Label, Password} from "@/types";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {encryptAES} from "@/utils/security.ts";
 import CryptoJS from 'crypto-js'
+import {match} from 'pinyin-pro'
 
 // 判断字符串是否为url
 export const isUrl = (str: string) => {
@@ -47,17 +48,34 @@ export async function copyText(text: string, silent: boolean = false) {
     console.log('复制到剪切板成功')
 }
 
-// 文本搜索
-export const searchStr = (searchText: string, value: string): boolean => {
+type SearchField = string | number | null | undefined;
+
+const searchTokens = (searchText: string): Array<string> => {
+    if (!searchText) return []
+    return searchText.trim().split(/\s+/).filter(Boolean)
+}
+
+// 单字段文本搜索
+export const searchStr = (searchText: string, value: SearchField): boolean => {
     if (!value) return false;
     if (!searchText) return false;
 
     try {
-        const lowerSearchText = searchText.toLowerCase();
-        const lowerValue = value.toLowerCase();
+        const lowerSearchText = String(searchText).toLowerCase();
+        const lowerValue = String(value).toLowerCase();
 
         // 普通大小写忽略搜索
         if (lowerValue.includes(lowerSearchText)) {
+            return true;
+        }
+
+        // 拼音搜索，支持全拼、首字母和混合拼音
+        if (match(String(value), String(searchText), {
+            continuous: true,
+            precision: 'start',
+            insensitive: true,
+            v: true
+        })) {
             return true;
         }
     } catch (e) {
@@ -66,6 +84,17 @@ export const searchStr = (searchText: string, value: string): boolean => {
 
     return false;
 };
+
+// 多字段文本搜索：搜索词按空格拆分，每个词都需要命中任一字段
+export const searchFields = (searchText: string, fields: Array<SearchField>): boolean => {
+    const tokens = searchTokens(searchText)
+    if (!tokens.length) return true
+
+    const validFields = fields.filter(field => field !== null && field !== undefined && String(field))
+    if (!validFields.length) return false
+
+    return tokens.every(token => validFields.some(field => searchStr(token, field)))
+}
 
 // 获取密码强度
 export const getPasswordStrength = (password: string): number => {
