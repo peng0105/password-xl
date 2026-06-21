@@ -123,6 +123,9 @@ const getPagePasswordArray = () => {
 
 const scrollLoad = () => {
   const scrollbarWrap = passwordTableRef.value?.$el.querySelector(".el-scrollbar__wrap");
+  if (!scrollbarWrap) {
+    return
+  }
   if (scrollbarWrap.scrollTop + scrollbarWrap.clientHeight >= scrollbarWrap.scrollHeight - 200) {
     if (pageIndex.value * pageSize.value < passwordStore.visPasswordArray.length) {
       pageIndex.value++
@@ -131,15 +134,18 @@ const scrollLoad = () => {
 }
 
 const listenerScroll = () => {
-  const scrollbarWrap = passwordTableRef.value.$el.querySelector(".el-scrollbar__wrap");
-  scrollbarWrap.addEventListener("scroll", () => {
-    scrollLoad()
-  });
+  const scrollbarWrap = passwordTableRef.value?.$el.querySelector(".el-scrollbar__wrap");
+  scrollbarWrap?.addEventListener("scroll", scrollLoad);
 }
 
 onMounted(() => {
   scrollLoad()
   listenerScroll()
+})
+
+onBeforeUnmount(() => {
+  const scrollbarWrap = passwordTableRef.value?.$el.querySelector(".el-scrollbar__wrap");
+  scrollbarWrap?.removeEventListener("scroll", scrollLoad);
 })
 
 </script>

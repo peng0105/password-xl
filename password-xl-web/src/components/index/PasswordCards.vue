@@ -116,7 +116,10 @@ const getPagePasswordArray = () => {
 }
 
 const scrollLoad = () => {
-  const scrollbarWrap = passwordCardScrollbar.value.wrapRef;
+  const scrollbarWrap = passwordCardScrollbar.value?.wrapRef;
+  if (!scrollbarWrap) {
+    return
+  }
   if (scrollbarWrap.scrollTop + scrollbarWrap.clientHeight >= scrollbarWrap.scrollHeight - 200) {
     if (pageIndex.value * pageSize.value < passwordStore.visPasswordArray.length) {
       pageIndex.value++
@@ -125,15 +128,18 @@ const scrollLoad = () => {
 }
 
 const listenerScroll = () => {
-  const scrollbarWrap = passwordCardScrollbar.value.wrapRef;
-  scrollbarWrap.addEventListener("scroll", () => {
-    scrollLoad()
-  });
+  const scrollbarWrap = passwordCardScrollbar.value?.wrapRef;
+  scrollbarWrap?.addEventListener("scroll", scrollLoad);
 }
 
 onMounted(() => {
   scrollLoad()
   listenerScroll()
+})
+
+onBeforeUnmount(() => {
+  const scrollbarWrap = passwordCardScrollbar.value?.wrapRef;
+  scrollbarWrap?.removeEventListener("scroll", scrollLoad);
 })
 
 </script>

@@ -41,7 +41,7 @@ const affirmImport = () => {
 
 
 // 确认导入已选中密码与标签,主密码验证通过
-const affirmImportPass = () => {
+const affirmImportPass = async () => {
   try {
     // 获取选中的密码列表
     const selectedPasswords: Password[] = passwordTableRef.value.getSelectionRows();
@@ -55,14 +55,18 @@ const affirmImportPass = () => {
     mergePasswords(passwordStore.allPasswordArray, readyToImportPasswords);
 
     // 同步密码数据
-    passwordStore.passwordManager.syncStoreData()
+    const syncResp = await passwordStore.passwordManager.syncStoreData()
+    if (!syncResp.status) {
+      ElNotification.error({title: '系统异常', message: syncResp.message || '导入保存失败'})
+      return
+    }
     aiImportVis.value = false
     importPasswords.value = []
     passwordText.value = ''
     ElNotification.success('导入成功')
   } catch (e) {
     console.error(e)
-    ElNotification.error('导入失败')
+    ElNotification.error({title: '导入失败', message: e instanceof Error ? e.message : String(e)})
   }
 }
 

@@ -157,9 +157,10 @@ export class DatabaseForCOS implements Database {
             let checkResult = await this.checkEtag(fileName)
             if (!checkResult) {
                 console.log('上传cos文件 文件同步异常')
+                const message = '当前密码列表已被其他客户端更新，请刷新页面'
                 ElMessageBox({
                     title: '文件同步异常',
-                    message: '当前密码列表已被其他客户端更新，请刷新页面',
+                    message,
                     showCancelButton: false,
                     showConfirmButton: true,
                     closeOnPressEscape: false,
@@ -171,6 +172,7 @@ export class DatabaseForCOS implements Database {
                         location.reload()
                     }
                 })
+                resolve({status: false, message})
                 return
             }
 

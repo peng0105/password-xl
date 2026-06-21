@@ -134,42 +134,71 @@ export const passwordDist = {
     symbol: "~!@#$%^&*()_-+=.,;",
 }
 
+const secureRandomInt = (max: number): number => {
+    if (!Number.isInteger(max) || max <= 0) {
+        throw new Error('随机数范围无效')
+    }
+    if (!window.crypto?.getRandomValues) {
+        throw new Error('当前环境不支持安全随机数')
+    }
+
+    const array = new Uint32Array(1)
+    const limit = Math.floor(0x100000000 / max) * max
+    do {
+        window.crypto.getRandomValues(array)
+    } while (array[0] >= limit)
+    return array[0] % max
+}
+
+const secureShuffle = (array: string[]): string[] => {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = secureRandomInt(i + 1);
+        [array[i], array[j]] = [array[j], array[i]]
+    }
+    return array
+}
+
 // 随机生成密码
 export function randomPassword(generateRule: GenerateRule) {
-    let pool = [
-        generateRule.uppercase ? passwordDist.uppercase : '',
-        generateRule.lowercase ? passwordDist.lowercase : '',
-        generateRule.number ? passwordDist.number : '',
-        generateRule.symbol ? passwordDist.symbol : ''
-    ].filter(Boolean);
+    try {
+        let pool = [
+            generateRule.uppercase ? passwordDist.uppercase : '',
+            generateRule.lowercase ? passwordDist.lowercase : '',
+            generateRule.number ? passwordDist.number : '',
+            generateRule.symbol ? passwordDist.symbol : ''
+        ].filter(Boolean);
 
-    const settingStore = useSettingStore()
-    // 是否禁用易混淆字符
-    if (settingStore.setting.easyConfuseChat) {
-        const array = settingStore.setting.easyConfuseChat.split('');
-        for (let i = 0; i < pool.length; i++) {
-            for (let j = 0; j < array.length; j++) {
-                pool[i] = pool[i].replace(array[j], '');
+        const settingStore = useSettingStore()
+        // 是否禁用易混淆字符
+        if (settingStore.setting.easyConfuseChat) {
+            const array = settingStore.setting.easyConfuseChat.split('');
+            for (let i = 0; i < pool.length; i++) {
+                for (let j = 0; j < array.length; j++) {
+                    pool[i] = pool[i].replace(array[j], '');
+                }
             }
         }
-    }
 
-    pool = pool.filter(Boolean)
-    if (!pool.length) {
-        ElNotification.error({title: '生成失败', message: '请检查易混淆字符配置'})
+        pool = pool.filter(Boolean)
+        if (!pool.length) {
+            ElNotification.error({title: '生成失败', message: '请检查易混淆字符配置'})
+            return ''
+        }
+
+        // 随机生成密码
+        let password = '';
+        for (let i = 0; i < generateRule.length; i++) {
+            const subPool = pool[i % pool.length];
+            const randomIndex = secureRandomInt(subPool.length);
+            password += subPool[randomIndex];
+        }
+
+        // 打乱顺序
+        return secureShuffle(password.split('')).join('');
+    } catch (e: any) {
+        ElNotification.error({title: '生成失败', message: e?.message || '当前环境不支持安全随机数'})
         return ''
     }
-
-    // 随机生成密码
-    let password = '';
-    for (let i = 0; i < generateRule.length; i++) {
-        const subPool = pool[i % pool.length];
-        const randomIndex = Math.floor(Math.random() * subPool.length);
-        password += subPool[randomIndex];
-    }
-
-    // 打乱顺序
-    return password.split('').sort(() => Math.random() - 0.5).join('');
 }
 
 // 获取密码标签
@@ -299,7 +328,8 @@ export const mergePassword = (existPasswordArray: Array<Password>, recoveryPassw
             if (recoveryPassword.labels && recoveryPassword.labels.length > 0) {
                 // 取标签交集合并
                 const labelSet = new Set(existPassword.labels);
-                existPassword.labels = recoveryPassword.labels.filter(item => !labelSet.has(item));
+                const appendLabels = recoveryPassword.labels.filter(item => !labelSet.has(item));
+                existPassword.labels.push(...appendLabels);
             }
             return;
         }
