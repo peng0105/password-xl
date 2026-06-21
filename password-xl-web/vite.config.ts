@@ -37,6 +37,13 @@ export default defineConfig({
     ],
     build: {
         chunkSizeWarningLimit: 1500,
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: true,
+                drop_debugger: true,
+            },
+        },
         rollupOptions: {
             output: {
                 manualChunks(id) {
@@ -53,9 +60,5 @@ export default defineConfig({
                 }
             }
         }
-    },
-    // 屏蔽控制台
-    esbuild: {
-        drop: ['console', 'debugger'],
     }
 })

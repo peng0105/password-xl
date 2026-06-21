@@ -27,7 +27,8 @@ const enableRecycleBin = () => {
 }
 
 // 彻底删除密码
-const completelyDelete = (password: Password) => {
+const completelyDelete = (row: unknown) => {
+  const password = row as Password
   console.log('彻底删除密码：', password.id)
   passwordStore.passwordManager.completelyDeletePassword(password.id).then(resp => {
     if (resp.status) {
@@ -37,7 +38,8 @@ const completelyDelete = (password: Password) => {
 }
 
 // 还原密码
-const cancelDeletePassword = (password: Password) => {
+const cancelDeletePassword = (row: unknown) => {
+  const password = row as Password
   console.log('还原密码：', password.id)
   passwordStore.passwordManager.cancelDeletePassword(password.id)
 }

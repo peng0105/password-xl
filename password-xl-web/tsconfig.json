@@ -2,6 +2,7 @@
   "compilerOptions": {
     // 基础路径，相对于 tsconfig.json 文件所在的位置
     "baseUrl": "./",
+    "ignoreDeprecations": "6.0",
     "typeRoots": [
       "./node_modules/@types",
       "./types/types.ts"

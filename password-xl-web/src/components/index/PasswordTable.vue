@@ -11,7 +11,7 @@ import {
   getPasswordStrengthColor,
   getPasswordStrengthTip,
   isUrl,
-  sharePassword
+  sharePassword as sharePasswordUtil
 } from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
@@ -39,7 +39,8 @@ const showLongPassword = (password: any) => {
 }
 
 // 删除密码
-const deletePassword = (password: Password) => {
+const deletePassword = (row: unknown) => {
+  const password = row as Password
   console.log('table 删除密码：', password.id)
   // 询问确认删除吗？
   ElMessageBox.confirm(
@@ -64,7 +65,8 @@ const deletePassword = (password: Password) => {
 }
 
 // 收藏密码
-const favoritePassword = (password: Password) => {
+const favoritePassword = (row: unknown) => {
+  const password = row as Password
   if (password.favorite) {
     console.log('取消收藏密码')
     password.favorite = false
@@ -98,6 +100,18 @@ const tableRowStyle = (data: { row: any, rowIndex: number }): CSSProperties => {
   } else {
     return {'background-color': 'rgba(0,0,0,0)'};
   }
+}
+
+const getTablePasswordLabelNames = (password: unknown) => {
+  return getPasswordLabelNames(password as Password)
+}
+
+const sharePassword = (password: unknown) => {
+  sharePasswordUtil(password as Password)
+}
+
+const editPassword = (password: unknown) => {
+  refStore.passwordFormRef.editPasswordForm(password as Password)
 }
 
 
@@ -204,7 +218,7 @@ onMounted(() => {
                        sortable></el-table-column>
       <el-table-column v-if="settingStore.setting.showLabelForTable" label="标签" min-width="110px" prop="labels">
         <template #default="scope">
-          <el-tag v-for="label in getPasswordLabelNames(scope.row)" class="table-label">
+          <el-tag v-for="label in getTablePasswordLabelNames(scope.row)" class="table-label">
             {{ label.name }}
           </el-tag>
         </template>
@@ -219,7 +233,7 @@ onMounted(() => {
               </el-link>
             </el-tooltip>
             <el-tooltip content="修改" placement="top">
-              <el-link underline="never" type="primary" @click="refStore.passwordFormRef.editPasswordForm(scope.row)">
+              <el-link underline="never" type="primary" @click="editPassword(scope.row)">
                 <span class="iconfont icon-edit table-opt-icon"/>
               </el-link>
             </el-tooltip>

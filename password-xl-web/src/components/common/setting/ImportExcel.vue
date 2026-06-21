@@ -397,6 +397,10 @@ const importBtnDis = (): boolean => {
   return !selectedPasswords.length
 }
 
+const getImportPasswordLabelNames = (password: unknown) => {
+  return getPasswordLabelNames(password as Password, importLabels.value)
+}
+
 defineExpose({
   importExcel
 })
@@ -436,7 +440,7 @@ defineExpose({
       <el-table-column label="备注" min-width="100px" prop="remark"></el-table-column>
       <el-table-column label="标签" min-width="150px" prop="labels">
         <template #default="scope">
-          <el-tag v-for="label in getPasswordLabelNames(scope.row, importLabels)" class="table-label">
+          <el-tag v-for="label in getImportPasswordLabelNames(scope.row)" class="table-label">
             {{ label.name }}
           </el-tag>
         </template>
