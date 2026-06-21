@@ -28,18 +28,26 @@ export class DatabaseForLocal implements Database {
             multiple: false
         };
 
-        if (form.localFileType === 'open') {
-            let handle = await window.showOpenFilePicker(opts).catch(() => null)
-            if (!handle) {
+        try {
+            if (form.localFileType === 'open') {
+                let handle = await window.showOpenFilePicker(opts)
+                if (!handle) {
+                    return Promise.resolve({status: false});
+                }
+                this.fileHandle = handle[0];
+            } else if (form.localFileType === 'create') {
+                let handle = await window.showSaveFilePicker(opts)
+                if (!handle) {
+                    return Promise.resolve({status: false});
+                }
+                this.fileHandle = handle;
+            }
+        } catch (err: any) {
+            if (err?.name === 'AbortError') {
                 return Promise.resolve({status: false});
             }
-            this.fileHandle = handle[0];
-        } else if (form.localFileType === 'create') {
-            let handle = await window.showSaveFilePicker(opts).catch(() => null)
-            if (!handle) {
-                return Promise.resolve({status: false});
-            }
-            this.fileHandle = handle;
+            console.error('本地存储文件选择失败', err)
+            return Promise.resolve({status: false, message: '本地存储文件选择失败，请检查浏览器权限'});
         }
         console.log('本地存储初始化完成')
         return Promise.resolve({status: true});
@@ -66,7 +74,7 @@ export class DatabaseForLocal implements Database {
 
     // 获取笔记数据
     async getTreeNoteData(): Promise<string> {
-        throw new Error('因为浏览器规则限制，本地存储不支持此功能，请改用其他存储方式');
+        return Promise.resolve('');
     }
 
     // 设置笔记数据
@@ -99,15 +107,15 @@ export class DatabaseForLocal implements Database {
         console.log('local 保存密码数据')
         return new Promise(async (resolve) => {
             let writable = await this.fileHandle.createWritable();
-            writable.truncate(0)
+            await writable.truncate(0)
             let settingData = await this.getSettingData()
             let fileData = {
                 info: this.getFileInfo(),
                 storeData: text,
                 settingData: settingData,
             }
-            writable.write(JSON.stringify(fileData));
-            writable.close()
+            await writable.write(JSON.stringify(fileData));
+            await writable.close()
             resolve({status: true})
         })
     }
@@ -139,15 +147,15 @@ export class DatabaseForLocal implements Database {
         console.log('local 更新设置')
         return new Promise(async (resolve) => {
             let writable = await this.fileHandle.createWritable();
-            writable.truncate(0)
+            await writable.truncate(0)
             let storeData = await this.getStoreData().catch(() => '')
             let fileData = {
                 info: this.getFileInfo(),
                 storeData: storeData,
                 settingData: text,
             }
-            writable.write(JSON.stringify(fileData));
-            writable.close()
+            await writable.write(JSON.stringify(fileData));
+            await writable.close()
             resolve({status: true})
         })
     }

@@ -5,17 +5,40 @@ import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {RespData} from "@/types";
 import {useRouter} from "vue-router";
 import {browserFingerprint, checkPassword, decryptAES} from "@/utils/security.ts";
+import {useLoginStore} from "@/stores/LoginStore.ts";
 
 const passwordStore = usePasswordStore()
+const loginStore = useLoginStore()
 const router = useRouter()
+
+const getErrorMessage = (err: any) => {
+  if (!err) {
+    return '请检查存储文件是否正确'
+  }
+  if (typeof err === 'string') {
+    return err
+  }
+  if (typeof err.message === 'string') {
+    return err.message
+  }
+  return err.message?.message || '请检查存储文件是否正确'
+}
 
 const useLocalLogin = async (localFileType: string) => {
   console.log('local 登录：', localFileType)
   let database = new DatabaseForLocal();
-  await database.login({localFileType: localFileType})
+  let loginResp = await database.login({localFileType: localFileType})
+  if (!loginResp.status) {
+    if (loginResp.message) {
+      ElNotification.error({title: '登录失败', message: loginResp.message})
+    }
+    return
+  }
 
   // 初始化密码管理器
+  loginStore.logging = true
   passwordStore.passwordManager.login(database).then((resp: RespData) => {
+    loginStore.logging = false
     if (!resp.status) {
       console.log('local 登录 登录失败：', resp)
       ElNotification.error({title: '登录失败', message: resp.message})
@@ -36,7 +59,11 @@ const useLocalLogin = async (localFileType: string) => {
     }
     console.log('local 登录 跳转首页')
     router.push('/')
-  }).catch(() => null)
+  }).catch((err) => {
+    loginStore.logging = false
+    console.error('local 登录异常：', err)
+    ElNotification.error({title: '登录失败', message: getErrorMessage(err)})
+  })
 }
 
 // 是否支持本地存储
