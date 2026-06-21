@@ -1,6 +1,7 @@
 {
   "name": "password-xl",
   "private": true,
+  "packageManager": "yarn@4.16.0",
   "version": "1.4.3",
   "type": "module",
   "main": "electron/main.mjs",

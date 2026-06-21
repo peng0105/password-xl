@@ -25,7 +25,7 @@ jobs:
       - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
-          node-version: 20.19.x
+          node-version: 22.18.x
 
       - name: 缓存 yarn 模块
         uses: actions/cache@v3
@@ -34,14 +34,15 @@ jobs:
             ~/.yarn/cache
             ~/.yarn/unplugged
             ~/.cache/yarn
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('password-xl-web/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
       - name: 安装 yarn
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install
+        run: |
+          corepack enable
+          corepack prepare yarn@4.16.0 --activate
+          yarn --version
 
       - name: 安装依赖
         run: yarn install
@@ -165,7 +166,7 @@ jobs:
       - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
-          node-version: 20.19.x
+          node-version: 22.18.x
 
       - name: 缓存 yarn 模块
         uses: actions/cache@v3
@@ -174,14 +175,15 @@ jobs:
             ~/.yarn/cache
             ~/.yarn/unplugged
             ~/.cache/yarn
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('password-xl-web/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
       - name: 安装 yarn
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install
+        run: |
+          corepack enable
+          corepack prepare yarn@4.16.0 --activate
+          yarn --version
 
       - name: 安装依赖
         run: yarn install
@@ -212,7 +214,7 @@ jobs:
       - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
-          node-version: 20.19.x
+          node-version: 22.18.x
 
       - name: 缓存 yarn 模块
         uses: actions/cache@v3
@@ -221,14 +223,15 @@ jobs:
             ~/.yarn/cache
             ~/.yarn/unplugged
             ~/.cache/yarn
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('password-xl-web/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
       - name: 安装 yarn
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install
+        run: |
+          corepack enable
+          corepack prepare yarn@4.16.0 --activate
+          yarn --version
 
       - name: 安装依赖
         run: yarn install
@@ -261,7 +264,7 @@ jobs:
       - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
-          node-version: 20.19.x
+          node-version: 22.18.x
 
       - name: 缓存 yarn 模块
         uses: actions/cache@v3
@@ -270,14 +273,15 @@ jobs:
             ~/.yarn/cache
             ~/.yarn/unplugged
             ~/.cache/yarn
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('password-xl-web/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
       - name: 安装 yarn
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install
+        run: |
+          corepack enable
+          corepack prepare yarn@4.16.0 --activate
+          yarn --version
 
       - name: 安装依赖
         run: yarn install
