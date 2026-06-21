@@ -123,7 +123,7 @@ const startAnalysis = () => {
     })
   }).catch((err) => {
     step.value = 1
-    ElNotification.error(err)
+    ElNotification.error(err?.message || err)
   })
 }
 

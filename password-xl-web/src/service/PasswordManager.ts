@@ -17,7 +17,7 @@ import {checkPassword, decryptAES, encryptAES} from "@/utils/security.ts";
 import {compressArray, decompressionArray} from "@/utils/compress";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useLoginStore} from "@/stores/LoginStore.ts";
-import {useSettingStore} from "@/stores/SettingStore.ts";
+import {normalizeSetting, useSettingStore} from "@/stores/SettingStore.ts";
 import {randomPassword} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useNoteStore} from "@/stores/NoteStore.ts";
@@ -66,6 +66,7 @@ export class PasswordManagerImpl implements PasswordManager {
                 if (settingDataText) {
                     console.log('passwordManager 验证通过初始化设置信息');
                     Object.assign(this.settingStore.setting, JSON.parse(settingDataText));
+                    normalizeSetting(this.settingStore.setting);
                 }
 
                 if (noteTreeDataText) {
@@ -202,6 +203,17 @@ export class PasswordManagerImpl implements PasswordManager {
         // 防止修改失败备份密文
         let backStoreData = JSON.stringify(this.storeData);
         let backTreeNoteData = JSON.stringify(this.treeNoteData);
+        let backSettingData = JSON.stringify(this.settingStore.setting);
+
+        if (this.settingStore.setting.aiModel?.apiKey) {
+            const apiKey = decryptAES(mainPassword, this.settingStore.setting.aiModel.apiKey);
+            if (apiKey) {
+                this.settingStore.setting.aiModel.apiKey = encryptAES(newMainPassword, apiKey);
+            } else {
+                this.settingStore.setting.aiModel.apiKey = '';
+                ElNotification.warning({title: 'AI配置提示', message: 'AI模型API Key解密失败，已清空，请重新配置'});
+            }
+        }
 
         this.storeData = {
             passwordData: encryptAES(newMainPassword, JSON.stringify(compressArray(this.passwordStore.allPasswordArray))),
@@ -216,11 +228,13 @@ export class PasswordManagerImpl implements PasswordManager {
         // 修改密码文件
         let passwordResult = await this.databaseClient.setStoreData(JSON.stringify(this.storeData))
         let noteResult = await this.databaseClient.setNoteData(JSON.stringify(this.treeNoteData))
-        if (!passwordResult || !passwordResult.status || !noteResult || !noteResult.status) {
+        let settingResult = await this.syncSetting()
+        if (!passwordResult || !passwordResult.status || !noteResult || !noteResult.status || !settingResult || !settingResult.status) {
             // 修改失败-回退
             this.storeData = JSON.parse(backStoreData)
             this.treeNoteData = JSON.parse(backTreeNoteData)
-            ElNotification.error({title: '系统异常', message: passwordResult.message})
+            this.settingStore.setting = JSON.parse(backSettingData)
+            ElNotification.error({title: '系统异常', message: passwordResult?.message || noteResult?.message || settingResult?.message})
             return Promise.reject()
         }
 

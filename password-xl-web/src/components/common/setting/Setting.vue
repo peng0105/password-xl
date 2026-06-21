@@ -2,13 +2,14 @@
 <script lang="ts" setup>
 
 import {displaySize, supportAI} from "@/utils/global.ts";
-import {GenerateRule, Password, Sort, TopicMode} from "@/types";
+import {AiProvider, AiThinking, GenerateRule, Password, Sort, TopicMode} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
-import {browserFingerprint, encryptAES} from "@/utils/security.ts";
+import {browserFingerprint, decryptAES, encryptAES} from "@/utils/security.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useLoginStore} from "@/stores/LoginStore.ts";
 import {TabPaneName} from "element-plus";
+import {testAiModelApi} from "@/api/ai-model-api.ts";
 
 import packageJson from '../../../../package.json'
 
@@ -19,6 +20,9 @@ const refStore = useRefStore()
 
 // 是否已验证密码
 const authenticated = ref(false);
+const aiApiKeyInput = ref('')
+const aiModelSaving = ref(false)
+const aiModelTesting = ref(false)
 
 // 主题设置
 const topicMode: Ref<TopicMode> = ref(TopicMode.AUTO)
@@ -34,6 +38,7 @@ const openSetting = () => {
   }
   settingStore.visSetting = true
   authenticated.value = false
+  initAiApiKeyInput()
 }
 
 // 关闭设置
@@ -337,6 +342,79 @@ const isAndroid = () => {
   return !!window.androidAPI
 }
 
+const initAiApiKeyInput = () => {
+  aiApiKeyInput.value = ''
+  const apiKey = settingStore.setting.aiModel.apiKey
+  if (!apiKey || !passwordStore.mainPassword) {
+    return
+  }
+  try {
+    aiApiKeyInput.value = decryptAES(passwordStore.mainPassword, apiKey)
+  } catch (e) {
+    console.log('AI模型API Key解密失败', e)
+  }
+}
+
+const changeAiProvider = () => {
+  if (settingStore.setting.aiModel.provider === AiProvider.DEEPSEEK) {
+    settingStore.setting.aiModel.apiBaseUrl = 'https://api.deepseek.com'
+    settingStore.setting.aiModel.model = settingStore.setting.aiModel.model || 'deepseek-v4-flash'
+    settingStore.setting.aiModel.thinking = AiThinking.DISABLED
+  }
+}
+
+const saveAiModelSetting = async (showSuccess: boolean = true): Promise<boolean> => {
+  console.log('保存AI模型设置')
+  try {
+    aiModelSaving.value = true
+    const apiKey = aiApiKeyInput.value.trim()
+    if (settingStore.setting.aiModel.provider !== AiProvider.OFFICIAL) {
+      if (!passwordStore.mainPassword) {
+        ElMessage.warning('请先解锁密码本后再保存API Key')
+        return false
+      }
+      settingStore.setting.aiModel.apiKey = apiKey ? encryptAES(passwordStore.mainPassword, apiKey) : ''
+    }
+
+    const resp = await passwordStore.passwordManager.syncSetting()
+    if (!resp.status) {
+      ElNotification.error({title: '保存失败', message: resp.message || 'AI模型设置保存失败'})
+      return false
+    }
+    if (showSuccess) {
+      ElMessage.success('AI模型设置已保存')
+    }
+    return true
+  } catch (e: any) {
+    ElNotification.error({title: '保存失败', message: e?.message || String(e)})
+    return false
+  } finally {
+    aiModelSaving.value = false
+  }
+}
+
+const testAiModel = async () => {
+  if (settingStore.setting.aiModel.provider === AiProvider.OFFICIAL) {
+    ElMessage.info('官方服务无需配置API Key')
+    return
+  }
+
+  const saved = await saveAiModelSetting(false)
+  if (!saved) {
+    return
+  }
+
+  try {
+    aiModelTesting.value = true
+    await testAiModelApi()
+    ElNotification.success({title: '测试成功', message: 'AI模型配置可用'})
+  } catch (e: any) {
+    ElNotification.error({title: '测试失败', message: e?.message || String(e)})
+  } finally {
+    aiModelTesting.value = false
+  }
+}
+
 </script>
 
 <template>
@@ -514,6 +592,102 @@ const isAndroid = () => {
             </div>
             <el-alert :closable="false" show-icon title="若您需要更多密码显示空间，可以选择关闭标签和收藏卡片并在更多功能中使用。"
                       type="info"></el-alert>
+          </el-scrollbar>
+        </el-tab-pane>
+        <el-tab-pane>
+          <template #label>
+            <el-text>
+              <span class="iconfont icon-idea action-icon" style="color: #7C3AED"></span>
+              模型配置
+            </el-text>
+          </template>
+          <el-scrollbar :height="scrollbarHeight()">
+            <div class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">模型来源</el-text>
+                <el-select v-model="settingStore.setting.aiModel.provider" size="small" style="width: 150px;"
+                           @change="changeAiProvider">
+                  <el-option :value="AiProvider.OFFICIAL" label="官方服务"/>
+                  <el-option :value="AiProvider.DEEPSEEK" label="DeepSeek"/>
+                  <el-option :value="AiProvider.CUSTOM" label="自定义兼容"/>
+                </el-select>
+              </div>
+              <el-divider class="function-line"/>
+              <el-text style="text-indent: 10px" tag="p" type="info">
+                官方服务保持原有加密代理方式，DeepSeek和自定义兼容模式将由浏览器直接调用模型接口。
+              </el-text>
+            </div>
+
+            <div v-if="settingStore.setting.aiModel.provider === AiProvider.CUSTOM" class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">接口地址</el-text>
+                <el-input v-model="settingStore.setting.aiModel.apiBaseUrl" clearable size="small"
+                          style="width: 320px;" placeholder="https://api.example.com"></el-input>
+              </div>
+              <el-divider class="function-line"/>
+              <el-text style="text-indent: 10px" tag="p" type="info">
+                OpenAI兼容接口地址，系统会自动请求该地址下的 /chat/completions。
+              </el-text>
+            </div>
+
+            <div v-if="settingStore.setting.aiModel.provider === AiProvider.DEEPSEEK" class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">DeepSeek模型</el-text>
+                <el-select v-model="settingStore.setting.aiModel.model" size="small" style="width: 170px;">
+                  <el-option label="deepseek-v4-flash" value="deepseek-v4-flash"/>
+                  <el-option label="deepseek-v4-pro" value="deepseek-v4-pro"/>
+                </el-select>
+              </div>
+              <el-divider class="function-line"/>
+              <el-text style="text-indent: 10px" tag="p" type="info">
+                DeepSeek默认使用官方兼容接口 https://api.deepseek.com。
+              </el-text>
+            </div>
+
+            <div v-if="settingStore.setting.aiModel.provider === AiProvider.DEEPSEEK" class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">思考模式</el-text>
+                <el-select v-model="settingStore.setting.aiModel.thinking" size="small" style="width: 100px;">
+                  <el-option :value="AiThinking.DISABLED" label="关闭"/>
+                  <el-option :value="AiThinking.ENABLED" label="开启"/>
+                </el-select>
+              </div>
+              <el-divider class="function-line"/>
+              <el-text style="text-indent: 10px" tag="p" type="info">
+                密码解析默认关闭思考模式，便于模型只返回固定模板内容。
+              </el-text>
+            </div>
+
+            <div v-if="settingStore.setting.aiModel.provider === AiProvider.CUSTOM" class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">模型名称</el-text>
+              </div>
+              <el-input v-model="settingStore.setting.aiModel.model" clearable size="small"
+                        placeholder="请输入模型名称"></el-input>
+              <el-divider class="function-line"/>
+              <el-text style="text-indent: 10px" tag="p" type="info">
+                适用于支持 OpenAI Chat Completions 格式的常见模型服务。
+              </el-text>
+            </div>
+
+            <div v-if="settingStore.setting.aiModel.provider !== AiProvider.OFFICIAL" class="function-div">
+              <div class="function-header" style="margin-bottom: 5px">
+                <el-text tag="b">API Key</el-text>
+                <el-input v-model="aiApiKeyInput" placeholder="请输入API Key"
+                          size="small" style="width: 320px;" type="password"></el-input>
+              </div>
+              <el-divider class="function-line"/>
+              <el-text style="text-indent: 10px" tag="p" type="info">
+                API Key会使用当前主密码加密后保存，不会以明文写入设置文件。
+              </el-text>
+            </div>
+
+            <div class="function-div" style="display: flex;justify-content: end;gap: 10px;">
+              <el-button :loading="aiModelTesting"
+                         plain type="success" @click="testAiModel">测试连接</el-button>
+              <el-button :loading="aiModelSaving"
+                         type="primary" @click="saveAiModelSetting()">保存配置</el-button>
+            </div>
           </el-scrollbar>
         </el-tab-pane>
         <el-tab-pane>

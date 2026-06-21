@@ -61,6 +61,28 @@ export enum PasswordDisplayMode {
     TABLE
 }
 
+// AI模型供应商
+export enum AiProvider {
+    OFFICIAL = 'official',
+    DEEPSEEK = 'deepseek',
+    CUSTOM = 'custom',
+}
+
+// AI思考模式
+export enum AiThinking {
+    ENABLED = 'enabled',
+    DISABLED = 'disabled',
+}
+
+// AI模型设置
+export interface AiModelSetting {
+    provider: AiProvider,// AI模型供应商
+    apiBaseUrl: string,// OpenAI兼容接口地址
+    model: string,// 模型名称
+    apiKey: string,// 使用主密码加密后的API Key
+    thinking: AiThinking,// 思考模式
+}
+
 // 密码生成规则
 export interface GenerateRule {
     length: number,// 密码长度
@@ -96,6 +118,7 @@ export interface Setting {
     bgColors: Array<string>, // 背景色
     dynamicBackground: boolean, // 动态背景图
     passwordColor: boolean, // 密码颜色
+    aiModel: AiModelSetting, // AI模型配置
 }
 
 // 密码管理器

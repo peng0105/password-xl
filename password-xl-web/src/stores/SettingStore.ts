@@ -1,5 +1,25 @@
 import {defineStore} from "pinia";
-import {PasswordDisplayMode, Setting, Sort} from "@/types";
+import {AiProvider, AiThinking, PasswordDisplayMode, Setting, Sort} from "@/types";
+
+export const defaultAiModelSetting = () => ({
+    provider: AiProvider.OFFICIAL,
+    apiBaseUrl: 'https://api.deepseek.com',
+    model: 'deepseek-v4-flash',
+    apiKey: '',
+    thinking: AiThinking.DISABLED,
+})
+
+export const normalizeSetting = (setting: Setting) => {
+    setting.aiModel = {
+        ...defaultAiModelSetting(),
+        ...(setting.aiModel || {}),
+    }
+    if (setting.aiModel.provider === AiProvider.DEEPSEEK) {
+        setting.aiModel.apiBaseUrl = setting.aiModel.apiBaseUrl || 'https://api.deepseek.com'
+        setting.aiModel.model = setting.aiModel.model || 'deepseek-v4-flash'
+        setting.aiModel.thinking = setting.aiModel.thinking || AiThinking.DISABLED
+    }
+}
 
 export const useSettingStore = defineStore('settingStore', {
     state: (): { visSetting: boolean, setting: Setting } => {
@@ -68,6 +88,8 @@ export const useSettingStore = defineStore('settingStore', {
                 dynamicBackground: true,
                 // 密码颜色
                 passwordColor: false,
+                // AI模型配置
+                aiModel: defaultAiModelSetting(),
             }
         }
     }

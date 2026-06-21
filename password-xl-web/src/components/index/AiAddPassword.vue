@@ -2,8 +2,11 @@
 import {displaySize} from "@/utils/global.ts";
 import {extractPasswordApi} from "@/api/password-xl-api.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
+import {useSettingStore} from "@/stores/SettingStore.ts";
+import {AiProvider} from "@/types";
 
 const refStore = useRefStore()
+const settingStore = useSettingStore()
 
 const alertInfo = ref({
   vis: false,
@@ -27,7 +30,7 @@ const extractPassword = () => {
     alertInfo.value.text = ''
   }).catch((msg: any) => {
     alertInfo.value.loading = false
-    ElNotification.error({title: '系统异常', message: msg})
+    ElNotification.error({title: '系统异常', message: msg?.message || msg})
   })
 }
 
@@ -49,7 +52,11 @@ defineExpose({
         <el-input v-model="alertInfo.text" :rows="6" placeholder="请粘贴账号密码到这里" type="textarea"></el-input>
       </div>
       <el-text size="small" type="danger">
-        您的密码信息将在加密后传输至Ai大模型进行处理，密码信息不会以任何形式进行存储
+        {{
+          settingStore.setting.aiModel.provider === AiProvider.OFFICIAL
+              ? '您的密码信息将在加密后传输至Ai大模型进行处理，密码信息不会以任何形式进行存储'
+              : '您的密码信息将由浏览器直接发送至您配置的AI模型服务，请确认服务提供方可信'
+        }}
       </el-text>
     </div>
     <template #footer>
