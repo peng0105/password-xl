@@ -42,13 +42,20 @@ pipeline {
 
 set -euo pipefail
 
-echo "🏗️ 设置npm仓库..."
-yarn config set registry ${YARN_REGISTRY}
-
 cd ${MODULE_NAME}
 
+echo "🏗️ 设置 npm 仓库..."
+export COREPACK_NPM_REGISTRY="${YARN_REGISTRY%/}"
+export YARN_NPM_REGISTRY_SERVER="${YARN_REGISTRY}"
+
+echo "🧶 启用项目声明的 Yarn 版本..."
+corepack enable
+corepack prepare yarn@4.16.0 --activate
+yarn --version
+yarn config get npmRegistryServer
+
 echo "📦 安装依赖..."
-yarn install
+yarn install --immutable
 
 echo "🛠️ 构建前端静态资源..."
 yarn build
