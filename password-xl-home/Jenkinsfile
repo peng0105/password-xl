@@ -57,7 +57,11 @@ buildctl-daemonless.sh build \
         stage('Deploy to Kubernetes') {
             steps {
                 container('kubectl') {
-                    sh '''#!/bin/bash
+                    withCredentials([file(
+                        credentialsId: 'k8s-password-xl-deployer',
+                        variable: 'KUBECONFIG'
+                    )]) {
+                        sh '''#!/bin/bash
 
 set -euo pipefail
 
@@ -76,7 +80,8 @@ kubectl rollout status deployment/${MODULE_NAME} -n ${PROJECT_NAME} --timeout=60
 
 echo "✅ 部署完成"
 
-                    '''
+                        '''
+                    }
                 }
             }
         }
