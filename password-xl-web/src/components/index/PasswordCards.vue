@@ -401,22 +401,42 @@ onBeforeUnmount(() => {
                     <el-empty v-else :image-size="50" description="暂无标签"/>
                   </el-scrollbar>
                 </el-popover>
-                <el-tooltip content="删除" placement="top">
-                  <el-button plain size="small" type="danger" @click="deletePassword(password)">
-                    <span class="iconfont icon-delete card-opt-icon"/>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="修改" placement="top">
-                  <el-button plain size="small" type="primary"
-                             @click="refStore.passwordFormRef.editPasswordForm(password)">
-                    <span class="iconfont icon-edit card-opt-icon" style="font-size: 145%;" />
-                  </el-button>
-                </el-tooltip>
                 <el-tooltip content="分享" placement="top">
                   <el-button plain size="small" type="success" @click="sharePassword(password)">
                     <span class="iconfont icon-share card-opt-icon"/>
                   </el-button>
                 </el-tooltip>
+                <el-dropdown
+                    class="card-more-dropdown"
+                    placement="top-end"
+                    popper-class="password-card-more-popper"
+                    trigger="click"
+                    @click.stop
+                    @dblclick.stop
+                >
+                  <el-button
+                      aria-label="更多"
+                      plain
+                      size="small"
+                      title="更多"
+                      @click.stop
+                      @dblclick.stop
+                  >
+                    <span class="iconfont icon-more card-opt-icon"/>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu class="password-card-more-menu">
+                      <el-dropdown-item @click.stop="refStore.passwordFormRef.editPasswordForm(password)">
+                        <span class="iconfont icon-edit card-more-item-icon card-more-edit-icon"/>
+                        编辑
+                      </el-dropdown-item>
+                      <el-dropdown-item @click.stop="deletePassword(password)">
+                        <span class="iconfont icon-delete card-more-item-icon card-more-delete-icon"/>
+                        删除
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
               </div>
             </div>
           </template>
@@ -527,6 +547,11 @@ onBeforeUnmount(() => {
   font-size: 150%;
 }
 
+.card-more-dropdown {
+  margin-left: 12px;
+  vertical-align: middle;
+}
+
 .empty-card {
   display: flex;
   height: 100%;
@@ -540,5 +565,37 @@ onBeforeUnmount(() => {
 :deep(.password-card .el-card__header) {
   padding: 0;
   border-bottom: 0
+}
+</style>
+
+<style>
+.password-card-more-popper.el-popper {
+  border-radius: 6px;
+}
+
+.password-card-more-popper .el-dropdown-menu {
+  min-width: 120px;
+  padding: 6px 0;
+}
+
+.password-card-more-popper .el-dropdown-menu__item {
+  min-height: 42px;
+  padding: 0 18px;
+  font-size: 15px;
+}
+
+.password-card-more-popper .card-more-item-icon {
+  width: 20px;
+  margin-right: 10px;
+  font-size: 130%;
+  text-align: center;
+}
+
+.password-card-more-popper .card-more-edit-icon {
+  color: #409eff;
+}
+
+.password-card-more-popper .card-more-delete-icon {
+  color: #f56c6c;
 }
 </style>

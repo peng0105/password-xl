@@ -182,7 +182,7 @@ const aiAddPassword = () => {
           class="search-input"
           popper-class="header-autocomplete-suggestion"
           clearable
-          placeholder="搜索.."
+          placeholder="搜索.. Ctrl + F"
 
           @blur="inputIng = false;saveSearchLog()"
           @change="filterPassword('change')"
