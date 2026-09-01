@@ -1,4 +1,4 @@
-import {createRouter, createWebHashHistory} from 'vue-router'
+import {createRouter, createWebHistory} from 'vue-router'
 
 import routes from './routes'
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
@@ -6,11 +6,16 @@ import {ServiceStatus} from "@/types";
 import {useLoginStore} from "@/stores/LoginStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 
+// 兼容旧 Hash 路由链接，并在创建 Router 前迁移到 History 路径
+if (location.hash.startsWith('#/')) {
+    window.history.replaceState(null, '', location.hash.slice(1))
+}
+
 const loginStatus = [ServiceStatus.LOGGED, ServiceStatus.WAIT_INIT, ServiceStatus.UNLOCKED]
 
 // 路由参数配置
 const router = createRouter({
-    history: createWebHashHistory(),
+    history: createWebHistory(),
     routes: routes,
 })
 
