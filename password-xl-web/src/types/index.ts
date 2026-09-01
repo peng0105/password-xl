@@ -162,6 +162,12 @@ export interface PasswordManager {
     // 删除密码
     deletePassword(id: number): Promise<RespData>,
 
+    // 批量删除密码
+    batchDeletePasswords(ids: number[]): Promise<RespData>,
+
+    // 批量添加密码标签
+    batchAddPasswordLabels(passwordIds: number[], labelIds: number[]): Promise<RespData>,
+
     // 彻底删除密码
     completelyDeletePassword(id: number): Promise<RespData>,
 
@@ -286,6 +292,10 @@ export interface PasswordStore {
     },
     // 隐私模式下是否已临时显示全部密码（仅保存在内存中）
     privacyModeRevealed: boolean,
+    // 是否处于批量操作模式（仅保存在内存中）
+    batchOperationEnabled: boolean,
+    // 批量操作选中的密码ID（仅保存在内存中）
+    batchSelectedPasswordIds: number[],
     // 密码列表筛选条件
     filterCondition: {
         // 文字搜索

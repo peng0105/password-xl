@@ -281,6 +281,100 @@ export class PasswordManagerImpl implements PasswordManager {
         return Promise.reject('没有找到这个密码：' + password.id)
     }
 
+    // 批量操作失败时恢复内存中的密码数据和原始密码文件
+    private async syncBatchPasswordChange(passwordSnapshot: Password[], storeDataSnapshot: StoreData | null): Promise<RespData> {
+        try {
+            const resp = await this.syncStoreData()
+            if (!resp.status) {
+                this.passwordStore.allPasswordArray = passwordSnapshot
+                this.storeData = storeDataSnapshot
+            }
+            return resp
+        } catch (error) {
+            this.passwordStore.allPasswordArray = passwordSnapshot
+            this.storeData = storeDataSnapshot
+            throw error
+        }
+    }
+
+    // 批量删除密码
+    async batchDeletePasswords(ids: number[]): Promise<RespData> {
+        console.log('passwordManager 批量删除密码：', ids)
+        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+
+        const passwordIds = new Set(ids)
+        const passwords = this.passwordStore.allPasswordArray.filter(password =>
+            passwordIds.has(password.id) && password.status === PasswordStatus.NORMAL
+        )
+        if (!passwords.length) {
+            return {status: true, message: '没有需要删除的密码'}
+        }
+
+        const passwordSnapshot = JSON.parse(JSON.stringify(this.passwordStore.allPasswordArray)) as Password[]
+        const storeDataSnapshot = this.storeData ? {...this.storeData} : null
+        if (this.settingStore.setting.enableRecycleBin) {
+            const deleteTime = Date.now()
+            passwords.forEach(password => {
+                password.deleteTime = deleteTime
+                password.status = PasswordStatus.DELETED
+            })
+        } else {
+            this.passwordStore.allPasswordArray = this.passwordStore.allPasswordArray.filter(password => !passwordIds.has(password.id))
+        }
+
+        return this.syncBatchPasswordChange(passwordSnapshot, storeDataSnapshot)
+    }
+
+    // 批量添加密码标签
+    async batchAddPasswordLabels(passwordIds: number[], labelIds: number[]): Promise<RespData> {
+        console.log('passwordManager 批量添加密码标签：', passwordIds, labelIds)
+        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+
+        const availableLabelIds = new Set<number>()
+        const collectLabelIds = (labels: Label[]) => {
+            labels.forEach(label => {
+                availableLabelIds.add(label.id)
+                collectLabelIds(label.children)
+            })
+        }
+        collectLabelIds(this.passwordStore.labelArray)
+
+        const validLabelIds = Array.from(new Set(labelIds.filter(id => availableLabelIds.has(id))))
+        if (!validLabelIds.length) {
+            return {status: true, message: '没有需要添加的标签'}
+        }
+
+        const passwordIdSet = new Set(passwordIds)
+        const passwordSnapshot = JSON.parse(JSON.stringify(this.passwordStore.allPasswordArray)) as Password[]
+        const storeDataSnapshot = this.storeData ? {...this.storeData} : null
+        const updateTime = Date.now()
+        let updatedPasswordCount = 0
+
+        this.passwordStore.allPasswordArray.forEach(password => {
+            if (!passwordIdSet.has(password.id) || password.status !== PasswordStatus.NORMAL) {
+                return
+            }
+            const passwordLabelIds = new Set(password.labels)
+            const originalLabelCount = passwordLabelIds.size
+            validLabelIds.forEach(labelId => passwordLabelIds.add(labelId))
+            if (passwordLabelIds.size > originalLabelCount) {
+                password.labels = Array.from(passwordLabelIds)
+                password.updateTime = updateTime
+                updatedPasswordCount++
+            }
+        })
+
+        if (!updatedPasswordCount) {
+            return {status: true, message: '所选标签已存在，无需重复添加'}
+        }
+
+        const resp = await this.syncBatchPasswordChange(passwordSnapshot, storeDataSnapshot)
+        if (resp.status) {
+            resp.message = `已为${updatedPasswordCount}个密码添加标签`
+        }
+        return resp
+    }
+
     // 删除密码（移动到回收站）
     deletePassword(id: number): Promise<RespData> {
         console.log('passwordManager 删除密码：', id);

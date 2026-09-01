@@ -38,6 +38,10 @@ export const usePasswordStore = defineStore('passwordStore', {
             },
             // 隐私模式下是否已临时显示全部密码（页面刷新或密码本锁定后复位）
             privacyModeRevealed: false,
+            // 是否处于批量操作模式（页面刷新或密码本锁定后复位）
+            batchOperationEnabled: false,
+            // 批量操作选中的密码ID
+            batchSelectedPasswordIds: [],
             // 密码列表筛选条件
             filterCondition: {
                 // 文字搜索
@@ -177,6 +181,11 @@ export const usePasswordStore = defineStore('passwordStore', {
             console.log('显示的密码列表数量：', array.length)
             return array
         },
+        // 当前筛选结果中已选中的密码数量
+        batchSelectedPasswordCount(): number {
+            const visiblePasswordIds = new Set(this.visPasswordArray.map(password => password.id))
+            return this.batchSelectedPasswordIds.filter(id => visiblePasswordIds.has(id)).length
+        },
         // 深色模式
         isDark(): boolean {
             return this.topicMode === TopicMode.DARK
@@ -186,7 +195,48 @@ export const usePasswordStore = defineStore('passwordStore', {
         // 设置服务状态
         setServiceStatus(serviceStatus: ServiceStatus) {
             console.log('服务状态变更为：', serviceStatus)
+            if (serviceStatus !== ServiceStatus.UNLOCKED) {
+                this.exitBatchOperation()
+            }
             this.serviceStatus = serviceStatus
+        },
+        // 进入批量操作模式
+        enterBatchOperation() {
+            if (this.serviceStatus !== ServiceStatus.UNLOCKED || this.privacyPlaceholderVisible || !this.visPasswordArray.length) {
+                return
+            }
+            this.batchSelectedPasswordIds = []
+            this.batchOperationEnabled = true
+        },
+        // 退出批量操作模式
+        exitBatchOperation() {
+            this.batchSelectedPasswordIds = []
+            this.batchOperationEnabled = false
+        },
+        // 设置批量选中的密码
+        setBatchSelectedPasswordIds(ids: number[]) {
+            const visiblePasswordIds = new Set(this.visPasswordArray.map(password => password.id))
+            this.batchSelectedPasswordIds = Array.from(new Set(ids.filter(id => visiblePasswordIds.has(id))))
+        },
+        // 切换单个密码的批量选择状态
+        toggleBatchPasswordSelection(id: number, selected: boolean) {
+            const selectedPasswordIds = new Set(this.batchSelectedPasswordIds)
+            if (selected) {
+                if (this.visPasswordArray.some(password => password.id === id)) {
+                    selectedPasswordIds.add(id)
+                }
+            } else {
+                selectedPasswordIds.delete(id)
+            }
+            this.batchSelectedPasswordIds = Array.from(selectedPasswordIds)
+        },
+        // 全选当前筛选结果
+        selectAllVisiblePasswords() {
+            this.batchSelectedPasswordIds = this.visPasswordArray.map(password => password.id)
+        },
+        // 取消批量选择
+        clearBatchPasswordSelection() {
+            this.batchSelectedPasswordIds = []
         },
         // 隐私模式下临时显示全部密码
         showAllPasswords() {

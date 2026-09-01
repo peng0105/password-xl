@@ -33,6 +33,26 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
   settingStore.setting.passwordDisplayMode = PasswordDisplayMode.CARD
 }
 
+// 筛选范围或展示视图变化后退出批量操作，避免操作到当前不可见的密码
+watch(
+    () => [
+      passwordStore.filterCondition.searchText,
+      passwordStore.filterCondition.labelArray.join(','),
+      passwordStore.filterCondition.favoriteId,
+    ],
+    () => {
+      if (passwordStore.batchOperationEnabled) {
+        passwordStore.exitBatchOperation()
+      }
+    },
+)
+
+watch(() => settingStore.setting.passwordDisplayMode, () => {
+  if (passwordStore.batchOperationEnabled) {
+    passwordStore.exitBatchOperation()
+  }
+})
+
 
 </script>
 
@@ -96,7 +116,7 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
       <!-- 密码表 -->
       <PasswordTable v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"></PasswordTable>
       <!-- 密码卡片 -->
-      <div :style="{height: 'calc(100vh - 60px)'}">
+      <div :style="{height: passwordStore.batchOperationEnabled ? 'calc(100vh - 102px)' : 'calc(100vh - 60px)'}">
         <PasswordCards v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"></PasswordCards>
       </div>
     </template>

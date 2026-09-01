@@ -51,7 +51,41 @@ const cardDoubleClickIgnoreSelector = [
   '.copy-username'
 ].join(',')
 
+// 批量模式下，操作控件保持原行为，其余卡片区域均可切换选择状态
+const cardBatchSelectionIgnoreSelector = [
+  'a',
+  'button',
+  'input',
+  'textarea',
+  'select',
+  'label',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[role="button"]',
+  '[role="link"]',
+  '[role="textbox"]',
+  '.card-opt-icon',
+  '.password-card-icon',
+  '.copy-username'
+].join(',')
+
+const handleCardClick = (event: MouseEvent, password: Password) => {
+  if (!passwordStore.batchOperationEnabled || event.detail > 1) {
+    return
+  }
+  const target = event.target
+  if (!(target instanceof Element) || target.closest(cardBatchSelectionIgnoreSelector)) {
+    return
+  }
+  passwordStore.toggleBatchPasswordSelection(
+      password.id,
+      !passwordStore.batchSelectedPasswordIds.includes(password.id),
+  )
+}
+
 const handleCardDoubleClick = (event: MouseEvent, password: Password) => {
+  if (passwordStore.batchOperationEnabled) {
+    return
+  }
   const target = event.target
   if (!(target instanceof Element) || target.closest(cardDoubleClickIgnoreSelector)) {
     return
@@ -262,11 +296,29 @@ onBeforeUnmount(() => {
         v-if="passwordStore.visPasswordArray.length"
         :style="{'grid-template-columns':'repeat('+getRowCount()+', 1fr)'}"
         style="display: grid;padding: 6px;">
-      <div v-for="password in getPagePasswordArray()" @dblclick="handleCardDoubleClick($event, password)">
-        <el-card :style="getBackStyle()" body-style="height: 100%;" class="password-card">
+      <div
+          v-for="password in getPagePasswordArray()"
+          @click="handleCardClick($event, password)"
+          @dblclick="handleCardDoubleClick($event, password)"
+      >
+        <el-card
+            :class="{'is-batch-operation': passwordStore.batchOperationEnabled}"
+            :style="getBackStyle()"
+            body-style="height: 100%;"
+            class="password-card"
+        >
           <template #header>
             <div :style="cardStyle(password)" class="password-header-div">
               <div>
+                <el-checkbox
+                    v-if="passwordStore.batchOperationEnabled"
+                    :model-value="passwordStore.batchSelectedPasswordIds.includes(password.id)"
+                    aria-label="选择密码"
+                    class="batch-card-checkbox"
+                    @change="passwordStore.toggleBatchPasswordSelection(password.id, Boolean($event))"
+                    @click.stop
+                    @dblclick.stop
+                />
                 <el-tooltip v-if="settingStore.setting.showStrength && password.password"
                             :content="getPasswordStrengthTip(password.password)" placement="top">
                   <div
@@ -549,6 +601,18 @@ onBeforeUnmount(() => {
 
 .card-opt-icon.icon-delete {
   font-size: 150%;
+}
+
+.password-card.is-batch-operation {
+  cursor: pointer;
+}
+
+.batch-card-checkbox {
+  --el-checkbox-input-height: 18px;
+  --el-checkbox-input-width: 18px;
+  float: left;
+  height: 28px;
+  margin-right: 10px;
 }
 
 .card-more-dropdown {

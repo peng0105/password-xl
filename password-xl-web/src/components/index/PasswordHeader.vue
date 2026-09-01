@@ -7,6 +7,7 @@ import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useRouter} from "vue-router";
 import {ArrowDown, ArrowRight, ArrowUp, Sort as SortIcon} from "@element-plus/icons-vue";
+import BatchOperationToolbar from "@/components/index/BatchOperationToolbar.vue";
 
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
@@ -178,6 +179,22 @@ const switchTopicMode = (topicMode: TopicMode) => {
   passwordStore.setTopicMode(topicMode)
 }
 
+// 切换密码展示方式
+const switchDisplayMode = (displayMode: PasswordDisplayMode) => {
+  passwordStore.exitBatchOperation()
+  settingStore.setting.passwordDisplayMode = displayMode
+  passwordStore.passwordManager.syncSetting()
+}
+
+// 切换批量操作模式
+const toggleBatchOperation = () => {
+  if (passwordStore.batchOperationEnabled) {
+    passwordStore.exitBatchOperation()
+  } else {
+    passwordStore.enterBatchOperation()
+  }
+}
+
 // 打开回收站
 const openRecycleBin = () => {
   refStore.recycleBinRef.openRecycleBin()
@@ -264,7 +281,11 @@ const aiAddPassword = () => {
         </template>
       </el-autocomplete>
     </div>
-    <div style="display: flex;">
+    <div class="header-operation-area">
+      <div v-if="passwordStore.batchOperationEnabled" class="batch-operation-toolbar-wrapper">
+        <BatchOperationToolbar/>
+      </div>
+      <div class="standard-operation-toolbar">
       <el-button
           v-if="settingStore.setting.enableAiAdd && supportAI()"
           :ref="(el: any) => refStore.aiCreatePasswordBtnRef = el"
@@ -323,21 +344,6 @@ const aiAddPassword = () => {
               <span class="iconfont icon-collect menu-item" style="color: #FF9700"></span>
               收藏
             </el-dropdown-item>
-            <el-dropdown-item
-                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"
-                :divided="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showFavoriteCard || !settingStore.setting.showLabelCard"
-                @click="settingStore.setting.passwordDisplayMode = PasswordDisplayMode.CARD"
-            >
-              <span class="iconfont icon-card menu-item" style="color: #67c23a"></span>
-              卡片视图
-            </el-dropdown-item>
-            <el-dropdown-item
-                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"
-                @click="settingStore.setting.passwordDisplayMode = PasswordDisplayMode.TABLE"
-            >
-              <span class="iconfont icon-list menu-item" style="color: #409eff"></span>
-              列表视图
-            </el-dropdown-item>
             <el-popover
                 v-model:visible="sortPopoverVisible"
                 :hide-after="100"
@@ -387,6 +393,30 @@ const aiAddPassword = () => {
               </div>
             </el-popover>
             <el-dropdown-item
+                :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED
+                || (!passwordStore.batchOperationEnabled
+                && (passwordStore.privacyPlaceholderVisible || !passwordStore.visPasswordArray.length))"
+                @click="toggleBatchOperation"
+            >
+              <span class="iconfont icon-check-mark menu-item" style="color: #409EFF"></span>
+              {{ passwordStore.batchOperationEnabled ? '退出批量操作' : '批量操作' }}
+            </el-dropdown-item>
+            <el-dropdown-item
+                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"
+                :divided="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showFavoriteCard || !settingStore.setting.showLabelCard"
+                @click="switchDisplayMode(PasswordDisplayMode.CARD)"
+            >
+              <span class="iconfont icon-card menu-item" style="color: #67c23a"></span>
+              卡片视图
+            </el-dropdown-item>
+            <el-dropdown-item
+                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"
+                @click="switchDisplayMode(PasswordDisplayMode.TABLE)"
+            >
+              <span class="iconfont icon-list menu-item" style="color: #409eff"></span>
+              列表视图
+            </el-dropdown-item>
+            <el-dropdown-item
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
                 divided
                 @click="toNote">
@@ -428,6 +458,7 @@ const aiAddPassword = () => {
           </el-dropdown-menu>
         </template>
       </el-dropdown>
+      </div>
     </div>
   </div>
   <el-divider class="password-head-body-line"></el-divider>
@@ -473,6 +504,17 @@ const aiAddPassword = () => {
   display: flex;
   padding: 13px;
   justify-content: space-between;
+}
+
+.header-operation-area,
+.standard-operation-toolbar {
+  display: flex;
+  align-items: center;
+}
+
+.batch-operation-toolbar-wrapper {
+  display: flex;
+  margin-right: 10px;
 }
 
 .password-title {
@@ -538,6 +580,27 @@ const aiAddPassword = () => {
 .password-head-body-line {
   margin-top: 0;
   margin-bottom: 0;
+}
+
+@media only screen and (max-width: 991px) {
+  .password-card-header {
+    flex-wrap: wrap;
+  }
+
+  .header-operation-area {
+    display: contents;
+  }
+
+  .standard-operation-toolbar {
+    order: 0;
+  }
+
+  .batch-operation-toolbar-wrapper {
+    order: 10;
+    flex: 0 0 100%;
+    margin-top: 10px;
+    margin-right: 0;
+  }
 }
 
 </style>

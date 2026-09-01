@@ -19,8 +19,10 @@ app.use(router)
 app.use(pinia)
 app.mount('#app')
 
-axios.get(config.apiServer + '/getVersion', { withCredentials: true }).then((res) => {
-    console.log('v' + res.data.data)
-}).catch((err) => {
-    console.error('获取版本失败', err)
-})
+setTimeout(() => {
+    axios.get(config.apiServer + '/getVersion', {withCredentials: true}).then((res) => {
+        console.log('最新版本为：v' + res.data.data)
+    }).catch((err) => {
+        console.error('获取版本失败', err)
+    })
+}, 2000)

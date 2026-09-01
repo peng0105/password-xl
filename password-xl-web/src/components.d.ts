@@ -16,6 +16,8 @@ declare module 'vue' {
     AiImport: typeof import('./components/common/setting/AiImport.vue')['default']
     AndroidLoginForm: typeof import('./components/login/AndroidLoginForm.vue')['default']
     BackupAndRecovery: typeof import('./components/common/setting/BackupAndRecovery.vue')['default']
+    BatchAddLabelDialog: typeof import('./components/index/BatchAddLabelDialog.vue')['default']
+    BatchOperationToolbar: typeof import('./components/index/BatchOperationToolbar.vue')['default']
     CancelAccount: typeof import('./components/common/setting/CancelAccount.vue')['default']
     CommonProblem: typeof import('./components/common/setting/CommonProblem.vue')['default']
     Contextmenu: typeof import('./components/index/Contextmenu.vue')['default']

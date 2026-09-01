@@ -121,6 +121,36 @@ const getPagePasswordArray = () => {
   return passwordStore.visPasswordArray.slice(0, pageIndex.value * pageSize.value)
 }
 
+// 将批量选择状态同步到当前已渲染的表格行
+const syncVisibleTableSelection = async () => {
+  if (!passwordStore.batchOperationEnabled || !passwordTableRef.value) {
+    return
+  }
+  await nextTick()
+  const selectedPasswordIds = new Set(passwordStore.batchSelectedPasswordIds)
+  getPagePasswordArray().forEach(password => {
+    passwordTableRef.value?.toggleRowSelection(password, selectedPasswordIds.has(password.id))
+  })
+}
+
+// 表格单行选择
+const selectTableRow = (selection: Password[], row: Password) => {
+  passwordStore.toggleBatchPasswordSelection(
+      row.id,
+      selection.some(password => password.id === row.id),
+  )
+}
+
+// 表格原生表头全选/取消全选，范围扩展为完整筛选结果
+const selectAllTableRows = (selection: Password[]) => {
+  if (selection.length) {
+    passwordStore.selectAllVisiblePasswords()
+  } else {
+    passwordStore.clearBatchPasswordSelection()
+  }
+  syncVisibleTableSelection()
+}
+
 // 默认排序变化后，清除表头的临时排序并回到列表顶部
 watch(
     [() => settingStore.setting.sortField, () => settingStore.setting.sortOrder],
@@ -156,12 +186,23 @@ const listenerScroll = () => {
 onMounted(() => {
   scrollLoad()
   listenerScroll()
+  syncVisibleTableSelection()
 })
 
 onBeforeUnmount(() => {
   const scrollbarWrap = passwordTableRef.value?.$el.querySelector(".el-scrollbar__wrap");
   scrollbarWrap?.removeEventListener("scroll", scrollLoad);
 })
+
+watch(
+    [
+      () => passwordStore.batchOperationEnabled,
+      () => passwordStore.batchSelectedPasswordIds.join(','),
+      () => getPagePasswordArray().length,
+    ],
+    syncVisibleTableSelection,
+    {flush: 'post'},
+)
 
 </script>
 
@@ -175,8 +216,17 @@ onBeforeUnmount(() => {
         :header-row-style="{'background-color':'rgba(0,0,0,0)'}"
         :row-style="tableRowStyle"
         height="calc(100vh - 120px)"
+        row-key="id"
         style="background-color: rgba(0,0,0,0);"
+        @select="selectTableRow"
+        @select-all="selectAllTableRows"
     >
+      <el-table-column
+          v-if="passwordStore.batchOperationEnabled"
+          :reserve-selection="true"
+          type="selection"
+          width="46px"
+      />
       <el-table-column v-if="settingStore.setting.showStrength" :sort-method="strengthSort" prop="strength" sortable
                        width="30px">
         <template #default="scope">
@@ -310,6 +360,15 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   width: 13px;
   height: 13px;
+}
+
+:deep(.el-table-column--selection .el-checkbox) {
+  --el-checkbox-input-height: 18px;
+  --el-checkbox-input-width: 18px;
+}
+
+:deep(.el-table-column--selection .el-checkbox__input.is-indeterminate .el-checkbox__inner::before) {
+  top: 7px;
 }
 
 .copy-username {
