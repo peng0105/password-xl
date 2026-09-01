@@ -26,6 +26,34 @@ const passwordCardScrollbar = ref()
 
 const fieldShows: Ref<Record<string, boolean>> = ref({})
 
+// 双击文字或操作控件时保留浏览器默认行为，仅双击卡片空白区域进入编辑模式
+const cardDoubleClickIgnoreSelector = [
+  '.el-text',
+  '.el-link',
+  '.el-tag',
+  'a',
+  'button',
+  'input',
+  'textarea',
+  'select',
+  'label',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[role="button"]',
+  '[role="link"]',
+  '[role="textbox"]',
+  '.card-opt-icon',
+  '.password-card-icon',
+  '.copy-username'
+].join(',')
+
+const handleCardDoubleClick = (event: MouseEvent, password: Password) => {
+  const target = event.target
+  if (!(target instanceof Element) || target.closest(cardDoubleClickIgnoreSelector)) {
+    return
+  }
+  refStore.passwordFormRef.editPasswordForm(password)
+}
+
 // 密码标签树Ref
 const passwordLabelTreeRefs: Record<number, any> = {}
 // 标签编辑草稿
@@ -229,7 +257,7 @@ onBeforeUnmount(() => {
         v-if="passwordStore.visPasswordArray.length"
         :style="{'grid-template-columns':'repeat('+getRowCount()+', 1fr)'}"
         style="display: grid;padding: 6px;">
-      <div v-for="password in getPagePasswordArray()" @dblclick="refStore.passwordFormRef.editPasswordForm(password)">
+      <div v-for="password in getPagePasswordArray()" @dblclick="handleCardDoubleClick($event, password)">
         <el-card :style="getBackStyle()" body-style="height: 100%;" class="password-card">
           <template #header>
             <div :style="cardStyle(password)" class="password-header-div">
@@ -284,8 +312,7 @@ onBeforeUnmount(() => {
               <el-text class="password-field-name">用户名:</el-text>
               <el-text class="password-field-value">
                 <div class="card-username-div">
-                  {{ password.username }}
-                  <el-tooltip :hide-after="0" :show-after="300" content="复制用户名" placement="top">
+                  <span>{{ password.username }}</span><el-tooltip :hide-after="0" :show-after="300" content="复制用户名" placement="top">
                     <span class="iconfont icon-copy password-row-icon copy-username"
                           @click="copyText(password.username)"></span>
                   </el-tooltip>
