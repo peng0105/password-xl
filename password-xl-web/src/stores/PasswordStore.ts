@@ -36,6 +36,8 @@ export const usePasswordStore = defineStore('passwordStore', {
                 timeout: null,
                 content: ''
             },
+            // 隐私模式下是否已临时显示全部密码（页面刷新或密码本锁定后复位）
+            privacyModeRevealed: false,
             // 密码列表筛选条件
             filterCondition: {
                 // 文字搜索
@@ -109,6 +111,21 @@ export const usePasswordStore = defineStore('passwordStore', {
             console.log('收藏的密码列表数量：', array.length)
             return array
         },
+        // 是否存在密码筛选条件
+        hasActiveFilter(): boolean {
+            return this.filterCondition.searchText.trim().length > 0
+                || this.filterCondition.labelArray.length > 0
+                || this.filterCondition.favoriteId !== 0
+        },
+        // 是否显示隐私模式占位内容
+        privacyPlaceholderVisible(): boolean {
+            const settingStore = useSettingStore()
+            return settingStore.setting.enablePrivacyMode
+                && this.serviceStatus === ServiceStatus.UNLOCKED
+                && this.passwordArray.length > 0
+                && !this.hasActiveFilter
+                && !this.privacyModeRevealed
+        },
         // 显示的密码列表
         visPasswordArray(): Array<Password> {
             console.log('获取显示的密码列表')
@@ -171,9 +188,18 @@ export const usePasswordStore = defineStore('passwordStore', {
             console.log('服务状态变更为：', serviceStatus)
             this.serviceStatus = serviceStatus
         },
+        // 隐私模式下临时显示全部密码
+        showAllPasswords() {
+            this.privacyModeRevealed = true
+        },
+        // 恢复隐私模式隐藏状态
+        resetPrivacyMode() {
+            this.privacyModeRevealed = false
+        },
         // 退出登录
         logout() {
             console.log('退出登录')
+            this.resetPrivacyMode()
             sessionStorage.removeItem('loginForm')
             localStorage.removeItem('loginInfo')
             localStorage.removeItem('mainPassword')

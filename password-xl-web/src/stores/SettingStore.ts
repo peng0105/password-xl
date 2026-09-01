@@ -10,6 +10,7 @@ export const defaultAiModelSetting = () => ({
 })
 
 export const normalizeSetting = (setting: Setting) => {
+    setting.enablePrivacyMode = setting.enablePrivacyMode ?? false
     setting.aiModel = {
         ...defaultAiModelSetting(),
         ...(setting.aiModel || {}),
@@ -70,6 +71,8 @@ export const useSettingStore = defineStore('settingStore', {
                 autoLogin: true,
                 // 记住主密码
                 autoUnlock: false,
+                // 启用密码列表隐私模式
+                enablePrivacyMode: false,
                 // 显示密码统计
                 showPasswordStatistics: false,
                 // 显示笔记功能

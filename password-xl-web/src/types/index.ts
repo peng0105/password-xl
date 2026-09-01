@@ -113,6 +113,7 @@ export interface Setting {
     passwordDisplayMode: PasswordDisplayMode, // 密码展示方式
     autoLogin: boolean,// 记住登录信息
     autoUnlock: boolean,// 记住主密码
+    enablePrivacyMode: boolean, // 启用密码列表隐私模式
     showPasswordStatistics: boolean, // 显示密码统计
     showNote: boolean, // 显示笔记功能
     bgColors: Array<string>, // 背景色
@@ -275,6 +276,8 @@ export interface PasswordStore {
         timeout: any,
         content: string
     },
+    // 隐私模式下是否已临时显示全部密码（仅保存在内存中）
+    privacyModeRevealed: boolean,
     // 密码列表筛选条件
     filterCondition: {
         // 文字搜索

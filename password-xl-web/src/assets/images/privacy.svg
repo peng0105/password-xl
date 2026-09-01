@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="title">
+  <title id="title">密码列表隐私保护</title>
+  <defs>
+    <linearGradient id="shield-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F7FBFF"/>
+      <stop offset="1" stop-color="#E4F2FF"/>
+    </linearGradient>
+    <filter id="card-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#337ECC" flood-opacity=".14"/>
+    </filter>
+    <filter id="badge-shadow" x="-35%" y="-30%" width="170%" height="175%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#337ECC" flood-opacity=".15"/>
+    </filter>
+  </defs>
+
+  <circle cx="38" cy="45" r="8" fill="#FDDA78" opacity=".72"/>
+  <circle cx="286" cy="56" r="11" fill="#95D475" opacity=".58"/>
+
+  <g filter="url(#card-shadow)">
+    <g transform="translate(26 50) rotate(-8 75 50)">
+      <rect width="150" height="100" rx="12" fill="#ECF5FF" stroke="#B3D8FF" stroke-width="2"/>
+      <circle cx="22" cy="24" r="7" fill="#79BBFF"/>
+      <rect x="38" y="18" width="78" height="11" rx="5.5" fill="#A0CFFF"/>
+      <rect x="18" y="48" width="111" height="9" rx="4.5" fill="#C6E2FF"/>
+      <rect x="18" y="68" width="76" height="9" rx="4.5" fill="#C6E2FF"/>
+    </g>
+
+    <g transform="translate(144 47) rotate(8 75 50)">
+      <rect width="150" height="100" rx="12" fill="#F0F9EB" stroke="#B3E19D" stroke-width="2"/>
+      <circle cx="22" cy="24" r="7" fill="#95D475"/>
+      <rect x="38" y="18" width="78" height="11" rx="5.5" fill="#B3E19D"/>
+      <rect x="18" y="48" width="111" height="9" rx="4.5" fill="#D1EDC4"/>
+      <rect x="18" y="68" width="76" height="9" rx="4.5" fill="#D1EDC4"/>
+    </g>
+
+    <g transform="translate(85 33)">
+      <rect width="150" height="104" rx="13" fill="#FFFFFF" stroke="#DCDFE6" stroke-width="2"/>
+      <circle cx="22" cy="25" r="7" fill="#F5B942"/>
+      <rect x="38" y="19" width="77" height="11" rx="5.5" fill="#CDD0D6"/>
+      <rect x="18" y="50" width="112" height="9" rx="4.5" fill="#E4E7ED"/>
+      <rect x="18" y="70" width="84" height="9" rx="4.5" fill="#E4E7ED"/>
+    </g>
+  </g>
+
+  <g transform="translate(121 73)" filter="url(#badge-shadow)">
+    <path d="M39 0C50 8 64 11 78 12v29c0 23-15 39-39 50C15 80 0 64 0 41V12C14 11 28 8 39 0Z"
+          fill="url(#shield-fill)" stroke="#79BBFF" stroke-linejoin="round" stroke-width="3"/>
+    <path d="M27 39v-8c0-7 5-13 12-13s12 6 12 13v8"
+          fill="none" stroke="#7FAFE0" stroke-linecap="round" stroke-width="5"/>
+    <rect x="20" y="36" width="38" height="31" rx="9" fill="#7FAFE0"/>
+    <circle cx="39" cy="50" r="4" fill="#FFFFFF"/>
+    <path d="M39 54v6" stroke="#FFFFFF" stroke-linecap="round" stroke-width="3"/>
+  </g>
+</svg>

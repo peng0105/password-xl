@@ -19,7 +19,8 @@ const refStore = useRefStore()
     </div>
     <div v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED">
       <img alt="" src="../../assets/images/empty.svg">
-      <div class="status-tip">这里一个密码都没有</div>
+      <div v-if="passwordStore.passwordArray.length === 0" class="status-tip">这里一个密码都没有</div>
+      <div v-else-if="passwordStore.hasActiveFilter" class="status-tip">没有找到匹配的密码</div>
       <el-button
           v-if="passwordStore.passwordArray.length === 0"
           plain

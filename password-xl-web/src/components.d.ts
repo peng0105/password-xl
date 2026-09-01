@@ -92,6 +92,7 @@ declare module 'vue' {
     PasswordForm: typeof import('./components/index/PasswordForm.vue')['default']
     PasswordHeader: typeof import('./components/index/PasswordHeader.vue')['default']
     PasswordTable: typeof import('./components/index/PasswordTable.vue')['default']
+    PrivacyMode: typeof import('./components/index/PrivacyMode.vue')['default']
     PrivateLoginForm: typeof import('./components/login/PrivateLoginForm.vue')['default']
     RecycleBin: typeof import('./components/common/RecycleBin.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

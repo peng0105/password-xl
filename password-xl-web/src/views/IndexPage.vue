@@ -58,12 +58,16 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
           <PasswordHeader></PasswordHeader>
           <!-- 正在过滤密码提示语 -->
           <FilteringTip></FilteringTip>
-          <!-- 密码表 -->
-          <PasswordTable v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"></PasswordTable>
-          <!-- 密码卡片 -->
-          <div :style="{height: 'calc(100vh - 84px)'}">
-            <PasswordCards v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"></PasswordCards>
-          </div>
+          <!-- 隐私模式 -->
+          <PrivacyMode v-if="passwordStore.privacyPlaceholderVisible"></PrivacyMode>
+          <template v-else>
+            <!-- 密码表 -->
+            <PasswordTable v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"></PasswordTable>
+            <!-- 密码卡片 -->
+            <div :style="{height: 'calc(100vh - 84px)'}">
+              <PasswordCards v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"></PasswordCards>
+            </div>
+          </template>
         </el-card>
       </el-col>
       <el-col
@@ -86,12 +90,16 @@ if (['xs', 'sm'].includes(displaySize().value) && settingStore.setting.passwordD
     <PasswordHeader></PasswordHeader>
     <!-- 正在过滤密码提示语 -->
     <FilteringTip></FilteringTip>
-    <!-- 密码表 -->
-    <PasswordTable v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"></PasswordTable>
-    <!-- 密码卡片 -->
-    <div :style="{height: 'calc(100vh - 60px)'}">
-      <PasswordCards v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"></PasswordCards>
-    </div>
+    <!-- 隐私模式 -->
+    <PrivacyMode v-if="passwordStore.privacyPlaceholderVisible"></PrivacyMode>
+    <template v-else>
+      <!-- 密码表 -->
+      <PasswordTable v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"></PasswordTable>
+      <!-- 密码卡片 -->
+      <div :style="{height: 'calc(100vh - 60px)'}">
+        <PasswordCards v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"></PasswordCards>
+      </div>
+    </template>
   </div>
 
   <!-- 注销账号 -->

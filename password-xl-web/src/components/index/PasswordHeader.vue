@@ -20,7 +20,7 @@ const inputIng: Ref<boolean> = ref(false)
 // 过滤密码
 const filterPassword = (str?: string) => {
   console.log('header 过滤密码 searchText:', searchText.value, ' 触发方式：' + str)
-  passwordStore.filterCondition.searchText = searchText.value
+  passwordStore.filterCondition.searchText = searchText.value.trim()
 }
 
 // 保存搜索记录
@@ -149,7 +149,10 @@ const aiAddPassword = () => {
     <div>
       <el-text v-if="settingStore.setting.showPasswordStatistics" class="hidden-sm-and-down password-title"
                style="width: 300px">
-        <template v-if="passwordStore.visPasswordArray.length > 0">
+        <template v-if="passwordStore.privacyPlaceholderVisible">
+          密码列表已隐藏
+        </template>
+        <template v-else-if="passwordStore.visPasswordArray.length > 0">
           <span>
             共
           </span>

@@ -382,6 +382,7 @@ export class PasswordManagerImpl implements PasswordManager {
     // 锁定密码本
     lock(): void {
         console.log('passwordManager 锁定密码')
+        this.passwordStore.resetPrivacyMode()
         this.passwordStore.mainPassword = ''
         this.passwordStore.allPasswordArray = []
         this.passwordStore.labelArray = []

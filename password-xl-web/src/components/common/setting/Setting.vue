@@ -243,6 +243,16 @@ watch(() => settingStore.setting.timeoutLock, (newValue: number) => {
   passwordStore.passwordManager.syncSetting()
 })
 
+// 监听隐私模式设置变更
+watch(() => settingStore.setting.enablePrivacyMode, (newValue: boolean) => {
+  if (!settingStore.visSetting) return
+  console.log('隐私模式设置变更:', newValue)
+  if (newValue) {
+    passwordStore.resetPrivacyMode()
+  }
+  passwordStore.passwordManager.syncSetting()
+})
+
 // 监听自动登录设置变更
 watch(() => settingStore.setting.autoLogin, (newValue: boolean) => {
   if (!settingStore.visSetting) return
@@ -779,6 +789,16 @@ const testAiModel = async () => {
             </el-text>
           </template>
           <el-scrollbar :height="scrollbarHeight()">
+            <div class="function-div">
+              <div class="function-header">
+                <el-text tag="b">隐私模式</el-text>
+                <el-switch v-model="settingStore.setting.enablePrivacyMode"></el-switch>
+              </div>
+              <el-divider class="function-line"/>
+              <el-text style="text-indent: 10px" tag="p" type="info">
+                开启后，无筛选条件时将隐藏密码列表。临时显示会在刷新或锁定后复位，此功能不替代密码库锁定。
+              </el-text>
+            </div>
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
                 <el-text tag="b">超时锁定</el-text>
