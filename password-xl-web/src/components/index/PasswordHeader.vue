@@ -1,16 +1,72 @@
 <!--密码列表头组件-->
 <script lang="ts" setup>
-import {PasswordDisplayMode, ServiceStatus, TopicMode} from "@/types";
+import {PasswordDisplayMode, ServiceStatus, Setting, Sort, TopicMode} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {displaySize, supportAI} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useRouter} from "vue-router";
+import {ArrowDown, ArrowRight, ArrowUp, Sort as SortIcon} from "@element-plus/icons-vue";
 
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
 const router = useRouter()
 const settingStore = useSettingStore()
+
+type PasswordSortField = Setting['sortField'] | 'strength'
+
+interface PasswordSortOption {
+  label: string,
+  value: PasswordSortField,
+  defaultOrder: Sort,
+}
+
+const passwordSortOptions: Array<PasswordSortOption> = [
+  {label: '添加时间', value: 'addTime', defaultOrder: Sort.DESC},
+  {label: '修改时间', value: 'updateTime', defaultOrder: Sort.DESC},
+  {label: '密码强度', value: 'strength', defaultOrder: Sort.DESC},
+  {label: '密码名称', value: 'title', defaultOrder: Sort.ASC},
+  {label: '登录名', value: 'username', defaultOrder: Sort.ASC},
+  {label: '收藏', value: 'favorite', defaultOrder: Sort.DESC},
+]
+
+const menuDropdownRef = ref()
+const sortPopoverVisible = ref(false)
+const sortSaving = ref(false)
+
+// 切换密码排序方式
+const switchPasswordSort = async (option: PasswordSortOption) => {
+  if (sortSaving.value) return
+
+  const oldSortField = settingStore.setting.sortField
+  const oldSortOrder = settingStore.setting.sortOrder
+  const isCurrentField = oldSortField === option.value
+
+  settingStore.setting.sortField = option.value as Setting['sortField']
+  settingStore.setting.sortOrder = isCurrentField
+      ? (oldSortOrder === Sort.ASC ? Sort.DESC : Sort.ASC)
+      : option.defaultOrder
+
+  sortPopoverVisible.value = false
+  menuDropdownRef.value?.handleClose?.()
+  sortSaving.value = true
+
+  try {
+    const resp = await passwordStore.passwordManager.syncSetting()
+    if (!resp.status) {
+      throw new Error(resp.message || '排序设置保存失败')
+    }
+  } catch (error: any) {
+    settingStore.setting.sortField = oldSortField
+    settingStore.setting.sortOrder = oldSortOrder
+    ElNotification.error({
+      title: '排序设置保存失败',
+      message: error?.message || '请稍后重试',
+    })
+  } finally {
+    sortSaving.value = false
+  }
+}
 
 // 搜索文本
 const searchText: Ref<string> = ref('')
@@ -247,7 +303,7 @@ const aiAddPassword = () => {
                 style="font-size: 120%;"/>
         </el-button>
       </el-tooltip>
-      <el-dropdown trigger="click">
+      <el-dropdown ref="menuDropdownRef" trigger="click">
         <el-button :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="menu-btn" plain>
           <span class="iconfont icon-menu" style="font-size: 130%;"/>
         </el-button>
@@ -282,6 +338,54 @@ const aiAddPassword = () => {
               <span class="iconfont icon-list menu-item" style="color: #409eff"></span>
               列表视图
             </el-dropdown-item>
+            <el-popover
+                v-model:visible="sortPopoverVisible"
+                :hide-after="100"
+                :width="150"
+                placement="left-start"
+                popper-class="password-sort-popover"
+                trigger="hover"
+            >
+              <template #reference>
+                <li
+                    class="el-dropdown-menu__item sort-menu-reference"
+                    role="menuitem"
+                    tabindex="0"
+                    style="padding-right: 5px"
+                    @click.stop="sortPopoverVisible = !sortPopoverVisible"
+                    @keydown.enter.prevent.stop="sortPopoverVisible = !sortPopoverVisible"
+                >
+                  <el-icon class="sort-menu-symbol">
+                    <SortIcon/>
+                  </el-icon>
+                  <span>排序方式</span>
+                  <el-icon class="sort-menu-arrow">
+                    <ArrowRight/>
+                  </el-icon>
+                </li>
+              </template>
+              <div class="password-sort-options" role="menu">
+                <div
+                    v-for="option in passwordSortOptions"
+                    :key="option.value"
+                    :class="{'is-active': settingStore.setting.sortField === option.value}"
+                    class="password-sort-option"
+                    role="menuitem"
+                    tabindex="0"
+                    @click="switchPasswordSort(option)"
+                    @keydown.enter.prevent="switchPasswordSort(option)"
+                >
+                  <span>{{ option.label }}</span>
+                  <el-icon
+                      v-if="settingStore.setting.sortField === option.value"
+                      class="password-sort-direction"
+                  >
+                    <ArrowUp v-if="settingStore.setting.sortOrder === Sort.ASC"/>
+                    <ArrowDown v-else/>
+                  </el-icon>
+                </div>
+              </div>
+            </el-popover>
             <el-dropdown-item
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
                 divided
@@ -380,6 +484,25 @@ const aiAddPassword = () => {
   margin-right: 10px;
 }
 
+.sort-menu-reference {
+  display: flex;
+  align-items: center;
+}
+
+.sort-menu-symbol {
+  width: 16px;
+  margin-right: 10px;
+  color: #409eff;
+  font-size: 18px;
+}
+
+.sort-menu-arrow {
+  margin-left: auto;
+  padding-left: 16px;
+  color: var(--el-text-color-secondary);
+  font-size: 16px;
+}
+
 .search-input-icon {
   font-size: 120%;
 }
@@ -421,5 +544,37 @@ const aiAddPassword = () => {
 <style>
 .header-autocomplete-suggestion .el-autocomplete-suggestion li:hover {
   color: #409eff;
+}
+
+.password-sort-popover.el-popper {
+  padding: 6px !important;
+}
+
+.password-sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 4px;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  outline: none;
+}
+
+.password-sort-option:hover,
+.password-sort-option:focus-visible {
+  color: var(--el-color-primary);
+  background-color: var(--el-dropdown-menuItem-hover-fill);
+}
+
+.password-sort-option.is-active {
+  color: var(--el-color-primary);
+  font-weight: 500;
+}
+
+.password-sort-direction {
+  margin-left: 12px;
+  font-size: 15.2px;
 }
 </style>

@@ -121,6 +121,21 @@ const getPagePasswordArray = () => {
   return passwordStore.visPasswordArray.slice(0, pageIndex.value * pageSize.value)
 }
 
+// 默认排序变化后，清除表头的临时排序并回到列表顶部
+watch(
+    [() => settingStore.setting.sortField, () => settingStore.setting.sortOrder],
+    () => {
+      nextTick(() => {
+        passwordTableRef.value?.clearSort()
+        pageIndex.value = 1
+        const scrollbarWrap = passwordTableRef.value?.$el.querySelector(".el-scrollbar__wrap")
+        if (scrollbarWrap) {
+          scrollbarWrap.scrollTop = 0
+        }
+      })
+    }
+)
+
 const scrollLoad = () => {
   const scrollbarWrap = passwordTableRef.value?.$el.querySelector(".el-scrollbar__wrap");
   if (!scrollbarWrap) {
