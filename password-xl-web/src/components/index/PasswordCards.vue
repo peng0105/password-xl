@@ -16,6 +16,7 @@ import {
 import {Password} from "@/types";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
+import {getOrderedPasswordFields, passwordFieldHasValue} from "@/utils/passwordFieldOrder.ts";
 
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
@@ -25,6 +26,10 @@ const showPasswordId = ref(0)
 const passwordCardScrollbar = ref()
 
 const fieldShows: Ref<Record<string, boolean>> = ref({})
+
+const getVisibleOrderedFields = (password: Password) => {
+  return getOrderedPasswordFields(password).filter(orderedField => passwordFieldHasValue(password, orderedField))
+}
 
 // 双击文字或操作控件时保留浏览器默认行为，仅双击卡片空白区域进入编辑模式
 const cardDoubleClickIgnoreSelector = [
@@ -285,84 +290,83 @@ onBeforeUnmount(() => {
             </div>
           </template>
           <ul class="password-field-ul" style="height: 100%;">
-            <li v-if="
-            !password.address
-            && !password.username
-            && !password.password
-            && !password.remark
-            && !password.labels.length
-            && !(password.customFields && password.customFields.length > 0)" class="empty-card">
+            <li v-if="getVisibleOrderedFields(password).length === 0" class="empty-card">
               <el-text style="margin: 20px 0">
                 空空如也！
               </el-text>
             </li>
-            <li v-if="password.address">
-              <el-text class="password-field-name">地址:</el-text>
-              <el-text class="password-field-value">
-                <el-link v-if="isUrl(password.address)" :href="password.address" target="_blank" type="primary">
-                  {{ password.address }}
-                </el-link>
-                <el-text v-else>
-                  {{ password.address }}
-                </el-text>
-              </el-text>
-              <div class="clear"></div>
-            </li>
-            <li v-if="password.username">
-              <el-text class="password-field-name">用户名:</el-text>
-              <el-text class="password-field-value">
-                <div class="card-username-div">
-                  <span>{{ password.username }}</span><el-tooltip :hide-after="0" :show-after="300" content="复制用户名" placement="top">
-                    <span class="iconfont icon-copy password-row-icon copy-username"
-                          @click="copyText(password.username)"></span>
-                  </el-tooltip>
-                </div>
-              </el-text>
-              <div class="clear"></div>
-            </li>
-            <li v-if="password.password">
-              <el-text class="password-field-name">密码:</el-text>
-              <el-text class="password-field-value">
-                <span v-if="showPasswordId === password.id" class="card-password-span">{{ password.password }}</span>
-                <span v-else style="position: relative;top: 3px;">**********</span>
-                <span v-if="showPasswordId === password.id" class="iconfont icon-hide password-card-icon"
-                      @click="showPasswordId = 0"/>
-                <span v-else class="iconfont icon-show password-card-icon" @click="showLongPassword(password)"/>
-                <span class="iconfont icon-copy password-card-icon"  @click="copyText(password.password)"></span>
-              </el-text>
-              <div class="clear"></div>
-            </li>
-            <li v-if="password.remark">
-              <el-text class="password-field-name">备注:</el-text>
-              <el-text class="password-field-value">
-                {{ password.remark }}
-              </el-text>
-              <div class="clear"></div>
-            </li>
-            <li v-if="password.labels.length">
-              <el-text class="password-field-name">标签:</el-text>
-              <el-text class="password-field-value">
-                <el-tag v-for="label in getPasswordLabelNames(password)" class="card-label">
-                  {{ label.name }}
-                </el-tag>
-              </el-text>
-              <div class="clear"></div>
-            </li>
-            <template v-for="(field, index) in password.customFields">
-              <li v-if="field.key || field.val">
-                <el-text class="password-field-name">{{ field.key }}:</el-text>
+            <template v-for="orderedField in getVisibleOrderedFields(password)" :key="orderedField.ref">
+              <li v-if="orderedField.type === 'builtin' && orderedField.key === 'address'">
+                <el-text class="password-field-name">地址:</el-text>
                 <el-text class="password-field-value">
-<!--                  这里不能直接使用field.hidden因为这个是用于永久是否隐藏的，不是临时显示用的-->
-                  <span v-if="field.hidden">
-                     <span v-if="fieldShows[password.id + '_' + index]" class="card-password-span">{{ field.val }}</span>
+                  <el-link v-if="isUrl(password.address)" :href="password.address" target="_blank" type="primary">
+                    {{ password.address }}
+                  </el-link>
+                  <el-text v-else>{{ password.address }}</el-text>
+                </el-text>
+                <div class="clear"></div>
+              </li>
+              <li v-else-if="orderedField.type === 'builtin' && orderedField.key === 'username'">
+                <el-text class="password-field-name">用户名:</el-text>
+                <el-text class="password-field-value">
+                  <div class="card-username-div">
+                    <span>{{ password.username }}</span>
+                    <el-tooltip :hide-after="0" :show-after="300" content="复制用户名" placement="top">
+                      <span class="iconfont icon-copy password-row-icon copy-username"
+                            @click="copyText(password.username)"></span>
+                    </el-tooltip>
+                  </div>
+                </el-text>
+                <div class="clear"></div>
+              </li>
+              <li v-else-if="orderedField.type === 'builtin' && orderedField.key === 'password'">
+                <el-text class="password-field-name">密码:</el-text>
+                <el-text class="password-field-value">
+                  <span v-if="showPasswordId === password.id" class="card-password-span">{{ password.password }}</span>
+                  <span v-else style="position: relative;top: 3px;">**********</span>
+                  <span v-if="showPasswordId === password.id" class="iconfont icon-hide password-card-icon"
+                        @click="showPasswordId = 0"/>
+                  <span v-else class="iconfont icon-show password-card-icon" @click="showLongPassword(password)"/>
+                  <span class="iconfont icon-copy password-card-icon" @click="copyText(password.password)"></span>
+                </el-text>
+                <div class="clear"></div>
+              </li>
+              <li v-else-if="orderedField.type === 'builtin' && orderedField.key === 'labels'">
+                <el-text class="password-field-name">标签:</el-text>
+                <el-text class="password-field-value">
+                  <el-tag v-for="label in getPasswordLabelNames(password)" :key="label.id" class="card-label">
+                    {{ label.name }}
+                  </el-tag>
+                </el-text>
+                <div class="clear"></div>
+              </li>
+              <li v-else-if="orderedField.type === 'builtin' && orderedField.key === 'remark'">
+                <el-text class="password-field-name">备注:</el-text>
+                <el-text class="password-field-value">{{ password.remark }}</el-text>
+                <div class="clear"></div>
+              </li>
+              <li v-else-if="orderedField.type === 'custom'">
+                <el-text class="password-field-name">{{ orderedField.field.key }}:</el-text>
+                <el-text class="password-field-value">
+                  <span v-if="orderedField.field.hidden">
+                    <span
+                        v-if="fieldShows[password.id + '_' + orderedField.field.id]"
+                        class="card-password-span"
+                    >{{ orderedField.field.val }}</span>
                     <span v-else style="position: relative;top: 3px;">**********</span>
-                    <span v-if="fieldShows[password.id + '_' + index]" class="iconfont icon-hide password-card-icon" @click="fieldShows[password.id + '_' + index] = false"/>
-                    <span v-else class="iconfont icon-show password-card-icon" @click="fieldShows[password.id + '_' + index] = true"/>
-                    <span class="iconfont icon-copy password-card-icon" @click="copyText(field.val)"></span>
+                    <span
+                        v-if="fieldShows[password.id + '_' + orderedField.field.id]"
+                        class="iconfont icon-hide password-card-icon"
+                        @click="fieldShows[password.id + '_' + orderedField.field.id] = false"
+                    />
+                    <span
+                        v-else
+                        class="iconfont icon-show password-card-icon"
+                        @click="fieldShows[password.id + '_' + orderedField.field.id] = true"
+                    />
+                    <span class="iconfont icon-copy password-card-icon" @click="copyText(orderedField.field.val)"></span>
                   </span>
-                  <span v-else>
-                     {{ field.val }}
-                  </span>
+                  <span v-else>{{ orderedField.field.val }}</span>
                 </el-text>
                 <div class="clear"></div>
               </li>

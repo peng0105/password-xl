@@ -7,6 +7,7 @@ import {useRefStore} from "@/stores/RefStore.ts";
 import FileSaver from "file-saver";
 import {checkPassword, decryptAES} from "@/utils/security.ts";
 import {decompressionArray} from "@/utils/compress";
+import {normalizePasswordArray} from "@/utils/passwordFieldOrder.ts";
 
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
@@ -107,7 +108,7 @@ const startRecovery = async (backupFile: BackupFile) => {
   }
 
   // 解压缩密码列表
-  recoveryPasswordArray.value = decompressionArray(JSON.parse(passwordText))
+  recoveryPasswordArray.value = normalizePasswordArray(decompressionArray(JSON.parse(passwordText)))
   recoveryLabelArray.value = JSON.parse(labelText)
   console.log('密码恢复, 解压缩密码列表: ', recoveryPasswordArray.value.length, recoveryLabelArray.value)
 

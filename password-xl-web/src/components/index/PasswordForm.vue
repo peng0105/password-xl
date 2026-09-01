@@ -2,10 +2,20 @@
 <script lang="ts" setup>
 
 import {copyText, displaySize, getBgColor, randomPassword} from "@/utils/global.ts";
-import {GenerateRule, Password, PasswordStatus} from "@/types";
+import {GenerateRule, Password, PasswordFieldRef, PasswordStatus} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
+import {VueDraggable} from 'vue-draggable-plus';
+import {
+  createCustomFieldId,
+  DEFAULT_PASSWORD_FIELD_ORDER,
+  finalizePasswordFieldOrder,
+  getCustomFieldRef,
+  getOrderedPasswordFields,
+  normalizePasswordFieldOrder,
+  PASSWORD_FIELD_LABELS
+} from "@/utils/passwordFieldOrder.ts";
 
 const refStore = useRefStore()
 const passwordStore = usePasswordStore()
@@ -43,6 +53,8 @@ const initPasswordForm = (): Password => {
     favorite: false,
     // 自定义字段
     customFields: [],
+    // 字段显示顺序
+    fieldOrder: [...DEFAULT_PASSWORD_FIELD_ORDER],
     // 标签id列表
     labels: [],
     // 密码状态 正常 or 已删除
@@ -54,6 +66,14 @@ const initPasswordForm = (): Password => {
 
 // 密码表单
 const passwordForm: Ref<Password> = ref(initPasswordForm())
+const passwordFieldOrder = computed<PasswordFieldRef[]>({
+  get: () => passwordForm.value.fieldOrder || [],
+  set: fieldOrder => passwordForm.value.fieldOrder = fieldOrder,
+})
+const orderedFormFields = computed(() => getOrderedPasswordFields(passwordForm.value))
+const editingCustomFieldId = ref<string | null>(null)
+const customFieldNameRefs: Record<string, any> = {}
+let blockCustomFieldNameClick = false
 
 // 密码生成规则表单
 const generateForm: Ref<GenerateRule> = ref(JSON.parse(JSON.stringify(settingStore.setting.generateRule)))
@@ -69,6 +89,7 @@ const passwordFormRules = reactive({
 const addPasswordForm = (title?: string) => {
   console.log('显示添加密码表单 title：', title)
   formType.value = 'add'
+  editingCustomFieldId.value = null
   // 初始化密码表单
   passwordForm.value = initPasswordForm()
   // 初始化生成规则表单
@@ -125,10 +146,11 @@ const setPasswordForm = (password: any) => {
 const editPasswordForm = (password: Password) => {
   console.log('显示修改密码表单：', password.id)
   formType.value = 'edit'
+  editingCustomFieldId.value = null
   // 初始化生成规则表单
   generateForm.value = JSON.parse(JSON.stringify(settingStore.setting.generateRule))
   // 设置密码表单
-  passwordForm.value = JSON.parse(JSON.stringify(password))
+  passwordForm.value = normalizePasswordFieldOrder(JSON.parse(JSON.stringify(password)))
   // 显示密码表单
   passwordStore.passwordFormDrawerVis = true
   // 清除校验结果
@@ -138,6 +160,7 @@ const editPasswordForm = (password: Password) => {
 // 关闭密码表单
 const closePasswordForm = () => {
   console.log('关闭密码表单')
+  editingCustomFieldId.value = null
   passwordStore.passwordFormDrawerVis = false
 }
 
@@ -196,11 +219,16 @@ const addField = () => {
   if (!(passwordForm.value.customFields instanceof Array)) {
     passwordForm.value.customFields = []
   }
-  passwordForm.value.customFields.push({
+  const field = {
+    id: createCustomFieldId(),
     key: '',
     val: '',
     hidden: false,
-  })
+  }
+  passwordForm.value.customFields.push(field)
+  passwordForm.value.fieldOrder?.push(getCustomFieldRef(field))
+  finalizePasswordFieldOrder(passwordForm.value)
+  beginCustomFieldNameEdit(field.id)
 }
 
 // 保存密码
@@ -210,6 +238,7 @@ const savePassword = async (passwordFormFormRef: any) => {
   await passwordFormFormRef.validate((valid: any) => {
     if (!valid) return // 校验未通过
     console.log('保存密码 校验通过')
+    finalizePasswordFieldOrder(passwordForm.value)
     if (formType.value === 'add') {
       console.log('新增密码保存')
       passwordStore.passwordManager.addPassword(JSON.parse(JSON.stringify(passwordForm.value))).then(resp => {
@@ -256,8 +285,52 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 };
 
-const delField = (index: number) => {
-  passwordForm.value.customFields.splice(index, 1)
+const delField = (fieldRef: PasswordFieldRef) => {
+  if (!fieldRef.startsWith('custom:')) return
+  const fieldId = fieldRef.slice('custom:'.length)
+  const fieldIndex = passwordForm.value.customFields.findIndex(field => field.id === fieldId)
+  if (fieldIndex !== -1) {
+    passwordForm.value.customFields.splice(fieldIndex, 1)
+  }
+  const orderIndex = passwordForm.value.fieldOrder?.indexOf(fieldRef) ?? -1
+  if (orderIndex !== -1) {
+    passwordForm.value.fieldOrder?.splice(orderIndex, 1)
+  }
+  if (editingCustomFieldId.value === fieldId) {
+    editingCustomFieldId.value = null
+  }
+  delete customFieldNameRefs[fieldId]
+  finalizePasswordFieldOrder(passwordForm.value)
+}
+
+const beginCustomFieldNameEdit = (fieldId: string | undefined) => {
+  if (!fieldId || blockCustomFieldNameClick) return
+  editingCustomFieldId.value = fieldId
+  nextTick(() => customFieldNameRefs[fieldId]?.focus())
+}
+
+const finishCustomFieldNameEdit = (fieldId: string | undefined) => {
+  if (fieldId && editingCustomFieldId.value === fieldId) {
+    editingCustomFieldId.value = null
+  }
+}
+
+const setCustomFieldNameRef = (fieldId: string | undefined, el: any) => {
+  if (!fieldId) return
+  if (el) {
+    customFieldNameRefs[fieldId] = el
+  } else {
+    delete customFieldNameRefs[fieldId]
+  }
+}
+
+const startFieldDrag = () => {
+  blockCustomFieldNameClick = true
+}
+
+const finishFieldDrag = () => {
+  finalizePasswordFieldOrder(passwordForm.value)
+  window.setTimeout(() => blockCustomFieldNameClick = false, 0)
 }
 
 onMounted(() => {
@@ -286,154 +359,247 @@ onBeforeUnmount(() => {
         :model="passwordForm"
         :rules="passwordFormRules"
         autocomplete="off"
-        label-width="60px">
+        label-width="72px">
       <el-form-item label="名称" prop="title">
         <el-input :ref="(el: any) => refStore.passwordFormTitleRef = el" v-model="passwordForm.title"
                   autocomplete="new-password" clearable></el-input>
       </el-form-item>
-      <el-form-item label="地址" prop="address">
-        <el-input v-model="passwordForm.address" autocomplete="new-password" clearable
-                  placeholder="https://"></el-input>
-      </el-form-item>
-      <el-form-item label="用户名" prop="username">
-        <el-autocomplete
-            v-model="passwordForm.username"
-            :fetch-suggestions="usernameSearch"
-            autocomplete="new-password"
-            clearable
-        />
-      </el-form-item>
-      <el-form-item label="密码">
-        <el-card class="generate-card">
-          <div class="generate-input-div">
-            <el-input v-model="passwordForm.password" autocomplete="new-password" class="generate-input"
-                      clearable placeholder="输入密码或随机生成">
-              <template #append>
-                <el-tooltip content="随机生成" placement="top">
-                  <el-button :ref="(el: any) => refStore.passwordFormGenerateBtnRef = el" class="refresh-password"
-                             tabindex="-1" @click="generatePassword">
-                    <i :class="{'random-dice':playAnimate}" class="iconfont icon-dice"
-                       @animationend="playAnimate = false"></i>
-                  </el-button>
-                </el-tooltip>
-              </template>
-            </el-input>
-            <el-button plain tabindex="-1" type="success" @click="copyText(passwordForm.password)">复制</el-button>
-          </div>
-
-          <div class="generate-use-type-div">
-            <el-row>
-              <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
-                <el-checkbox
-                    v-model="generateForm.uppercase"
-                    :disabled="!generateForm.lowercase && !generateForm.number && !generateForm.symbol"
-                    border
-                    class="generate-type-checkbox"
-                    label="大写"
-                    size="small"
-                    tabindex="-1"
-                    @change="generatePassword"/>
-              </el-col>
-              <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
-                <el-checkbox
-                    v-model="generateForm.lowercase"
-                    :disabled="!generateForm.uppercase && !generateForm.number && !generateForm.symbol"
-                    border
-                    class="generate-type-checkbox"
-                    label="小写"
-                    size="small"
-                    tabindex="-1"
-                    @change="generatePassword"/>
-              </el-col>
-              <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
-                <el-checkbox
-                    v-model="generateForm.number"
-                    :disabled="!generateForm.uppercase && !generateForm.lowercase && !generateForm.symbol"
-                    border
-                    class="generate-type-checkbox"
-                    label="数字"
-                    size="small"
-                    tabindex="-1"
-                    @change="generatePassword"/>
-              </el-col>
-              <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
-                <el-checkbox
-                    v-model="generateForm.symbol"
-                    :disabled="!generateForm.uppercase && !generateForm.lowercase && !generateForm.number"
-                    border
-                    class="generate-type-checkbox"
-                    label="符号"
-                    size="small"
-                    tabindex="-1"
-                    @change="generatePassword"/>
-              </el-col>
-            </el-row>
-          </div>
-          <div class="generate-length-div">
-            <el-slider
-                :ref="(el: any) => refStore.passwordFormGenerateRuleRef = el"
-                v-model="generateForm.length"
-                :max="32"
-                :min="4" :show-input-controls="false"
-                show-input
-                size="small"
-                tabindex="-1"
-                @change="generatePassword"/>
-          </div>
-        </el-card>
-      </el-form-item>
-      <el-form-item label="标签">
-        <el-tree-select
-            v-model="passwordForm.labels"
-            :check-strictly="true"
-            :data="passwordStore.labelArray"
-            :default-expanded-keys="getDefaultExpandedKeys()"
-            :props="{label:'name'}"
-            multiple
-            node-key="id"
-            show-checkbox
-        />
-      </el-form-item>
-      <el-form-item label="备注">
-        <el-input
-            v-model="passwordForm.remark"
-            :rows="2"
-            autocomplete="new-password"
-            placeholder="备注..."
-            type="textarea"></el-input>
-      </el-form-item>
-      <el-form-item v-if="settingStore.setting.passwordColor">
+      <VueDraggable
+          v-model="passwordFieldOrder"
+          :animation="180"
+          :bubble-scroll="true"
+          :delay="160"
+          :delay-on-touch-only="true"
+          :fallback-on-body="true"
+          :fallback-tolerance="4"
+          :force-fallback="true"
+          :scroll="true"
+          :scroll-sensitivity="56"
+          :scroll-speed="12"
+          :swap-threshold="0.65"
+          :touch-start-threshold="5"
+          chosen-class="password-field-chosen"
+          class="sortable-field-list"
+          direction="vertical"
+          drag-class="password-field-dragging"
+          draggable=".sortable-field-item"
+          easing="cubic-bezier(0.2, 0, 0, 1)"
+          fallback-class="password-field-fallback"
+          ghost-class="password-field-ghost"
+          handle=".field-drag-handle"
+          @start="startFieldDrag"
+          @end="finishFieldDrag"
+      >
         <div
-            v-for="color in settingStore.setting.bgColors"
-            :style="{'background-color':getBgColor(color,passwordForm.bgColor === color ? '0.5':'0.3'),'transform': passwordForm.bgColor === color?'scale(1.5)':'scale(1)'}"
-            class="bg-color-item"
-            @click="passwordForm.bgColor === color?passwordForm.bgColor = '':passwordForm.bgColor = color">
-          <span v-show="passwordForm.bgColor === color" class="iconfont icon-check-mark" style="font-size: 14px"></span>
-        </div>
-      </el-form-item>
-      <el-form-item label="自定义">
-        <el-card v-if="passwordForm.customFields && passwordForm.customFields.length > 0" style="width: 100%">
-          <div v-for="(field,index) in passwordForm.customFields"
-               :style="{'margin-bottom': index !== passwordForm.customFields.length - 1?'15px':'0'}"
-               style="display: flex">
-            <div style="margin-right: 10px;">
-              <el-icon v-if="field.hidden" style="cursor: pointer;" @click="field.hidden = false">
-                <span class="iconfont icon-hide"/>
-              </el-icon>
-              <el-icon v-else style="cursor: pointer;" @click="field.hidden = true">
-                <span class="iconfont icon-show"/>
-              </el-icon>
+            v-for="orderedField in orderedFormFields"
+            :key="orderedField.ref"
+            :class="[
+              orderedField.type === 'custom'?'custom-sortable-field':'builtin-sortable-field',
+              {'custom-field-name-editing': orderedField.type === 'custom' && editingCustomFieldId === orderedField.field.id}
+            ]"
+            :data-field-ref="orderedField.ref"
+            class="sortable-field-item"
+        >
+          <template v-if="orderedField.type === 'builtin'">
+            <div class="sortable-field-name field-drag-handle">
+              {{ PASSWORD_FIELD_LABELS[orderedField.key] }}
             </div>
-            <el-input v-model="field.key" autocomplete="off" placeholder="名称"
-                      style="margin-right: 10px;flex: 1"></el-input>
-            <el-input v-model="field.val" autocomplete="off" :type="field.hidden?'password':'text'" placeholder="内容"
-                      style="margin-right: 10px;flex: 2"></el-input>
-            <el-button plain title="删除" type="danger" @click="delField(index)">
-              <span class="iconfont icon-clean"></span>
-            </el-button>
-          </div>
-        </el-card>
-        <el-button plain style="margin-top: 10px" type="primary" @click="addField()">添加自定义信息</el-button>
+            <div class="sortable-field-control">
+              <el-input
+                  v-if="orderedField.key === 'address'"
+                  v-model="passwordForm.address"
+                  autocomplete="new-password"
+                  clearable
+                  placeholder="https://"
+              />
+              <el-autocomplete
+                  v-else-if="orderedField.key === 'username'"
+                  v-model="passwordForm.username"
+                  :fetch-suggestions="usernameSearch"
+                  autocomplete="new-password"
+                  clearable
+              />
+              <el-card v-else-if="orderedField.key === 'password'" class="generate-card">
+                <div class="generate-input-div">
+                  <el-input
+                      v-model="passwordForm.password"
+                      autocomplete="new-password"
+                      class="generate-input"
+                      clearable
+                      placeholder="输入密码或随机生成"
+                  >
+                    <template #append>
+                      <el-tooltip content="随机生成" placement="top">
+                        <el-button
+                            :ref="(el: any) => refStore.passwordFormGenerateBtnRef = el"
+                            class="refresh-password"
+                            tabindex="-1"
+                            @click="generatePassword"
+                        >
+                          <i
+                              :class="{'random-dice':playAnimate}"
+                              class="iconfont icon-dice"
+                              @animationend="playAnimate = false"
+                          ></i>
+                        </el-button>
+                      </el-tooltip>
+                    </template>
+                  </el-input>
+                  <el-button plain tabindex="-1" type="success" @click="copyText(passwordForm.password)">复制</el-button>
+                </div>
+                <div class="generate-use-type-div">
+                  <el-row>
+                    <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
+                      <el-checkbox
+                          v-model="generateForm.uppercase"
+                          :disabled="!generateForm.lowercase && !generateForm.number && !generateForm.symbol"
+                          border class="generate-type-checkbox" label="大写" size="small" tabindex="-1"
+                          @change="generatePassword"
+                      />
+                    </el-col>
+                    <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
+                      <el-checkbox
+                          v-model="generateForm.lowercase"
+                          :disabled="!generateForm.uppercase && !generateForm.number && !generateForm.symbol"
+                          border class="generate-type-checkbox" label="小写" size="small" tabindex="-1"
+                          @change="generatePassword"
+                      />
+                    </el-col>
+                    <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
+                      <el-checkbox
+                          v-model="generateForm.number"
+                          :disabled="!generateForm.uppercase && !generateForm.lowercase && !generateForm.symbol"
+                          border class="generate-type-checkbox" label="数字" size="small" tabindex="-1"
+                          @change="generatePassword"
+                      />
+                    </el-col>
+                    <el-col :sm="{span:6}" :xs="{span:12}" style="text-align: center">
+                      <el-checkbox
+                          v-model="generateForm.symbol"
+                          :disabled="!generateForm.uppercase && !generateForm.lowercase && !generateForm.number"
+                          border class="generate-type-checkbox" label="符号" size="small" tabindex="-1"
+                          @change="generatePassword"
+                      />
+                    </el-col>
+                  </el-row>
+                </div>
+                <div class="generate-length-div">
+                  <el-slider
+                      :ref="(el: any) => refStore.passwordFormGenerateRuleRef = el"
+                      v-model="generateForm.length"
+                      :max="32"
+                      :min="4"
+                      :show-input-controls="false"
+                      show-input
+                      size="small"
+                      tabindex="-1"
+                      @change="generatePassword"
+                  />
+                </div>
+              </el-card>
+              <el-tree-select
+                  v-else-if="orderedField.key === 'labels'"
+                  v-model="passwordForm.labels"
+                  :check-strictly="true"
+                  :data="passwordStore.labelArray"
+                  :default-expanded-keys="getDefaultExpandedKeys()"
+                  :props="{label:'name'}"
+                  multiple
+                  node-key="id"
+                  show-checkbox
+              />
+              <el-input
+                  v-else-if="orderedField.key === 'remark'"
+                  v-model="passwordForm.remark"
+                  :rows="2"
+                  autocomplete="new-password"
+                  placeholder="备注..."
+                  type="textarea"
+              />
+            </div>
+          </template>
+
+          <template v-else>
+            <button
+                v-if="editingCustomFieldId === orderedField.field.id"
+                :aria-label="`调整${orderedField.field.key || '自定义字段'}顺序`"
+                class="field-drag-handle custom-field-drag-handle"
+                type="button"
+            >
+              <span aria-hidden="true" class="drag-dots"></span>
+            </button>
+            <el-input
+                v-if="editingCustomFieldId === orderedField.field.id"
+                :ref="(el: any) => setCustomFieldNameRef(orderedField.field.id, el)"
+                v-model="orderedField.field.key"
+                autocomplete="off"
+                class="custom-field-name-input"
+                placeholder="字段名称"
+                @blur="finishCustomFieldNameEdit(orderedField.field.id)"
+                @keydown.enter.prevent="finishCustomFieldNameEdit(orderedField.field.id)"
+                @keydown.esc.prevent="finishCustomFieldNameEdit(orderedField.field.id)"
+            />
+            <button
+                v-else
+                :aria-label="`${orderedField.field.key || '未命名字段'}，点击编辑，拖动调整顺序`"
+                :class="{'is-empty': !orderedField.field.key}"
+                class="sortable-field-name custom-field-name-text field-drag-handle"
+                type="button"
+                @click="beginCustomFieldNameEdit(orderedField.field.id)"
+            >
+              <span>{{ orderedField.field.key || '字段名称' }}</span>
+            </button>
+            <el-input
+                v-model="orderedField.field.val"
+                :type="orderedField.field.hidden?'password':'text'"
+                autocomplete="off"
+                class="custom-field-value-input"
+                placeholder="字段内容"
+            />
+            <div class="custom-field-actions">
+              <el-tooltip :content="orderedField.field.hidden?'切换为普通文本':'切换为密码'" placement="top">
+                <el-button
+                    :aria-label="orderedField.field.hidden?'切换为普通文本':'切换为密码'"
+                    class="custom-field-action-button"
+                    plain
+                    @click="orderedField.field.hidden = !orderedField.field.hidden"
+                >
+                  <span :class="orderedField.field.hidden?'icon-hide':'icon-show'" class="iconfont"/>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="删除字段" placement="top">
+                <el-button
+                    aria-label="删除字段"
+                    class="custom-field-action-button"
+                    plain
+                    type="danger"
+                    @click="delField(orderedField.ref)"
+                >
+                  <span class="iconfont icon-clean"></span>
+                </el-button>
+              </el-tooltip>
+            </div>
+          </template>
+        </div>
+      </VueDraggable>
+
+      <div class="add-custom-field-row">
+        <el-button plain type="primary" @click="addField">添加自定义字段</el-button>
+      </div>
+      <el-form-item v-if="settingStore.setting.passwordColor" label="颜色" class="password-color-form-item">
+        <div class="password-color-list">
+          <button
+              v-for="color in settingStore.setting.bgColors"
+              :key="color"
+              :aria-label="passwordForm.bgColor === color?'取消选择此颜色':'选择此颜色'"
+              :style="{'background-color':getBgColor(color,passwordForm.bgColor === color ? '0.5':'0.3'),'transform': passwordForm.bgColor === color?'scale(1.3)':'scale(1)'}"
+              class="bg-color-item"
+              type="button"
+              @click="passwordForm.bgColor === color?passwordForm.bgColor = '':passwordForm.bgColor = color"
+          >
+            <span v-show="passwordForm.bgColor === color" class="iconfont icon-check-mark"></span>
+          </button>
+        </div>
       </el-form-item>
     </el-form>
     <div style="display: flex;justify-content: end">
@@ -511,15 +677,202 @@ onBeforeUnmount(() => {
   flex: 1;
 }
 
+.sortable-field-list {
+  margin-bottom: 8px;
+}
+
+.sortable-field-item {
+  display: grid;
+  align-items: start;
+  min-width: 0;
+  margin-bottom: 8px;
+  padding: 5px 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.builtin-sortable-field {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.custom-sortable-field {
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+}
+
+.custom-sortable-field.custom-field-name-editing {
+  grid-template-columns: 28px 138px minmax(0, 1fr) auto;
+}
+
+.field-drag-handle {
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.field-drag-handle:active {
+  cursor: grabbing;
+}
+
+.custom-field-drag-handle {
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+}
+
+.custom-field-drag-handle:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+
+.drag-dots {
+  display: inline-block;
+  width: 12px;
+  height: 18px;
+  background-image: radial-gradient(circle, currentColor 1.4px, transparent 1.6px);
+  background-position: center;
+  background-size: 6px 6px;
+}
+
+.sortable-field-name {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 32px;
+  padding-right: 8px;
+  border-radius: 5px;
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sortable-field-control {
+  min-width: 0;
+}
+
+.custom-field-name-text {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  line-height: normal;
+  overflow: hidden;
+}
+
+.custom-field-name-text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-field-name-text.is-empty {
+  color: var(--el-text-color-placeholder);
+}
+
+.custom-field-name-text:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}
+
+.custom-field-name-input {
+  width: 130px;
+}
+
+.custom-field-value-input {
+  min-width: 0;
+}
+
+.custom-field-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.custom-field-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
+.custom-field-action-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.add-custom-field-row {
+  margin: 0 0 18px 72px;
+}
+
+.password-color-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-height: 36px;
+}
+
+.password-color-form-item {
+  margin-top: 2px;
+}
+
 .bg-color-item {
   width: 25px;
   height: 25px;
+  padding: 0;
+  border: 0;
   border-radius: 15%;
   margin: 5px 10px;
   transition: all 0.2s;
   color: white;
+  cursor: pointer;
   text-align: center;
   line-height: 25px;
+}
+
+.bg-color-item:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+
+:global(.password-field-ghost) {
+  opacity: 0.3;
+  border-color: var(--el-color-primary-light-5) !important;
+  background-color: var(--el-color-primary-light-9) !important;
+}
+
+:global(.password-field-chosen),
+:global(.password-field-dragging),
+:global(.password-field-fallback) {
+  border-color: var(--el-color-primary-light-3) !important;
+  background-color: var(--el-bg-color) !important;
+  box-shadow: var(--el-box-shadow-light);
+}
+
+@media (max-width: 520px) {
+  .custom-sortable-field.custom-field-name-editing {
+    grid-template-columns: 28px 118px minmax(0, 1fr) auto;
+  }
+
+  .custom-field-name-input {
+    width: 110px;
+  }
+
+  .add-custom-field-row {
+    margin-left: 28px;
+  }
+
+  .generate-input-div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .generate-input {
+    width: 100%;
+    margin-right: 0;
+  }
 }
 
 </style>

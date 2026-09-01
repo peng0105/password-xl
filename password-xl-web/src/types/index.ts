@@ -4,10 +4,17 @@ import {TreeNote} from "@/types/types";
 
 // 自定义字段
 export interface CustomField {
+    id?: string;
     key: string;
     val: string;
     hidden: boolean;
 }
+
+// 可排序的内置密码字段（名称与颜色固定，不参与排序）
+export type SortablePasswordField = 'address' | 'username' | 'password' | 'labels' | 'remark';
+
+// 自定义字段使用 custom:<稳定ID> 的形式参与统一排序
+export type PasswordFieldRef = SortablePasswordField | `custom:${string}`;
 
 // 密码
 export interface Password {
@@ -23,6 +30,7 @@ export interface Password {
     favoriteTime: number,
     favorite: boolean,
     customFields: CustomField[],
+    fieldOrder?: PasswordFieldRef[],
     labels: Array<number>,
     status: PasswordStatus,
     bgColor: string,
@@ -94,7 +102,7 @@ export interface GenerateRule {
 
 // 设置
 export interface Setting {
-    sortField: keyof Password, // 排序字段
+    sortField: Exclude<keyof Password, 'fieldOrder'>, // 排序字段
     sortOrder: Sort,// 排序方向
     showTimeForTable: string,// 在列表中显示时间 no.不显示 addTime.添加时间 updateTime.修改时间
     showLabelForTable: boolean,// 在列表中显示标签

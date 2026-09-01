@@ -5,6 +5,7 @@ import {useRefStore} from "@/stores/RefStore.ts";
 import {comparePassword, displaySize, incrId} from "@/utils/global.ts";
 import {Password, PasswordStatus} from "@/types";
 import {extractPasswordApi} from "@/api/password-xl-api.ts";
+import {normalizePasswordFieldOrder} from "@/utils/passwordFieldOrder.ts";
 // 导入确认密码列表
 const passwordTableRef = ref()
 
@@ -98,7 +99,7 @@ const startAnalysis = () => {
     console.log('AI解析，解析密码完成')
     const passwordArray = JSON.parse(resp)
     for (let i = 0; i < passwordArray.length; i++) {
-      importPasswords.value.push({
+      importPasswords.value.push(normalizePasswordFieldOrder({
         id: incrId(),
         title: passwordArray[i].name,
         address: passwordArray[i].address,
@@ -114,7 +115,7 @@ const startAnalysis = () => {
         labels: [],
         status: PasswordStatus.NORMAL,
         bgColor: '',
-      })
+      }))
     }
     nextTick(() => {
       // 全选密码列表

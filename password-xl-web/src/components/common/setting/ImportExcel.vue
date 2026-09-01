@@ -13,6 +13,7 @@ import {
 import {Buffer} from "buffer";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
+import {normalizePasswordFieldOrder} from "@/utils/passwordFieldOrder.ts";
 
 
 const passwordStore = usePasswordStore()
@@ -218,7 +219,7 @@ const importData = async (buffer: any) => {
     }
 
     // 将密码对象添加到数组中
-    importPasswords.value.push(password);
+    importPasswords.value.push(normalizePasswordFieldOrder(password));
   }
 
   console.log('导入excel 导入的数量,密码：', importPasswords.value.length, ' 标签', importLabels.value.length)

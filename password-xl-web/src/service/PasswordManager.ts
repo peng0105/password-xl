@@ -21,6 +21,7 @@ import {normalizeSetting, useSettingStore} from "@/stores/SettingStore.ts";
 import {randomPassword} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useNoteStore} from "@/stores/NoteStore.ts";
+import {normalizePasswordArray, normalizePasswordFieldOrder} from "@/utils/passwordFieldOrder.ts";
 
 export class PasswordManagerImpl implements PasswordManager {
 
@@ -215,6 +216,7 @@ export class PasswordManagerImpl implements PasswordManager {
             }
         }
 
+        normalizePasswordArray(this.passwordStore.allPasswordArray)
         this.storeData = {
             passwordData: encryptAES(newMainPassword, JSON.stringify(compressArray(this.passwordStore.allPasswordArray))),
             labelData: encryptAES(newMainPassword, JSON.stringify(this.passwordStore.labelArray)),
@@ -255,13 +257,13 @@ export class PasswordManagerImpl implements PasswordManager {
         console.log('passwordManager 新增密码：', password);
         this.serviceStatusAssert(ServiceStatus.UNLOCKED);
 
-        const newPassword = {
+        const newPassword = normalizePasswordFieldOrder({
             ...password,
             id: Date.now(),
             addTime: Date.now(),
             updateTime: Date.now(),
             status: PasswordStatus.NORMAL
-        };
+        });
         this.passwordStore.allPasswordArray.unshift(newPassword);
         return this.syncStoreData();
     }
@@ -270,6 +272,7 @@ export class PasswordManagerImpl implements PasswordManager {
     updatePassword(password: Password): Promise<RespData> {
         console.log('passwordManager 修改密码：', password.id)
         this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+        normalizePasswordFieldOrder(password)
         const index = this.passwordStore.allPasswordArray.findIndex((p: Password) => p.id === password.id);
         if (index !== -1) {
             this.passwordStore.allPasswordArray[index] = password;
@@ -362,7 +365,7 @@ export class PasswordManagerImpl implements PasswordManager {
             }
 
             // 开始恢复
-            this.passwordStore.allPasswordArray = decompressionArray(JSON.parse(passwordText))
+            this.passwordStore.allPasswordArray = normalizePasswordArray(decompressionArray(JSON.parse(passwordText)))
             this.passwordStore.labelArray = JSON.parse(labelText)
             this.passwordStore.mainPassword = mainPassword
 
@@ -408,6 +411,7 @@ export class PasswordManagerImpl implements PasswordManager {
     // 同步数据
     syncStoreData(): Promise<RespData> {
         this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+        normalizePasswordArray(this.passwordStore.allPasswordArray)
         this.storeData = {
             passwordData: encryptAES(this.passwordStore.mainPassword, JSON.stringify(compressArray(this.passwordStore.allPasswordArray))),
             labelData: encryptAES(this.passwordStore.mainPassword, JSON.stringify(this.passwordStore.labelArray)),

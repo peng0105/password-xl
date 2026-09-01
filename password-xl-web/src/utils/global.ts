@@ -5,6 +5,7 @@ import {useSettingStore} from "@/stores/SettingStore.ts";
 import {encryptAES} from "@/utils/security.ts";
 import CryptoJS from 'crypto-js'
 import {match} from 'pinyin-pro'
+import {getOrderedPasswordFields} from "@/utils/passwordFieldOrder.ts";
 
 // 判断字符串是否为url
 export const isUrl = (str: string) => {
@@ -222,28 +223,27 @@ export const getPasswordLabelNames = (password: Password, labelArray?: Array<Lab
 
 // 分享密码
 export const sharePassword = (password: Password) => {
-    let text = password.title + '\r\n'
-    if (password.address) {
-        text += '地址: ' + password.address + '\r\n'
-    }
-    if (password.username) {
-        text += '用户名: ' + password.username + '\r\n'
-    }
-    if (password.password) {
-        text += '密码: ' + password.password + '\r\n'
-    }
-    // 自定义字段
-    if (password.customFields) {
-        for (let i = 0; i < password.customFields.length; i++) {
-            let field = password.customFields[i];
-            text += field.key + ': ' + field.val + '\r\n'
+    const lines = [password.title]
+    getOrderedPasswordFields(password).forEach(orderedField => {
+        if (orderedField.type === 'custom') {
+            if (orderedField.field.key || orderedField.field.val) {
+                lines.push(orderedField.field.key + ': ' + orderedField.field.val)
+            }
+            return
         }
-    }
-    if (password.remark) {
-        text += password.remark + '\r\n'
-    }
+        if (orderedField.key === 'labels') return
+        if (orderedField.key === 'address' && password.address) {
+            lines.push('地址: ' + password.address)
+        } else if (orderedField.key === 'username' && password.username) {
+            lines.push('用户名: ' + password.username)
+        } else if (orderedField.key === 'password' && password.password) {
+            lines.push('密码: ' + password.password)
+        } else if (orderedField.key === 'remark' && password.remark) {
+            lines.push(password.remark)
+        }
+    })
 
-    text = text.substring(0, text.length - 2)
+    const text = lines.join('\r\n')
     // 复制到剪切板
     copyText(text, true);
     ElMessage.success('已复制到剪切板');
