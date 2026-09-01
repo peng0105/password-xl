@@ -3,6 +3,7 @@ import {useLoginStore} from "@/stores/LoginStore.ts";
 import {useRoute} from "vue-router";
 
 const OSSLoginForm = defineAsyncComponent(() => import('@/components/login/OSSLoginForm.vue'))
+const COSLoginForm = defineAsyncComponent(() => import('@/components/login/COSLoginForm.vue'))
 
 const route = useRoute()
 const loginStore = useLoginStore()

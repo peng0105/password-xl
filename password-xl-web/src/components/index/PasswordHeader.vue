@@ -8,6 +8,7 @@ import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useRouter} from "vue-router";
 import {ArrowDown, ArrowRight, ArrowUp, Sort as SortIcon} from "@element-plus/icons-vue";
 import BatchOperationToolbar from "@/components/index/BatchOperationToolbar.vue";
+import {loadPinyinMatcher} from "@/utils/pinyin.ts";
 
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
@@ -75,9 +76,23 @@ const searchText: Ref<string> = ref('')
 const inputIng: Ref<boolean> = ref(false)
 
 // 过滤密码
-const filterPassword = (str?: string) => {
+let searchSequence = 0
+const filterPassword = async (str?: string) => {
   console.log('header 过滤密码 searchText:', searchText.value, ' 触发方式：' + str)
-  passwordStore.filterCondition.searchText = searchText.value.trim()
+  const currentSequence = ++searchSequence
+  const currentSearchText = searchText.value.trim()
+  if (currentSearchText) {
+    try {
+      await loadPinyinMatcher()
+    } catch (error) {
+      console.error('拼音搜索模块加载失败', error)
+    }
+  }
+  // 输入内容已发生变化时，丢弃旧搜索，避免异步加载完成后覆盖新结果。
+  if (currentSequence !== searchSequence) {
+    return
+  }
+  passwordStore.filterCondition.searchText = currentSearchText
 }
 
 // 保存搜索记录

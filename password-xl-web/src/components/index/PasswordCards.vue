@@ -258,6 +258,24 @@ const getPagePasswordArray = () => {
   return passwordStore.visPasswordArray.slice(0, pageIndex.value * pageSize.value)
 }
 
+// 筛选条件变化后从第一页重新展示，避免沿用滚动后的大分页范围。
+watch(
+    [
+      () => passwordStore.filterCondition.searchText,
+      () => passwordStore.filterCondition.labelArray.join(','),
+      () => passwordStore.filterCondition.favoriteId,
+    ],
+    () => {
+      pageIndex.value = 1
+      nextTick(() => {
+        const scrollbarWrap = passwordCardScrollbar.value?.wrapRef
+        if (scrollbarWrap) {
+          scrollbarWrap.scrollTop = 0
+        }
+      })
+    },
+)
+
 const scrollLoad = () => {
   const scrollbarWrap = passwordCardScrollbar.value?.wrapRef;
   if (!scrollbarWrap) {

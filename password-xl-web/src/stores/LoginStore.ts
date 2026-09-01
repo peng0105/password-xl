@@ -1,6 +1,5 @@
 import {defineStore} from "pinia";
 import {browserFingerprint, checkPassword, decryptAES, encryptAES} from "@/utils/security.ts";
-import {DatabaseForCOS} from "@/database/DatabaseForCOS.ts";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {LoginInfo, LoginStore, ServiceStatus} from "@/types";
 import {useSettingStore} from "@/stores/SettingStore.ts";
@@ -29,7 +28,8 @@ export const useLoginStore = defineStore('loginStore', {
                     const module = await import("@/database/DatabaseForOSS.ts");
                     database = new module.DatabaseForOSS()
                 } else if (loginForm.loginType === 'cos') {
-                    database = new DatabaseForCOS()
+                    const module = await import("@/database/DatabaseForCOS.ts");
+                    database = new module.DatabaseForCOS()
                 } else if (loginForm.loginType === 'private') {
                     database = new DatabaseForPrivate()
                 } else if (loginForm.loginType === 'electron') {

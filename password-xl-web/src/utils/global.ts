@@ -4,7 +4,7 @@ import {GenerateRule, Label, Password} from "@/types";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import {encryptAES} from "@/utils/security.ts";
 import CryptoJS from 'crypto-js'
-import {match} from 'pinyin-pro'
+import {matchPinyin} from '@/utils/pinyin.ts'
 import {getOrderedPasswordFields} from "@/utils/passwordFieldOrder.ts";
 
 // 判断字符串是否为url
@@ -71,12 +71,7 @@ export const searchStr = (searchText: string, value: SearchField): boolean => {
         }
 
         // 拼音搜索，支持全拼、首字母和混合拼音
-        if (match(String(value), String(searchText), {
-            continuous: true,
-            precision: 'start',
-            insensitive: true,
-            v: true
-        })) {
+        if (matchPinyin(String(value), String(searchText))) {
             return true;
         }
     } catch (e) {

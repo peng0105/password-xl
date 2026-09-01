@@ -10,6 +10,7 @@ import '@/assets/iconfont/iconfont.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import axios from "axios";
 import config from "@/config.ts";
+import {preloadPinyinMatcher} from "@/utils/pinyin.ts";
 
 const pinia = createPinia()
 pinia.use(piniaReset);
@@ -18,6 +19,8 @@ let app = createApp(App);
 app.use(router)
 app.use(pinia)
 app.mount('#app')
+
+preloadPinyinMatcher()
 
 setTimeout(() => {
     axios.get(config.apiServer + '/getVersion', {withCredentials: true}).then((res) => {

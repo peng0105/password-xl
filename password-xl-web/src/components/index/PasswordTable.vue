@@ -121,6 +121,24 @@ const getPagePasswordArray = () => {
   return passwordStore.visPasswordArray.slice(0, pageIndex.value * pageSize.value)
 }
 
+// 筛选条件变化后从第一页重新展示，避免沿用滚动后的大分页范围。
+watch(
+    [
+      () => passwordStore.filterCondition.searchText,
+      () => passwordStore.filterCondition.labelArray.join(','),
+      () => passwordStore.filterCondition.favoriteId,
+    ],
+    () => {
+      pageIndex.value = 1
+      nextTick(() => {
+        const scrollbarWrap = passwordTableRef.value?.$el.querySelector(".el-scrollbar__wrap")
+        if (scrollbarWrap) {
+          scrollbarWrap.scrollTop = 0
+        }
+      })
+    },
+)
+
 // 将批量选择状态同步到当前已渲染的表格行
 const syncVisibleTableSelection = async () => {
   if (!passwordStore.batchOperationEnabled || !passwordTableRef.value) {
