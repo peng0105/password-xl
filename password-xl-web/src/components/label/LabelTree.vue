@@ -158,14 +158,6 @@ const saveLabel = (data: Label) => {
   passwordStore.passwordManager.syncStoreData()
 }
 
-// 点击标签
-const clickLabel = (node: any) => {
-  if (editLabelId.value !== 0) {
-    return;
-  }
-  refStore.labelTreeRef.setChecked(node, !node.checked)
-}
-
 // 标签过滤密码功能
 const filterPassword = () => {
   let checkedKeys = refStore.labelTreeRef.getCheckedKeys()
@@ -201,6 +193,7 @@ defineExpose({
         :ref="(el: any) => refStore.labelTreeRef = el"
         :allow-drag="labelDrag"
         :check-strictly="true"
+        check-on-click-node
         :data="passwordStore.labelArray"
         :default-expanded-keys="getDefaultExpandedKeys()"
         :expand-on-click-node="false"
@@ -227,11 +220,10 @@ defineExpose({
           <div
               v-if="data.id !== editLabelId"
               class="label-content"
-              @click="clickLabel(node)"
               @contextmenu="contextmenu($event,data.id)">
             {{ data.name }}
           </div>
-          <div v-if="data.id === editLabelId" style="width: 100%;">
+          <div v-if="data.id === editLabelId" style="width: 100%;" @click.stop>
             <el-input
                 :ref="(el: any) => labelNodeRefs[node.data.id] = el"
                 v-model="data.name"
