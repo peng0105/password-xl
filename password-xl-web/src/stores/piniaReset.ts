@@ -1,4 +1,4 @@
-import {PiniaPluginContext} from "pinia";
+import type {PiniaPluginContext, StateTree, StoreProperties} from "pinia";
 import {pick} from "lodash-es";
 
 declare module "pinia" {

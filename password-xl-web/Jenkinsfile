@@ -50,7 +50,7 @@ export COREPACK_NPM_REGISTRY="${YARN_REGISTRY%/}"
 export YARN_NPM_REGISTRY_SERVER="${YARN_REGISTRY}"
 
 echo "🧶 启用项目声明的 Yarn 版本..."
-corepack prepare yarn@4.16.0 --activate
+corepack prepare yarn@4.18.0 --activate
 corepack yarn --version
 corepack yarn config get npmRegistryServer
 

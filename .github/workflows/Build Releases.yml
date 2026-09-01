@@ -22,15 +22,15 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
-          node-version: 22.18.x
+          node-version: 24.20.x
 
       - name: 缓存 yarn 模块
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: |
             ~/.yarn/cache
@@ -43,7 +43,7 @@ jobs:
       - name: 安装 yarn
         run: |
           corepack enable
-          corepack prepare yarn@4.16.0 --activate
+          corepack prepare yarn@4.18.0 --activate
           yarn --version
 
       - name: 安装依赖
@@ -51,7 +51,7 @@ jobs:
         working-directory: ./password-xl-web
 
       - name: 安装 Jdk25
-        uses: graalvm/setup-graalvm@v1
+        uses: graalvm/setup-graalvm@v1.6.4
         with:
           java-version: '25'
           distribution: 'graalvm'
@@ -65,7 +65,7 @@ jobs:
           native-image --version
 
       - name: 获取gradle缓存
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -140,15 +140,15 @@ jobs:
     needs: build-project
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
-          node-version: 22.18.x
+          node-version: 24.20.x
 
       - name: 缓存 yarn 模块
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: |
             ~/.yarn/cache
@@ -161,7 +161,7 @@ jobs:
       - name: 安装 yarn
         run: |
           corepack enable
-          corepack prepare yarn@4.16.0 --activate
+          corepack prepare yarn@4.18.0 --activate
           yarn --version
 
       - name: 安装依赖
@@ -188,15 +188,15 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
-          node-version: 22.18.x
+          node-version: 24.20.x
 
       - name: 缓存 yarn 模块
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: |
             ~/.yarn/cache
@@ -209,7 +209,7 @@ jobs:
       - name: 安装 yarn
         run: |
           corepack enable
-          corepack prepare yarn@4.16.0 --activate
+          corepack prepare yarn@4.18.0 --activate
           yarn --version
 
       - name: 安装依赖
@@ -238,15 +238,15 @@ jobs:
     needs: build-project
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 nvm
         uses: dcodeIO/setup-node-nvm@v5
         with:
-          node-version: 22.18.x
+          node-version: 24.20.x
 
       - name: 缓存 yarn 模块
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: |
             ~/.yarn/cache
@@ -259,7 +259,7 @@ jobs:
       - name: 安装 yarn
         run: |
           corepack enable
-          corepack prepare yarn@4.16.0 --activate
+          corepack prepare yarn@4.18.0 --activate
           yarn --version
 
       - name: 安装依赖

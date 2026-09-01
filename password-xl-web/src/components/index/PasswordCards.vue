@@ -26,6 +26,82 @@ const passwordCardScrollbar = ref()
 
 const fieldShows: Ref<Record<string, boolean>> = ref({})
 
+// 密码标签树Ref
+const passwordLabelTreeRefs: Record<number, any> = {}
+// 标签编辑草稿
+const passwordLabelDrafts: Record<number, number[]> = reactive({})
+// 打开标签弹框时的标签快照
+const passwordLabelSnapshots: Record<number, number[]> = {}
+
+const setPasswordLabelTreeRef = (passwordId: number, el: any) => {
+  if (el) {
+    passwordLabelTreeRefs[passwordId] = el
+  } else {
+    delete passwordLabelTreeRefs[passwordId]
+  }
+}
+
+// 获取默认展开的标签（默认展开一级标签）
+const getDefaultExpandedLabelKeys = (): number[] => {
+  return passwordStore.labelArray.map(label => label.id)
+}
+
+// 打开标签弹框
+const showPasswordLabelPopover = (password: Password) => {
+  const labels = [...password.labels]
+  passwordLabelSnapshots[password.id] = labels
+  passwordLabelDrafts[password.id] = [...labels]
+  nextTick(() => {
+    passwordLabelTreeRefs[password.id]?.setCheckedKeys(labels)
+  })
+}
+
+// 更新标签编辑草稿
+const changePasswordLabels = (passwordId: number) => {
+  passwordLabelDrafts[passwordId] = passwordLabelTreeRefs[passwordId]?.getCheckedKeys() || []
+}
+
+const isSameLabels = (labels1: number[], labels2: number[]): boolean => {
+  if (labels1.length !== labels2.length) {
+    return false
+  }
+  const labelSet = new Set(labels1)
+  return labels2.every(label => labelSet.has(label))
+}
+
+const showSaveLabelError = (error: any) => {
+  ElNotification.error({
+    title: '系统异常',
+    message: error?.message || String(error || '标签保存失败')
+  })
+}
+
+// 关闭标签弹框时保存
+const savePasswordLabels = (password: Password) => {
+  const oldLabels = passwordLabelSnapshots[password.id] || [...password.labels]
+  const newLabels = passwordLabelDrafts[password.id] || [...oldLabels]
+  delete passwordLabelSnapshots[password.id]
+  delete passwordLabelDrafts[password.id]
+
+  if (isSameLabels(oldLabels, newLabels)) {
+    return
+  }
+
+  const updatePassword: Password = JSON.parse(JSON.stringify(password))
+  updatePassword.labels = [...newLabels]
+  updatePassword.updateTime = Date.now()
+
+  try {
+    passwordStore.passwordManager.updatePassword(updatePassword).then(resp => {
+      if (!resp.status) {
+        showSaveLabelError(resp.message)
+      }
+    }).catch(showSaveLabelError)
+  } catch (error) {
+    showSaveLabelError(error)
+  }
+}
+
 // 收藏密码
 const favoritePassword = (password: Password) => {
   console.log('收藏密码：', password.id)
@@ -270,6 +346,34 @@ onBeforeUnmount(() => {
               <el-text style="font-size: 80%" type="info">{{ formatterDate(password.updateTime, 'YYYY-MM-DD HH:mm') }}
               </el-text>
               <div>
+                <el-popover
+                    :width="260"
+                    placement="top"
+                    trigger="click"
+                    @after-leave="savePasswordLabels(password)"
+                    @before-enter="showPasswordLabelPopover(password)"
+                >
+                  <template #reference>
+                    <el-button aria-label="标签" plain size="small" title="标签" type="primary">
+                      <span class="iconfont icon-label card-opt-icon"/>
+                    </el-button>
+                  </template>
+                  <el-scrollbar max-height="300px">
+                    <el-tree
+                        v-if="passwordStore.labelArray.length"
+                        :ref="(el: any) => setPasswordLabelTreeRef(password.id, el)"
+                        :check-strictly="true"
+                        :data="passwordStore.labelArray"
+                        :default-expanded-keys="getDefaultExpandedLabelKeys()"
+                        :props="{label:'name'}"
+                        node-key="id"
+                        show-checkbox
+                        style="background-color: rgba(0,0,0,0);"
+                        @check-change="changePasswordLabels(password.id)"
+                    />
+                    <el-empty v-else :image-size="50" description="暂无标签"/>
+                  </el-scrollbar>
+                </el-popover>
                 <el-tooltip content="删除" placement="top">
                   <el-button plain size="small" type="danger" @click="deletePassword(password)">
                     <span class="iconfont icon-delete card-opt-icon"/>
