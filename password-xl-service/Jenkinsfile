@@ -2,7 +2,7 @@ pipeline {
     agent { label 'graalvm-jdk-25' }
 
     environment {
-        IMAGE_NAME = "harbor.huangyp.cn/password-xl/password-xl-service"
+        IMAGE_NAME = "repo.huangyp.cn/password-xl/password-xl-service"
         GRADLE_USER_HOME = '/home/jenkins/.gradle'
     }
 
