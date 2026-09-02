@@ -31,7 +31,7 @@
 
 ---
 
-## 🌐 项目地址
+## 🌐 体验地址（直接用也可以哦）
 
 * **官方在线服务**
   👉 [https://password-xl.cn](https://password-xl.cn)
@@ -45,6 +45,18 @@
 
 📘 **完整使用文档 / 部署说明**
 👉 [点击查看 Wiki 文档](https://gitee.com/huanyp/password-xl/wikis/Home)
+
+---
+
+## 快速部署
+
+```shell
+docker run -d --name password-xl -p 8080:8080 -v ./password-xl:/password-xl-service password-xl/password-xl-service
+```
+
+容器启动后浏览器打开 [http://127.0.0.1:8080/login/private](http://127.0.0.1:8080/login/private) 既可访问项目
+
+默认的账号密码在 ./password-xl/password-xl.toml 文件中查看
 
 ---
 
