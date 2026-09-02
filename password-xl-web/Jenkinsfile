@@ -24,6 +24,9 @@ pipeline {
 
     environment {
         IMAGE_NAME = "repo.huangyp.cn/${PROJECT}/${MODULE}"
+        DOCKER_HUB_IMAGE = "docker.io/huangypeng/password-xl-web"
+        TENCENT_IMAGE = "ccr.ccs.tencentyun.com/password-xl/password-xl-service-web"
+        REGISTRY_PROXY = "http://192.168.31.3:7890"
         YARN_REGISTRY = "https://nexus.huangyp.cn/repository/npm-group/"
         MODULE_NAME = "${MODULE}"
         PROJECT_NAME = "${PROJECT}"
@@ -83,6 +86,58 @@ buildctl-daemonless.sh build \
               '''
             }
           }
+        }
+
+        stage('Mirror Image') {
+            steps {
+                container('buildkit') {
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'dockerhub-password-xl',
+                            usernameVariable: 'DOCKERHUB_USERNAME',
+                            passwordVariable: 'DOCKERHUB_PASSWORD'
+                        ),
+                        usernamePassword(
+                            credentialsId: 'tencent-ccr-password-xl',
+                            usernameVariable: 'TENCENT_USERNAME',
+                            passwordVariable: 'TENCENT_PASSWORD'
+                        )
+                    ]) {
+                        sh '''#!/bin/sh
+
+set -euo pipefail
+umask 077
+
+export DOCKER_CONFIG="${WORKSPACE}/.docker-${BUILD_TAG}"
+export HTTP_PROXY="${REGISTRY_PROXY}"
+export HTTPS_PROXY="${REGISTRY_PROXY}"
+export NO_PROXY="repo.huangyp.cn,ccr.ccs.tencentyun.com,localhost,127.0.0.1"
+MIRROR_CONTEXT="${WORKSPACE}/.image-mirror-${BUILD_TAG}"
+trap 'rm -rf "${DOCKER_CONFIG}" "${MIRROR_CONTEXT}"' EXIT
+
+mkdir -p "${DOCKER_CONFIG}" "${MIRROR_CONTEXT}"
+
+dockerhub_auth="$(printf '%s:%s' "${DOCKERHUB_USERNAME}" "${DOCKERHUB_PASSWORD}" | base64 | tr -d '\n')"
+tencent_auth="$(printf '%s:%s' "${TENCENT_USERNAME}" "${TENCENT_PASSWORD}" | base64 | tr -d '\n')"
+
+printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"},"ccr.ccs.tencentyun.com":{"auth":"%s"}}}\n' \
+  "${dockerhub_auth}" "${tencent_auth}" > "${DOCKER_CONFIG}/config.json"
+
+printf '%s\n' 'ARG SOURCE_IMAGE' 'FROM ${SOURCE_IMAGE}' > "${MIRROR_CONTEXT}/Dockerfile"
+
+echo "🚚 同步镜像到 Docker Hub 和腾讯云 CCR..."
+buildctl-daemonless.sh build \
+  --frontend dockerfile.v0 \
+  --local context="${MIRROR_CONTEXT}" \
+  --local dockerfile="${MIRROR_CONTEXT}" \
+  --opt filename=Dockerfile \
+  --opt build-arg:SOURCE_IMAGE="${IMAGE_NAME}:${BUILD_NUMBER}" \
+  --output type=image,\\"name=${DOCKER_HUB_IMAGE}:${BUILD_NUMBER},${DOCKER_HUB_IMAGE}:latest,${TENCENT_IMAGE}:${BUILD_NUMBER},${TENCENT_IMAGE}:latest\\",push=true
+
+                        '''
+                    }
+                }
+            }
         }
 
         stage('Deploy to Kubernetes') {
