@@ -4,6 +4,8 @@ pipeline {
     environment {
         IMAGE_NAME = "repo.huangyp.cn/password-xl/password-xl-service"
         GRADLE_USER_HOME = '/home/jenkins/.gradle'
+        LANG = 'C.UTF-8'
+        LC_ALL = 'C.UTF-8'
     }
 
     options {
