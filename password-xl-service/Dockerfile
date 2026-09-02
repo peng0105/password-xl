@@ -1,4 +1,4 @@
-FROM harbor.huangyp.cn/dockerhub/debian:stable-slim
+FROM dockerhub.huangyp.cn/library/debian:stable-slim
 
 WORKDIR /app
 
