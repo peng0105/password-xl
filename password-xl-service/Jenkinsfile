@@ -53,9 +53,6 @@ pipeline {
                     set -euo pipefail
                     cd password-xl-service
 
-                    mkdir -p /root/.docker
-                    cp /root/.dockerconfigjson/.dockerconfigjson /root/.docker/config.json
-
                     echo "🏗️ 使用 BuildKit 构建并推送镜像..."
                     buildctl-daemonless.sh build \
                       --frontend dockerfile.v0 \
