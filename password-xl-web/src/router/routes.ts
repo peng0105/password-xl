@@ -5,7 +5,7 @@ const routes = [
         component: () => import('@/views/IndexPage.vue'),
     },
     {
-        path: '/login',
+        path: '/login/:type(oss|cos|private|local)?',
         name: 'Login',
         component: () => import('@/views/LoginPage.vue'),
     },

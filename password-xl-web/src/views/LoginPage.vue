@@ -1,15 +1,25 @@
 <script lang="ts" setup>
 import {useLoginStore} from "@/stores/LoginStore.ts";
-import {useRoute} from "vue-router";
+import {useRoute, useRouter} from "vue-router";
 
 const OSSLoginForm = defineAsyncComponent(() => import('@/components/login/OSSLoginForm.vue'))
 const COSLoginForm = defineAsyncComponent(() => import('@/components/login/COSLoginForm.vue'))
 
 const route = useRoute()
+const router = useRouter()
 const loginStore = useLoginStore()
+const loginTypes = ['oss', 'cos', 'private', 'local']
 
 // 登录进度 1.选择登录方式 2.录入登录表单
-const loginStep = ref(1)
+const loginType = computed(() => {
+  const type = (route.params.type || route.query.type || '') + ''
+  return loginTypes.includes(type) ? type : ''
+})
+const loginStep = computed(() => loginType.value ? 2 : 1)
+
+watch(loginType, (type) => {
+  loginStore.loginType = type
+}, {immediate: true})
 
 // 选择了登录方式
 const loginTypeChange = (type: string) => {
@@ -19,30 +29,14 @@ const loginTypeChange = (type: string) => {
     return
   }
 
-  loginStep.value = 2;
-  // 向浏览历史中插入当前页，按返回按钮时回退到登录方式选择
-  history.pushState(history.state, '', document.URL);
+  const query = {...route.query}
+  delete query.type
+  router.push({path: `/login/${type}`, query})
 }
 
-// 监听浏览器返回事件
-window.addEventListener('popstate', function () {
-  console.log('登录，监听浏览器返回事件')
-  if (loginStep.value === 2) {
-    console.log('登录，登录进度为2时返回1')
-    // 登录进度为2时返回1
-    loginStep.value = 1
-  }
-});
-
-// 从url初始化登录form
-const initForm = () => {
-  let type = (route.query.type || '') + ''
-  if (type) {
-    loginTypeChange(type)
-  }
+const backToLoginTypes = () => {
+  router.push('/login')
 }
-
-initForm()
 </script>
 
 <template>
@@ -70,7 +64,7 @@ initForm()
                   <div v-else v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText"
                        class="sliding-element">
                     <div style="padding: 8px">
-                      <el-link v-if="loginStep === 2" underline="hover" type="primary" @click="loginStep = 1">
+                      <el-link v-if="loginStep === 2" underline="hover" type="primary" @click="backToLoginTypes">
                         <span class="iconfont icon-back login-back"></span>返回
                       </el-link>
                     </div>
@@ -108,6 +102,11 @@ initForm()
           </div>
           <div v-else v-loading="loginStore.logging" :element-loading-text="loginStore.loggingText"
                class="login-form-card">
+            <div style="padding: 8px">
+              <el-link underline="hover" type="primary" @click="backToLoginTypes">
+                <span class="iconfont icon-back login-back"></span>返回
+              </el-link>
+            </div>
             <el-row style="margin-top: 20px">
               <el-col :offset="1" :span="22">
                 <template v-if="loginStore.loginType === 'oss'">

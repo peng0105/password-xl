@@ -514,7 +514,7 @@ export const incrId = () => {
 
 export const getFastLoginLink = (loginForm: any): string => {
     let url = getLocationUrl()
-    return url + '/login?type=' + loginForm.loginType + '&autoLogin=' + encryptAES('password-xl', JSON.stringify(loginForm));
+    return url + '/login/' + loginForm.loginType + '?autoLogin=' + encryptAES('password-xl', JSON.stringify(loginForm));
 }
 
 export const generateRandomId = (): string => {
