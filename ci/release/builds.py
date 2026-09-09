@@ -90,13 +90,14 @@ def dockerfile_image(context, target, cloud=False):
     build_args = {name: os.environ[name] for name in ('NGINX_IMAGE', 'RUNTIME_IMAGE') if os.environ.get(name)}
     if cloud:
         args = ['docker', 'buildx', 'build', '--platform', 'linux/' + image_arch(target),
-                '--provenance=false', '--output', f'type=docker,dest={image_path}',
+                '--provenance=false', '--load',
                 '-t', 'password-xl-worker:' + target]
         for key, value in labels.items():
             args += ['--label', key + '=' + value]
         for key, value in build_args.items():
             args += ['--build-arg', key + '=' + value]
         run([*args, str(build_context)])
+        run(['docker', 'image', 'save', '--output', str(image_path), 'password-xl-worker:' + target])
         return 'docker-archive:' + str(image_path)
     args = ['buildctl', '--addr', env('BUILDKIT_HOST', 'tcp://127.0.0.1:1234'), 'build',
             '--frontend', 'dockerfile.v0', '--local', 'context=' + str(build_context),
@@ -141,10 +142,27 @@ def build_local(context, target):
 
 def desktop(context, targets):
     dist = frontend(context, 'electron')
+    web = ROOT / 'password-xl-web'
+    app = OUT / 'desktop-app'
+    require(app.resolve().is_relative_to(OUT.resolve()), 'Desktop staging must stay in .release')
+    if app.exists():
+        shutil.rmtree(app)
+    shutil.copytree(web / 'electron', app / 'electron')
+    shutil.copytree(dist, app / 'dist')
+    # Vite has bundled renderer dependencies. Only crypto-js is imported by the
+    # Electron main process; shipping the build dependency tree breaks Universal DMGs.
+    crypto = web / 'node_modules/crypto-js'
+    require(not read_json(crypto / 'package.json').get('dependencies'), 'Review new crypto-js runtime dependencies')
+    shutil.copytree(crypto, app / 'node_modules/crypto-js')
+    metadata = read_json(web / 'package.json')
+    for key in ('scripts', 'devDependencies', 'packageManager'):
+        metadata.pop(key, None)
+    metadata['dependencies'] = {'crypto-js': read_json(crypto / 'package.json')['version']}
+    write_json(app / 'package.json', metadata)
     config = read_json(ROOT / 'ci/electron-builder.json')
     config['extends'] = str(ROOT / 'password-xl-web/electron/electron-builder.json5')
-    config['files'] = ['package.json', 'electron/**/*', {'from': str(dist), 'to': 'dist'}]
-    config['directories'] = {'output': str(OUT / 'desktop')}
+    config['files'] = ['package.json', 'electron/**/*', 'dist/**/*']
+    config['directories'] = {'app': str(app), 'output': str(OUT / 'desktop')}
     for platform_name in ('win', 'linux'):
         config[platform_name]['icon'] = str(dist / 'icons/1024x1024.png')
     config_path = OUT / 'electron-builder.json'

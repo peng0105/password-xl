@@ -32,6 +32,10 @@ if (process.platform === 'darwin') {
   assert.equal(elf.readUInt16LE(18), 62, 'Linux app is not x64')
 }
 assert.equal(JSON.parse(asar.extractFile(appArchive, 'package.json')).version, version, 'Packaged app version mismatch')
+const packagedPaths = asar.listPackage(appArchive).map(name => name.replaceAll('\\', '/'))
+assert(packagedPaths.includes('/node_modules/crypto-js/index.js'), 'Electron runtime dependency missing')
+assert(!packagedPaths.some(name => /\/node_modules\/(?:@rolldown|vite|typescript)\//.test(name)),
+  'Frontend build tools must not be shipped in the app')
 for (const name of entries) {
   const artifact = join(directory, name)
   if (name.endsWith('.rpm')) {

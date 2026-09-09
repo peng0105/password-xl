@@ -3,6 +3,7 @@ kind: Pod
 metadata:
   annotations:
     container.apparmor.security.beta.kubernetes.io/buildkit: unconfined
+    container.apparmor.security.beta.kubernetes.io/tools: unconfined
 spec:
   serviceAccountName: jenkins-build
   automountServiceAccountToken: false
@@ -20,6 +21,7 @@ spec:
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
+        appArmorProfile: {type: Unconfined}
       env:
         - name: BUILDKIT_HOST
           value: tcp://127.0.0.1:1234
