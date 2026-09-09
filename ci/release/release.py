@@ -113,7 +113,7 @@ def domain(context, name):
                         archive_ref = builds.build_local(context, target)
                         image = registry.stage(archive_ref, context, target)
                         worker, _, record, _ = consume_worker(context, 'smoke-' + image['arch'], [target],
-                                                              image=image['source'])
+                                                              image=image['worker_source'])
                         require(worker.get('verified_images') == [target], 'Image was not verified')
                         runs.append(record)
                     images.append(image)
@@ -227,13 +227,14 @@ def worker():
         elif task in ('smoke-amd64', 'smoke-arm64'):
             require(len(targets) == 1 and targets[0] in IMAGE_TARGETS, 'Invalid smoke request')
             image = context['image']
-            require('@sha256:' in image and image.startswith(env('REGISTRY_PRIVATE_PREFIX') + '/'), 'Invalid image source')
+            allowed = os.environ.get('REGISTRY_WORKER_PREFIX') or env('REGISTRY_PRIVATE_PREFIX')
+            require('@sha256:' in image and image.startswith(allowed + '/'), 'Invalid image source')
             docker_auth = OUT / 'private/worker-docker'
             docker_auth.mkdir(parents=True, exist_ok=True)
             auths = {}
-            if env('REGISTRY_PRIVATE_ANONYMOUS', 'false') != 'true':
+            if env('REGISTRY_WORKER_ANONYMOUS', 'false') != 'true':
                 auths[image.split('/')[0]] = {'auth': base64.b64encode(
-                    (env('REGISTRY_PRIVATE_USERNAME') + ':' + env('REGISTRY_PRIVATE_PASSWORD')).encode()).decode()}
+                    (env('REGISTRY_WORKER_USERNAME') + ':' + env('REGISTRY_WORKER_PASSWORD')).encode()).decode()}
             write_json(docker_auth / 'config.json', {'auths': auths})
             os.environ['DOCKER_CONFIG'] = str(docker_auth)
             run(['docker', 'pull', image])

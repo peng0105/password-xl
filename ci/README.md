@@ -1,6 +1,6 @@
 # Password XL 统一构建与发布
 
-Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式调度的编译/验证 worker。没有 Windows Agent，也不在 k3s 安装 VM、Docker daemon、QEMU 或 binfmt。`password-xl-home/Jenkinsfile` 保持独立。
+Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式调度的编译/验证 worker。没有 Windows Agent，也不在 k3s 安装 VM、Docker daemon、QEMU 或 binfmt。官网已迁移至独立 `password-xl-home` 仓库，本仓库不再包含官网模块和部署清单。
 
 ## 入口和目标
 
@@ -94,7 +94,7 @@ Skopeo 先将本地 Docker/OCI archive 规范为压缩的单架构 Docker v2 man
 
 安卓改动位于独立 `password-xl-android` 仓库。两 flavor 都保留 `com.passwordxl`、getFilesDir 和 INTERNET。联网入口是官方站点；本地入口使用 WebViewAssetLoader 的虚拟 HTTPS origin，从 APK assets 读取相对路径 dist，无需访问该域名服务器，支持 Vite ES modules。原有本地 vault 文件目录保持不变；从旧 file: origin 升级时 WebView localStorage 的页面偏好不会自动迁移，升级测试重点验证原生文件目录数据。版本 code 为 major×1000000+minor×1000+patch，并校验 Android 上限及历史 APK 的升级顺序。
 
-签名基线由安卓仓库 `ci/signing-baseline.json` 指向既有历史 APK，worker 读取历史 Git blob，通过 apksigner 比较证书。现有历史二进制没有作为新产物再次提交。模拟器先装历史 APK，写入隔离测试文件，然后依次覆盖 online → local → online；local 测试时关闭网络，检测页面、桥接读写和保留数据。SDK/AGP 使用 Android 原版本路线：JDK17、Gradle8.7、AGP8.5.1、SDK34，与服务 Java25 独立。
+签名基线由安卓仓库 `ci/signing-baseline.json` 记录历史 APK 及当前证书摘要，worker 读取历史 Git blob，通过 apksigner 比较证书。原签名密码遗失，维护者已明确选择在 1.5.0 使用新签名；旧安装需先导出数据，再卸载重装并导入。CI 先验证新签名无法覆盖历史安装，再在隔离模拟器中安装新版、写入测试文件并依次覆盖 online → local → online；local 测试时关闭网络，检测页面、桥接读写和保留数据。SDK/AGP 使用 Android 原版本路线：JDK17、Gradle8.7、AGP8.5.1、SDK34，与服务 Java25 独立。
 
 ## 发布、重试和取消
 

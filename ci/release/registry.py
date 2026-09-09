@@ -62,8 +62,18 @@ def stage(archive_reference, context, target):
     copy(archive_reference, candidate)
     actual = inspect('docker://' + candidate)
     require(actual['Digest'] == info['Digest'], 'Staging changed the image digest')
+    source = repository + '@' + info['Digest']
+    worker_source = source
+    worker_prefix = os.environ.get('REGISTRY_WORKER_PREFIX', prefix('private')).rstrip('/')
+    if worker_prefix != prefix('private'):
+        require(worker_prefix in (prefix('dockerhub'), prefix('tencent')), 'Worker staging must use a configured release registry')
+        worker_repository = worker_prefix + '/' + image_names(target, 'private')[0]
+        worker_candidate = worker_repository + ':' + candidate.rsplit(':', 1)[1]
+        copy('docker://' + source, worker_candidate)
+        require(inspect('docker://' + worker_candidate)['Digest'] == info['Digest'], 'Worker staging changed image digest')
+        worker_source = worker_repository + '@' + info['Digest']
     return {'target': target, 'arch': image_arch(target), 'digest': info['Digest'],
-            'source': repository + '@' + info['Digest'], 'destinations': []}
+            'source': source, 'worker_source': worker_source, 'destinations': []}
 
 
 def optional_tag(reference):
