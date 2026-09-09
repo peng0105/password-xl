@@ -95,12 +95,23 @@ def check_image(image, context, target):
                 linked = run(['docker', 'exec', name, 'ldd', '/app/password-xl-service'], capture=True)
                 require('not found' not in linked, 'Missing native shared library')
             run(['docker', 'restart', name])
+            # Docker may allocate a different ephemeral host port on restart.
+            published = run(['docker', 'port', name, str(port) + '/tcp'], capture=True).splitlines()[0]
+            base = 'http://' + published
             wait_ready(base, '/service/health')
             token = http(base, '/login', {'username': 'ci-test', 'password': password})['data']
             require(http(base, '/get', {'key': value['key']}, token)['data']['content'] == value['content'],
                     'Data was lost after restart')
             require(http(base, '/delete', {'key': value['key']}, token)['code'] == 200, 'Delete failed')
             require(http(base, '/get', {'key': value['key']}, token)['code'] == 404, 'Deleted data still exists')
+        except BaseException:
+            # Only this isolated test container is inspected. Keep useful startup
+            # diagnostics before removing it, and redact fixture/default passwords.
+            logs = subprocess.run(['docker', 'logs', '--tail', '100', name], capture_output=True, text=True)
+            for line in (logs.stdout + logs.stderr).splitlines():
+                if not re.search(r'(?:密码|password)\s*[:：]', line, re.IGNORECASE):
+                    print(line.replace(password, '[fixture]'), flush=True)
+            raise
         finally:
             if not web:
                 subprocess.run(['docker', 'exec', name, 'chmod', '-R', 'a+rwX', '/password-xl-service'],
