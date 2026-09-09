@@ -23,17 +23,18 @@ permissions:
 
 jobs:
   build:
+    if: ${{ inputs.task != 'native-arm' }}
     # The protected environment must allow only the Jenkins service account/tag policy.
     environment: jenkins-workers
     runs-on: ${{ fromJSON('{"native-arm":"ubuntu-24.04-arm","smoke-arm64":"ubuntu-24.04-arm","smoke-amd64":"ubuntu-24.04","desktop-linux":"ubuntu-22.04","desktop-macos":"macos-14","desktop-windows":"windows-2022","android":"ubuntu-24.04"}')[inputs.task] }}
     timeout-minutes: 115
-    env:
+    env: &worker_env
       WORKER_REQUEST_ID: ${{ inputs.request_id }}
       WORKER_PAYLOAD: ${{ inputs.payload }}
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       PYTHONUNBUFFERED: '1'
       PYTHONIOENCODING: utf-8
-    steps:
+    steps: &worker_steps
       - name: Require the Jenkins dispatch account
         shell: bash
         env:
@@ -131,3 +132,14 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
+  native-arm:
+    if: ${{ inputs.task == 'native-arm' }}
+    environment: jenkins-workers
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 115
+    # GitHub requires push access to read draft release assets. This short-lived
+    # token only downloads the shared frontend; publication is still Jenkins-owned.
+    permissions:
+      contents: write
+    env: *worker_env
+    steps: *worker_steps
