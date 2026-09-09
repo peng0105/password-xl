@@ -97,6 +97,13 @@ jobs:
           cmdline-tools-version: '11076708'
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
           log-accepted-android-sdk-licenses: 'false'
+      - name: Enable Android emulator acceleration on the GitHub runner
+        if: ${{ inputs.task == 'android' }}
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -r /dev/kvm && test -w /dev/kvm
       - name: Build signed APKs and test both upgrade directions
         if: ${{ inputs.task == 'android' }}
         uses: reactivecircus/android-emulator-runner@v2
@@ -112,6 +119,8 @@ jobs:
           arch: x86_64
           target: default
           disable-animations: true
+          disable-linux-hw-accel: false
+          emulator-boot-timeout: 300
           script: python ci/release/release.py worker
       - name: Return this request's artifacts to Jenkins
         if: always()
