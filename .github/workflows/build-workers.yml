@@ -60,7 +60,7 @@ jobs:
       - name: Install pinned Yarn
         if: ${{ !startsWith(inputs.task, 'smoke-') }}
         shell: bash
-        run: npm install --global corepack@0.34.6
+        run: npm install --global --force corepack@0.34.6
       - uses: graalvm/setup-graalvm@v1
         if: ${{ inputs.task == 'native-arm' }}
         with:
@@ -83,15 +83,20 @@ jobs:
         if: ${{ inputs.task != 'android' }}
         env:
           REGISTRY_PRIVATE_PREFIX: ${{ vars.REGISTRY_PRIVATE_PREFIX }}
-          REGISTRY_PRIVATE_ANONYMOUS: ${{ vars.REGISTRY_PRIVATE_ANONYMOUS }}
-          REGISTRY_PRIVATE_USERNAME: ${{ secrets.REGISTRY_PRIVATE_READ_USERNAME }}
-          REGISTRY_PRIVATE_PASSWORD: ${{ secrets.REGISTRY_PRIVATE_READ_PASSWORD }}
+          REGISTRY_WORKER_PREFIX: ${{ vars.REGISTRY_WORKER_PREFIX }}
+          REGISTRY_WORKER_ANONYMOUS: ${{ vars.REGISTRY_WORKER_ANONYMOUS }}
+          REGISTRY_WORKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGISTRY_WORKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
           GH_WORKER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: ${{ github.repository }}
         run: python ci/release/release.py worker
-      - name: Install Android SDK
+      - name: Set up Android command line tools
         if: ${{ inputs.task == 'android' }}
-        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0'
+        uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: '11076708'
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+          log-accepted-android-sdk-licenses: 'false'
       - name: Build signed APKs and test both upgrade directions
         if: ${{ inputs.task == 'android' }}
         uses: reactivecircus/android-emulator-runner@v2
