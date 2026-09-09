@@ -1,3 +1,8 @@
 # Project exclude paths
 /password-xl-web/vite.config.d.ts
 /password-xl-web/vite.config.js
+/.release/
+/ci/release/__pycache__/
+/ci/tests/__pycache__/
+/ci/jenkins/agent.local.yaml
+/ci/release-config.local.json

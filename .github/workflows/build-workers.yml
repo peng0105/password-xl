@@ -1,0 +1,119 @@
+name: Jenkins build worker
+run-name: Jenkins ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Unique Jenkins request ID
+        required: true
+        type: string
+      task:
+        description: Worker selected by Jenkins
+        required: true
+        type: choice
+        options: [native-arm, smoke-amd64, smoke-arm64, desktop-linux, desktop-macos, desktop-windows, android]
+      payload:
+        description: Pinned release context JSON (no secrets)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # The protected environment must allow only the Jenkins service account/tag policy.
+    environment: jenkins-workers
+    runs-on: ${{ fromJSON('{"native-arm":"ubuntu-24.04-arm","smoke-arm64":"ubuntu-24.04-arm","smoke-amd64":"ubuntu-24.04","desktop-linux":"ubuntu-22.04","desktop-macos":"macos-14","desktop-windows":"windows-2022","android":"ubuntu-24.04"}')[inputs.task] }}
+    timeout-minutes: 115
+    env:
+      WORKER_REQUEST_ID: ${{ inputs.request_id }}
+      WORKER_PAYLOAD: ${{ inputs.payload }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      PYTHONUNBUFFERED: '1'
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Require the Jenkins dispatch account
+        shell: bash
+        env:
+          JENKINS_ACTOR: ${{ vars.JENKINS_ACTOR }}
+        run: test -n "$JENKINS_ACTOR" && test "$GITHUB_ACTOR" = "$JENKINS_ACTOR"
+      - name: Check out the pinned source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ fromJSON(inputs.payload).source_sha }}
+          persist-credentials: false
+      - name: Validate dispatch identity
+        shell: bash
+        env:
+          DISPATCH_TASK: ${{ inputs.task }}
+        run: |
+          python -c 'import json,os,re,subprocess; p=json.loads(os.environ["WORKER_PAYLOAD"]); assert re.fullmatch("[0-9a-f]{32}",p["request_id"]); assert p["request_id"]==os.environ["WORKER_REQUEST_ID"]; assert p["task"]==os.environ["DISPATCH_TASK"]; assert p["source_sha"]==os.environ["GITHUB_SHA"]==subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v6
+        if: ${{ !startsWith(inputs.task, 'smoke-') }}
+        with:
+          node-version: '24.20.0'
+      - name: Install pinned Yarn
+        if: ${{ !startsWith(inputs.task, 'smoke-') }}
+        shell: bash
+        run: npm install --global corepack@0.34.6
+      - uses: graalvm/setup-graalvm@v1
+        if: ${{ inputs.task == 'native-arm' }}
+        with:
+          java-version: '25'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'false'
+      - uses: actions/setup-java@v6
+        if: ${{ inputs.task == 'android' }}
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Linux desktop dependencies
+        if: ${{ inputs.task == 'desktop-linux' }}
+        run: sudo apt-get update && sudo apt-get install -y rpm squashfs-tools libarchive-tools xvfb libnss3 libgtk-3-0 libasound2
+      - name: Native Linux dependencies
+        if: ${{ inputs.task == 'native-arm' }}
+        run: sudo apt-get update && sudo apt-get install -y build-essential zlib1g-dev
+      - name: Build and verify
+        if: ${{ inputs.task != 'android' }}
+        env:
+          REGISTRY_PRIVATE_PREFIX: ${{ vars.REGISTRY_PRIVATE_PREFIX }}
+          REGISTRY_PRIVATE_ANONYMOUS: ${{ vars.REGISTRY_PRIVATE_ANONYMOUS }}
+          REGISTRY_PRIVATE_USERNAME: ${{ secrets.REGISTRY_PRIVATE_READ_USERNAME }}
+          REGISTRY_PRIVATE_PASSWORD: ${{ secrets.REGISTRY_PRIVATE_READ_PASSWORD }}
+          GH_WORKER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: python ci/release/release.py worker
+      - name: Install Android SDK
+        if: ${{ inputs.task == 'android' }}
+        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0'
+      - name: Build signed APKs and test both upgrade directions
+        if: ${{ inputs.task == 'android' }}
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_URL: ${{ vars.ANDROID_URL }}
+          GITEA_TOKEN: ${{ secrets.GITEA_ANDROID_READ_TOKEN }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        with:
+          api-level: 34
+          arch: x86_64
+          target: default
+          disable-animations: true
+          script: python ci/release/release.py worker
+      - name: Return this request's artifacts to Jenkins
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: worker-${{ inputs.request_id }}
+          path: .release/worker/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

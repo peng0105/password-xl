@@ -9,7 +9,7 @@ const srcPath = path.resolve(import.meta.dirname, './src')
 
 // https://vitejs.dev/config/
 export default defineConfig(({mode}) => ({
-    base: mode === 'electron' ? './' : '/',
+    base: ['electron', 'android-local'].includes(mode) ? './' : '/',
     resolve: {
         alias: {
             '@': srcPath

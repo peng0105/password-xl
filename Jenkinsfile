@@ -5,4 +5,4 @@ node(env.RELEASE_BOOTSTRAP_LABEL ?: 'nodejs-24') {
     flow = load 'ci/jenkins/release.groovy'
     podYaml = readFile 'ci/jenkins/agent.yaml'
 }
-flow.run('web', podYaml)
+flow.run('all', podYaml)

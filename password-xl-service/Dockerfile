@@ -1,4 +1,8 @@
-FROM dockerhub.huangyp.cn/library/debian:stable-slim
+ARG RUNTIME_IMAGE=debian:trixie-slim
+FROM ${RUNTIME_IMAGE}
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates zlib1g libstdc++6 tzdata \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

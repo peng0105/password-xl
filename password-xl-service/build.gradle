@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com'
-version = '1.1.0'
+version = providers.gradleProperty('releaseVersion').getOrElse('1.1.0')
 
 java {
     toolchain {
@@ -17,7 +17,48 @@ java {
 
 jib {
     from {
-        image = "dockerhub.huangyp.cn/library/eclipse-temurin:25-jre-alpine"
+        image = providers.environmentVariable('JVM_BASE_IMAGE').getOrElse('eclipse-temurin:25-jre-alpine')
+        def baseUser = providers.environmentVariable('JVM_BASE_USERNAME')
+        def basePassword = providers.environmentVariable('JVM_BASE_PASSWORD')
+        if (!providers.environmentVariable('JVM_BASE_IMAGE').isPresent()) {
+            baseUser = baseUser.orElse(providers.environmentVariable('REGISTRY_DOCKERHUB_USERNAME'))
+            basePassword = basePassword.orElse(providers.environmentVariable('REGISTRY_DOCKERHUB_PASSWORD'))
+        }
+        if (baseUser.isPresent() && basePassword.isPresent()) {
+            auth { username = baseUser.get(); password = basePassword.get() }
+        }
+        platforms {
+            platform {
+                architecture = providers.gradleProperty('targetArch').getOrElse('amd64')
+                os = 'linux'
+            }
+        }
+    }
+    to { image = 'password-xl-service-jvm:' + version }
+    container {
+        ports = ['8080']
+        environment = [DATA_DIR: '/password-xl-service', TZ: 'Asia/Shanghai']
+        labels = ['org.opencontainers.image.version': version.toString(),
+                  'org.opencontainers.image.revision': providers.environmentVariable('RELEASE_SOURCE_SHA').getOrElse('local')]
+    }
+    outputPaths {
+        tar = file(providers.gradleProperty('jibTarPath').getOrElse("${layout.buildDirectory.get()}/jib-image.tar"))
+    }
+}
+
+// CI supplies the frontend built from the pinned release commit. Local builds retain the
+// existing static resources unless frontendDist is explicitly selected.
+def releaseFrontend = providers.gradleProperty('frontendDist')
+if (releaseFrontend.isPresent()) {
+    sourceSets.main.resources.exclude('static/**')
+    tasks.named('processResources') {
+        from(releaseFrontend.get()) { into 'static' }
+        doFirst {
+            if (!file("${releaseFrontend.get()}/release.json").isFile()) {
+                throw new GradleException('Build the release frontend before the service')
+            }
+            delete(destinationDir.toPath().resolve('static').toFile())
+        }
     }
 }
 
@@ -35,6 +76,7 @@ repositories {
 graalvmNative {
     binaries {
         main {
+            buildArgs.add('-march=compatibility')
             buildArgs.add('--initialize-at-build-time=com.alibaba.fastjson2')
             buildArgs.add('-H:Class=com.passwordxl.PasswordXlApplication')
         }
@@ -57,4 +99,10 @@ tasks.register('printVersion') {
     doLast {
         println project.version
     }
+}
+
+tasks.named('bootJar') {
+    manifest { attributes('Implementation-Version': project.version.toString()) }
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
 }

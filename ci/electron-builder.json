@@ -1,0 +1,22 @@
+{
+  "publish": null,
+  "executableName": "password-xl",
+  "win": {
+    "target": [{"target": "nsis", "arch": ["x64"]}],
+    "artifactName": "password-xl-win-x64-${version}.${ext}",
+    "signAndEditExecutable": true
+  },
+  "mac": {
+    "identity": "-",
+    "notarize": false,
+    "target": [{"target": "dmg", "arch": ["universal"]}],
+    "artifactName": "password-xl-mac-universal-${version}.${ext}"
+  },
+  "linux": {
+    "artifactName": "password-xl-linux-x64-${version}.${ext}"
+  },
+  "snapcraft": {
+    "base": "core22",
+    "core22": {"useTemplateApp": true, "confinement": "strict"}
+  }
+}

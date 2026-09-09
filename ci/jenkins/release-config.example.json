@@ -1,0 +1,30 @@
+{
+  "environment": {
+    "GITEA_SOURCE_URL": "https://gitea.example.com/owner/password-xl.git",
+    "GITEA_URL": "https://gitea.example.com",
+    "GITEA_REPO": "owner/password-xl",
+    "GITHUB_REPO": "owner/password-xl",
+    "ANDROID_URL": "https://gitea.example.com/owner/password-xl-android.git",
+    "REGISTRY_PRIVATE_PREFIX": "registry.example.com/password-xl",
+    "REGISTRY_DOCKERHUB_PREFIX": "docker.io/your-namespace",
+    "REGISTRY_TENCENT_PREFIX": "ccr.ccs.tencentyun.com/your-namespace",
+    "OSS_BUCKET": "",
+    "OSS_ENDPOINT": "",
+    "OSS_PREFIX": "",
+    "OSS_PUBLIC_URL": ""
+  },
+  "jobs": {
+    "web": "password-xl/Web",
+    "service": "password-xl/Service",
+    "desktop": "password-xl/Desktop",
+    "android": "password-xl/Android"
+  },
+  "credentials": {
+    "github": "password-xl-github",
+    "gitea": "password-xl-gitea",
+    "private": "password-xl-registry-private",
+    "dockerhub": "dockerhub-password-xl",
+    "tencent": "tencent-ccr-password-xl",
+    "oss": "password-xl-oss"
+  }
+}
