@@ -53,7 +53,11 @@ def build(context, targets):
         with historical.open('wb') as stream:
             subprocess.run(['git', 'show', baseline['commit'] + ':' + baseline['apk_path']], cwd=directory,
                            stdout=stream, check=True)
-        expected = certificate(historical)
+        historical_certificate = certificate(historical)
+        expected = baseline.get('certificate_sha256', historical_certificate)
+        changed_signing_key = expected != historical_certificate
+        require(not changed_signing_key or baseline.get('legacy_upgrade') == 'export-and-reinstall',
+                'Signing key change requires an explicit migration policy')
         require(code > apk_metadata(historical)[0], 'APK versionCode must upgrade the historical release')
         keystore = temporary / 'release.jks'
         keystore.write_bytes(base64.b64decode(env('ANDROID_KEYSTORE_BASE64'), validate=True))
@@ -86,6 +90,14 @@ def build(context, targets):
         run(['adb', 'root'])
         run(['adb', 'wait-for-device'])
         run(['adb', 'install', str(historical)])
+        if changed_signing_key:
+            attempted = subprocess.run(['adb', 'install', '-r', str(apks['online'])], capture_output=True, text=True)
+            require(attempted.returncode != 0 and 'INSTALL_FAILED_UPDATE_INCOMPATIBLE' in (attempted.stdout + attempted.stderr),
+                    'Expected Android to reject replacing the historical signer')
+            # This is the isolated CI emulator, not an end-user device. Confirm the
+            # documented migration boundary before testing upgrades within the new signer.
+            run(['adb', 'uninstall', 'com.passwordxl'])
+            run(['adb', 'install', str(apks['online'])])
         run(['adb', 'shell', 'am', 'start', '-W', '-n', 'com.passwordxl/.MainActivity'])
         run(['adb', 'shell', 'mkdir', '-p', '/data/data/com.passwordxl/files'])
         fixture = temporary / 'ci-upgrade.json'
@@ -106,4 +118,5 @@ def build(context, targets):
             shutil.copyfile(apks[flavor], output)
             records.append({**file_record(output, target), 'path': 'files/' + output.name,
                             'certificate_sha256': expected, 'version_code': code})
+            records[-1]['legacy_upgrade'] = 'export-and-reinstall' if changed_signing_key else 'in-place'
         return records

@@ -205,13 +205,17 @@ def worker():
             result['files'] = builds.desktop(context, targets)
         elif task == 'native-arm':
             require(targets == ['service-arm'], 'Invalid native worker request')
-            from api import Api
-            api = Api('https://api.github.com', env('GH_WORKER_TOKEN'), True)
-            repo_path = '/repos/' + env('GITHUB_REPO')
-            api.download(repo_path + '/releases/assets/' + str(int(context['frontend_asset_id'])), OUT / 'frontend.zip',
-                         headers={'Accept': 'application/octet-stream'})
-            require(sha256(OUT / 'frontend.zip') == context['frontend_sha256'], 'Shared frontend checksum mismatch')
-            extract_zip(OUT / 'frontend.zip', OUT)
+            if context.get('validation_only'):
+                # Internal integration checks run before reserving an immutable release tag.
+                builds.frontend(context)
+            else:
+                from api import Api
+                api = Api('https://api.github.com', env('GH_WORKER_TOKEN'), True)
+                repo_path = '/repos/' + env('GITHUB_REPO')
+                api.download(repo_path + '/releases/assets/' + str(int(context['frontend_asset_id'])), OUT / 'frontend.zip',
+                             headers={'Accept': 'application/octet-stream'})
+                require(sha256(OUT / 'frontend.zip') == context['frontend_sha256'], 'Shared frontend checksum mismatch')
+                extract_zip(OUT / 'frontend.zip', OUT)
             builds.gradle(context, ['build', 'nativeCompile'])
             reference = builds.dockerfile_image(context, targets[0], cloud=True)
             archive = Path(reference.removeprefix('docker-archive:'))

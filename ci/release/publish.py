@@ -93,6 +93,9 @@ class Release:
                  'Source: `' + self.context['source_sha'] + '`',
                  'Targets: ' + ', '.join(manifest['targets']), '',
                  'See release-manifest.json and SHA256SUMS for provenance and checksums.']
+        if any(f.get('legacy_upgrade') == 'export-and-reinstall' for f in manifest.get('files', [])):
+            lines += ['', 'Android 签名变更：旧版用户必须先导出数据，再卸载旧版、安装新版并导入。',
+                      '新签名 APK 无法直接覆盖旧签名安装；新版联网版和本地版可互相覆盖。']
         data = {'name': 'Release ' + self.context['version'], 'body': '\n'.join(lines), 'draft': False, 'prerelease': False}
         if self.github:
             data['make_latest'] = 'legacy'

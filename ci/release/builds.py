@@ -87,12 +87,15 @@ def dockerfile_image(context, target, cloud=False):
         shutil.copyfile(module / 'Dockerfile', build_context / 'Dockerfile')
     labels = {'org.opencontainers.image.version': context['version'],
               'org.opencontainers.image.revision': context['source_sha']}
+    build_args = {name: os.environ[name] for name in ('NGINX_IMAGE', 'RUNTIME_IMAGE') if os.environ.get(name)}
     if cloud:
         args = ['docker', 'buildx', 'build', '--platform', 'linux/' + image_arch(target),
                 '--provenance=false', '--output', f'type=docker,dest={image_path}',
                 '-t', 'password-xl-worker:' + target]
         for key, value in labels.items():
             args += ['--label', key + '=' + value]
+        for key, value in build_args.items():
+            args += ['--build-arg', key + '=' + value]
         run([*args, str(build_context)])
         return 'docker-archive:' + str(image_path)
     args = ['buildctl', '--addr', env('BUILDKIT_HOST', 'tcp://127.0.0.1:1234'), 'build',
@@ -101,6 +104,8 @@ def dockerfile_image(context, target, cloud=False):
             '--output', f'type=oci,dest={image_path}']
     for key, value in labels.items():
         args += ['--opt', 'label:' + key + '=' + value]
+    for key, value in build_args.items():
+        args += ['--opt', 'build-arg:' + key + '=' + value]
     run(args)
     return 'oci-archive:' + str(image_path)
 
