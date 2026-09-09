@@ -6,6 +6,8 @@ import {encryptAES} from "@/utils/security.ts";
 import CryptoJS from 'crypto-js'
 import {matchPinyin} from '@/utils/pinyin.ts'
 import {getOrderedPasswordFields} from "@/utils/passwordFieldOrder.ts";
+import {generatePassword, getExcludedCharacters} from '@/utils/passwordGenerator.ts'
+export {passwordDist} from '@/utils/passwordGenerator.ts'
 
 // 判断字符串是否为url
 export const isUrl = (str: string) => {
@@ -122,75 +124,14 @@ export const getPasswordStrength = (password: string): number => {
 }
 
 
-// 密码字典
-export const passwordDist = {
-    uppercase: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    lowercase: "abcdefghijklmnopqrstuvwxyz",
-    number: "0123456789",
-    symbol: "~!@#$%^&*()_-+=.,;",
-}
-
-const secureRandomInt = (max: number): number => {
-    if (!Number.isInteger(max) || max <= 0) {
-        throw new Error('随机数范围无效')
-    }
-    if (!window.crypto?.getRandomValues) {
-        throw new Error('当前环境不支持安全随机数')
-    }
-
-    const array = new Uint32Array(1)
-    const limit = Math.floor(0x100000000 / max) * max
-    do {
-        window.crypto.getRandomValues(array)
-    } while (array[0] >= limit)
-    return array[0] % max
-}
-
-const secureShuffle = (array: string[]): string[] => {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = secureRandomInt(i + 1);
-        [array[i], array[j]] = [array[j], array[i]]
-    }
-    return array
-}
-
 // 随机生成密码
 export function randomPassword(generateRule: GenerateRule) {
     try {
-        let pool = [
-            generateRule.uppercase ? passwordDist.uppercase : '',
-            generateRule.lowercase ? passwordDist.lowercase : '',
-            generateRule.number ? passwordDist.number : '',
-            generateRule.symbol ? passwordDist.symbol : ''
-        ].filter(Boolean);
-
-        const settingStore = useSettingStore()
-        // 是否禁用易混淆字符
-        if (settingStore.setting.easyConfuseChat) {
-            const array = settingStore.setting.easyConfuseChat.split('');
-            for (let i = 0; i < pool.length; i++) {
-                for (let j = 0; j < array.length; j++) {
-                    pool[i] = pool[i].replace(array[j], '');
-                }
-            }
-        }
-
-        pool = pool.filter(Boolean)
-        if (!pool.length) {
-            ElNotification.error({title: '生成失败', message: '请检查易混淆字符配置'})
-            return ''
-        }
-
-        // 随机生成密码
-        let password = '';
-        for (let i = 0; i < generateRule.length; i++) {
-            const subPool = pool[i % pool.length];
-            const randomIndex = secureRandomInt(subPool.length);
-            password += subPool[randomIndex];
-        }
-
-        // 打乱顺序
-        return secureShuffle(password.split('')).join('');
+        const setting = useSettingStore().setting
+        const excluded = setting.passwordExclusions
+            ? getExcludedCharacters(setting.passwordExclusions)
+            : setting.easyConfuseChat
+        return generatePassword(generateRule, excluded)
     } catch (e: any) {
         ElNotification.error({title: '生成失败', message: e?.message || '当前环境不支持安全随机数'})
         return ''
@@ -307,6 +248,7 @@ export const parseDate = (dateString: string, format: string): Date => {
 export const mergePassword = (existPasswordArray: Array<Password>, recoveryPasswordArray: Array<Password>) => {
     // 自增id（因为程序很快一毫秒能恢复很多）
     let incrId = Date.now()
+    const usedIds = new Set([...existPasswordArray, ...recoveryPasswordArray].map(password => password.id))
 
     recoveryPasswordArray.forEach((recoveryPassword: Password) => {
         // 判断当前密码列表是否存在要还原的密码
@@ -331,57 +273,49 @@ export const mergePassword = (existPasswordArray: Array<Password>, recoveryPassw
 
         // 密码id已存在且内容不一致
         recoveryPassword.remark += '（合并恢复 ' + formatterDate(Date.now(), 'YYYY-MM-DD HH:mm') + '）'
+        while (usedIds.has(incrId)) incrId++
         recoveryPassword.id = incrId++
+        usedIds.add(recoveryPassword.id)
         existPasswordArray.push(recoveryPassword)
     })
 }
 
-// 合并标签树
-export const mergeLabel = (existLabelArray: Array<Label>, recoveryArray: Array<Label>) => {
-    let incrId = Date.now() // 使用当前时间戳初始化增量ID
-
-    // 递归查找标签树中是否存在指定ID的标签
-    const findLabelId = (labelArray: Array<Label>, id: number): boolean => {
-        for (const label of labelArray) {
-            if (label.id === id) {
-                return true;
-            } else if (label.children && label.children.length > 0) {
-                return findLabelId(label.children, id) // 递归查找子标签
-            }
-        }
-        return false;
+// 合并标签树，并返回旧 ID 到最终 ID 的映射。只修改目标树，不改变恢复来源。
+export const mergeLabel = (existLabelArray: Array<Label>, recoveryArray: Array<Label>): Map<number, number> => {
+    const usedIds = new Set<number>()
+    const reserveIds = (labels: Label[]) => labels.forEach(label => {
+        usedIds.add(label.id)
+        reserveIds(label.children || [])
+    })
+    reserveIds(existLabelArray)
+    // 新分配的 ID 也不能占用后面还未处理的恢复节点 ID。
+    const reservedIds = new Set<number>()
+    const reserveIncoming = (labels: Label[]) => labels.forEach(label => {
+        reservedIds.add(label.id)
+        reserveIncoming(label.children || [])
+    })
+    reserveIncoming(recoveryArray)
+    let nextId = Date.now()
+    const allocateId = () => {
+        while (usedIds.has(nextId) || reservedIds.has(nextId)) nextId++
+        return nextId++
     }
-
-    // 在标签树中查找与恢复标签相同的标签
-    const findLabel = (labelArray: Array<Label>, recoveryLabel: Label): Label | undefined => {
-        for (const label of labelArray) {
-            if (label.id === recoveryLabel.id && label.name === recoveryLabel.name && label.pid === recoveryLabel.pid) {
-                return label;
+    const idMap = new Map<number, number>()
+    const merge = (target: Label[], incoming: Label[], pid: number) => {
+        for (const label of incoming) {
+            let existing = target.find(item => item.id === label.id && item.name === label.name)
+            if (!existing) {
+                const id = usedIds.has(label.id) ? allocateId() : label.id
+                existing = {...label, id, pid, children: []}
+                target.push(existing)
+                usedIds.add(id)
             }
+            idMap.set(label.id, existing.id)
+            merge(existing.children, label.children || [], existing.id)
         }
-        return undefined;
     }
-
-    // 添加或合并标签
-    const addOrMergeLabel = (labelArray: Array<Label>, recoveryLabel: Label) => {
-        const existingLabel = findLabel(labelArray, recoveryLabel);
-        if (!existingLabel) {
-            // 判断标签ID是否已经存在，不允许重复的ID
-            if (findLabelId(existLabelArray, recoveryLabel.id)) {
-                recoveryLabel.id = incrId++ // 如果ID重复，分配新的ID
-            }
-            labelArray.push(recoveryLabel); // 添加新的标签
-        } else {
-            for (const child of recoveryLabel.children) {
-                addOrMergeLabel(existingLabel.children, child); // 递归合并子标签
-            }
-        }
-    };
-
-    // 遍历恢复标签数组，逐个合并
-    for (const label of recoveryArray) {
-        addOrMergeLabel(existLabelArray, label);
-    }
+    merge(existLabelArray, recoveryArray, 0)
+    return idMap
 }
 
 // 统计标签总数
@@ -479,13 +413,13 @@ export const isInCircle = (x: number, y: number, radius: number, mouseX: number,
     return distance <= radius;
 }
 
-const joinPassword = (password: Password) => {
-    return password.title + password.username + password.address + password.password + password.remark
-}
-
-// 比较密码
+// 比较内容时保留字段边界；自定义字段的 UI ID 不属于业务内容。
 export const comparePassword = (a: Password, b: Password): boolean => {
-    return joinPassword(a) === joinPassword(b)
+    const content = (password: Password) => JSON.stringify([
+        password.title, password.username, password.address, password.password, password.remark,
+        (password.customFields || []).map(field => [field.key, field.val, !!field.hidden]),
+    ])
+    return content(a) === content(b)
 }
 
 // 获取当前域名地址

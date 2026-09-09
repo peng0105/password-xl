@@ -92,6 +92,7 @@ declare module 'vue' {
     OSSLoginForm: typeof import('./components/login/OSSLoginForm.vue')['default']
     PasswordCards: typeof import('./components/index/PasswordCards.vue')['default']
     PasswordForm: typeof import('./components/index/PasswordForm.vue')['default']
+    PasswordGenerationRules: typeof import('./components/common/setting/PasswordGenerationRules.vue')['default']
     PasswordHeader: typeof import('./components/index/PasswordHeader.vue')['default']
     PasswordTable: typeof import('./components/index/PasswordTable.vue')['default']
     PrivacyMode: typeof import('./components/index/PrivacyMode.vue')['default']

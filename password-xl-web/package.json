@@ -29,7 +29,8 @@
     "dist-to-windows": "vue-tsc -b && vite build --mode electron && electron-builder build --win --config electron/electron-builder.json5",
     "dist-to-mac": "vue-tsc -b && vite build --mode electron && electron-builder build --mac --config electron/electron-builder.json5",
     "dist-to-linux": "vue-tsc -b && vite build --mode electron && electron-builder build --linux --config electron/electron-builder.json5",
-    "start-exe": "electron ."
+    "start-exe": "electron .",
+    "test": "node --test src/service/__tests__/storageSafety.test.cjs src/utils/__tests__/passwordGenerator.test.mjs"
   },
   "dependencies": {
     "@vue/devtools-api": "^8.2.1",

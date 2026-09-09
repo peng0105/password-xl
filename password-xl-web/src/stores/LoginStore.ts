@@ -20,16 +20,16 @@ export const useLoginStore = defineStore('loginStore', {
     },
     actions: {
         startLogin: async function (loginForm: any, mainPassword: string): Promise<boolean> {
-            console.log('开始自动登录')
-            return new Promise(async (resolve) => {
-                // 获取存储引擎对象
-                let database: any = null
+            const passwordStore = usePasswordStore()
+            passwordStore.loading('自动登录中...')
+            try {
+                let database
                 if (loginForm.loginType === 'oss') {
-                    const module = await import("@/database/DatabaseForOSS.ts");
-                    database = new module.DatabaseForOSS()
+                    const {DatabaseForOSS} = await import('@/database/DatabaseForOSS.ts')
+                    database = new DatabaseForOSS()
                 } else if (loginForm.loginType === 'cos') {
-                    const module = await import("@/database/DatabaseForCOS.ts");
-                    database = new module.DatabaseForCOS()
+                    const {DatabaseForCOS} = await import('@/database/DatabaseForCOS.ts')
+                    database = new DatabaseForCOS()
                 } else if (loginForm.loginType === 'private') {
                     database = new DatabaseForPrivate()
                 } else if (loginForm.loginType === 'electron') {
@@ -37,47 +37,22 @@ export const useLoginStore = defineStore('loginStore', {
                 } else if (loginForm.loginType === 'android') {
                     database = new DatabaseForAndroid()
                 } else {
-                    console.error('未知的登录类型，无法自动登录：', loginForm.loginType)
-                    resolve(false)
-                    return
+                    return false
                 }
                 this.loginType = loginForm.loginType
-
-                console.log('自动登录中...')
-                let passwordStore = usePasswordStore();
-                passwordStore.loading('自动登录中...')
-
-                // 登录存储引擎
-                let result = await database.login(loginForm)
-                if (!result.status) {
-                    console.log('自动登录失败 存储引擎登录失败', result)
-                    passwordStore.unloading()
-                    resolve(false)
-                    return
-                }
-
-                // 初始化信息
-                let resp = await passwordStore.passwordManager.login(database).catch(() => resolve(false))
-                if (!resp || !resp.status) {
-                    console.log('自动登录初始化失败', resp)
-                    passwordStore.unloading()
-                    resolve(false)
-                    return
-                }
-
-                if (passwordStore.serviceStatus === ServiceStatus.LOGGED) {
-                    // 已登录使用主密码自动解锁
-                    let unlockResult = passwordStore.passwordManager.unlock(mainPassword);
-                    console.log('自动登录 解锁结果：', unlockResult);
-                    passwordStore.unloading()
-                    resolve(unlockResult);
-                } else if (passwordStore.serviceStatus === ServiceStatus.WAIT_INIT) {
-                    // 待初始化主密码
-                    passwordStore.unloading()
-                    resolve(true);
-                }
+                if (!(await database.login(loginForm)).status) return false
+                if (!(await passwordStore.passwordManager.login(database)).status) return false
                 this.loginForm = loginForm
-            })
+                if (passwordStore.serviceStatus === ServiceStatus.LOGGED) {
+                    return passwordStore.passwordManager.unlock(mainPassword)
+                }
+                return passwordStore.serviceStatus === ServiceStatus.WAIT_INIT
+            } catch (error) {
+                console.error('自动登录失败', error)
+                return false
+            } finally {
+                passwordStore.unloading()
+            }
         },
         // 自动登录入口
         autoLogin(): Promise<boolean> {

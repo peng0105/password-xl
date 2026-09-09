@@ -2,7 +2,7 @@
 <script lang="ts" setup>
 
 import {displaySize, supportAI} from "@/utils/global.ts";
-import {AiProvider, AiThinking, GenerateRule, Password, Sort, TopicMode} from "@/types";
+import {AiProvider, AiThinking, BackgroundMode, GenerateRule, Password, Sort, TopicMode} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {browserFingerprint, decryptAES, encryptAES} from "@/utils/security.ts";
@@ -10,6 +10,8 @@ import {useSettingStore} from "@/stores/SettingStore.ts";
 import {useLoginStore} from "@/stores/LoginStore.ts";
 import {TabPaneName} from "element-plus";
 import {testAiModelApi} from "@/api/ai-model-api.ts";
+import {getExcludedCharacters} from '@/utils/passwordGenerator.ts'
+import PasswordGenerationRules from './PasswordGenerationRules.vue'
 
 import packageJson from '../../../../package.json'
 
@@ -23,6 +25,8 @@ const authenticated = ref(false);
 const aiApiKeyInput = ref('')
 const aiModelSaving = ref(false)
 const aiModelTesting = ref(false)
+const passwordGenerationError = ref('')
+const passwordExclusions = computed(() => settingStore.setting.passwordExclusions!)
 
 // 主题设置
 const topicMode: Ref<TopicMode> = ref(TopicMode.AUTO)
@@ -155,10 +159,10 @@ watch(() => settingStore.setting.showNote, (newValue: boolean) => {
   passwordStore.passwordManager.syncSetting()
 })
 
-// 监听动态背景图设置变更
-watch(() => settingStore.setting.dynamicBackground, (newValue: boolean) => {
+// 监听背景模式设置变更
+watch(() => settingStore.setting.backgroundMode, (newValue: BackgroundMode) => {
   if (!settingStore.visSetting) return
-  console.log('动态背景图设置变更:', newValue)
+  console.log('背景模式设置变更:', newValue)
   passwordStore.passwordManager.syncSetting()
 })
 
@@ -307,16 +311,17 @@ watch(() => topicMode.value, (newValue: TopicMode) => {
 
 // 监听易混淆字符设置变更
 let easyConfuseChatChangeDelay: any = null;
-watch(() => settingStore.setting.easyConfuseChat, (newValue: string) => {
+watch(() => settingStore.setting.passwordExclusions, (exclusions) => {
+  if (!exclusions) return
+  settingStore.setting.easyConfuseChat = getExcludedCharacters(exclusions)
   if (!settingStore.visSetting) return
   if (easyConfuseChatChangeDelay) {
     clearTimeout(easyConfuseChatChangeDelay)
   }
   easyConfuseChatChangeDelay = setTimeout(() => {
-    console.log('易混淆字符设置变更:', newValue);
     passwordStore.passwordManager.syncSetting()
   }, 300)
-})
+}, {deep: true})
 
 // 监听自动生成密码设置变更
 watch(() => settingStore.setting.autoGeneratePassword, (newValue: boolean) => {
@@ -466,22 +471,35 @@ const testAiModel = async () => {
             </div>
             <div class="function-div">
               <div class="function-header" style="margin-bottom: 5px">
-                <el-text tag="b">显示背景图</el-text>
-                <el-switch v-model="settingStore.setting.dynamicBackground"></el-switch>
+                <el-text tag="b">背景图</el-text>
+                <el-select v-model="settingStore.setting.backgroundMode" aria-label="背景图模式"
+                           size="small" style="width: 100px;">
+                  <el-option value="off" label="关闭"/>
+                  <el-option value="static" label="静态"/>
+                  <el-option value="dynamic" label="动态"/>
+                </el-select>
               </div>
               <el-divider class="function-line"/>
               <el-text style="text-indent: 10px" tag="p" type="info">
-                用于控制是否显示首页动态背景图，若浏览器卡顿您可以关闭动态背景图
+                默认使用动态背景；若页面卡顿，可选择静态背景保留图案，或关闭背景图
               </el-text>
             </div>
             <div class="function-div">
-              <div class="function-header">
-                <el-text tag="b">易混淆字符</el-text>
-                <el-input v-model="settingStore.setting.easyConfuseChat" size="small" style="width: 100px;"></el-input>
+              <div class="function-header password-exclusion-header">
+                <el-text tag="b">排除易混淆字符</el-text>
+                <el-switch v-model="passwordExclusions.enabled" aria-label="排除易混淆字符"/>
               </div>
               <el-divider class="function-line"/>
               <el-text style="text-indent: 10px" tag="p" type="info">
-                随机生成密码时将不会使用配置的易混淆字符
+                随机生成密码时，不使用下方配置的字符
+              </el-text>
+              <div class="excluded-characters">
+                <el-input id="excluded-characters" v-model="passwordExclusions.characters"
+                          :disabled="!passwordExclusions.enabled" placeholder="输入需要排除的字符"
+                          clearable autocomplete="off" :spellcheck="false"/>
+              </div>
+              <el-text v-if="passwordGenerationError" class="password-generation-error" tag="p" type="danger" role="alert">
+                {{ passwordGenerationError }}
               </el-text>
             </div>
             <div class="function-div">
@@ -495,31 +513,10 @@ const testAiModel = async () => {
               </el-text>
             </div>
             <div class="function-div">
-              <div class="function-header">
-                <el-text tag="b">随机密码生成规则</el-text>
-              </div>
-              <el-divider class="function-line"/>
-              <div style="margin-top: 10px;">
-                <div>
-                  <el-row>
-                    <el-col :md="{span:10}" :sm="{span:24}" style="margin-bottom: 10px;text-align: center;">
-                      <el-checkbox v-model="settingStore.setting.generateRule.uppercase" border label="大写" size="small"
-                                   style="margin: 5px 15px;"/>
-                      <el-checkbox v-model="settingStore.setting.generateRule.lowercase" border label="小写" size="small"
-                                   style="margin: 5px 15px;"/>
-                      <el-checkbox v-model="settingStore.setting.generateRule.number" border label="数字" size="small"
-                                   style="margin: 5px 15px;"/>
-                      <el-checkbox v-model="settingStore.setting.generateRule.symbol" border label="符号" size="small"
-                                   style="margin: 5px 15px;"/>
-                    </el-col>
-                    <el-col :md="{span:10}" :sm="{span:24}" style="text-align: center">
-                      <span>密码长度</span>
-                      <el-slider v-model="settingStore.setting.generateRule.length" :max="32"
-                                 :min="4" size="small" style="margin-top: 10px"/>
-                    </el-col>
-                  </el-row>
-                </div>
-              </div>
+              <PasswordGenerationRules v-model="settingStore.setting.generateRule"
+                                       :excluded-characters="settingStore.setting.easyConfuseChat"
+                                       :active="settingStore.visSetting"
+                                       @validation-error="passwordGenerationError = $event"/>
             </div>
           </el-scrollbar>
         </el-tab-pane>
@@ -1035,6 +1032,12 @@ const testAiModel = async () => {
 </template>
 
 <style scoped>
+.password-exclusion-header { align-items: center; }
+.excluded-characters { display: flex; align-items: center; gap: 18px; margin: 12px 10px 0; }
+.excluded-characters label { flex-shrink: 0; color: var(--el-text-color-regular); font-size: 13px; }
+.excluded-characters .el-input { flex: 1; min-width: 0; }
+.password-generation-error { margin: 8px 10px 0; font-size: 12px; }
+
 :deep(.el-tabs__item) {
   padding: 0 15px 0 5px;
 }

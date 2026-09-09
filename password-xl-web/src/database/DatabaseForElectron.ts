@@ -73,43 +73,21 @@ export class DatabaseForElectron implements Database {
         return this.deleteFile(name)
     }
 
-    // 上传图片
-    async uploadImage(file: File, prefix: string): Promise<any> {
-        return new Promise(async (resolve) => {
-            const arrayBuffer = await file.arrayBuffer();
-            let data = await window.electronAPI.uploadImage(file.name, arrayBuffer, prefix)
-            resolve(data)
-        })
+    // 桥接调用的完成结果就是存储结果，拒绝必须传递给调用方。
+    async uploadImage(file: File, prefix: string): Promise<string> {
+        return window.electronAPI.uploadImage(file.name, await file.arrayBuffer(), prefix)
     }
 
-    // 获取electron文件
     private async getFile(fileName: string): Promise<string> {
-        console.log('获取electron文件', fileName)
-        return new Promise(async (resolve) => {
-            let data = await window.electronAPI.getFile(fileName)
-            if (data) {
-                resolve(data);
-            } else {
-                resolve('')
-            }
-        })
+        return (await window.electronAPI.getFile(fileName)) || ''
     }
 
-    // 上传electron文件
     private async uploadFile(fileName: string, content: string): Promise<RespData> {
-        console.log('上传electron文件', fileName)
-        return new Promise(async (resolve) => {
-            window.electronAPI.uploadFile(fileName, content)
-            resolve({status: true})
-        })
+        return window.electronAPI.uploadFile(fileName, content)
     }
 
-    // 删除electron文件
     private async deleteFile(fileName: string): Promise<RespData> {
-        console.log('删除electron文件', fileName)
-        return new Promise((resolve) => {
-            window.electronAPI.deleteFile(fileName)
-            resolve({status: true})
-        })
+        return window.electronAPI.deleteFile(fileName)
     }
+
 }

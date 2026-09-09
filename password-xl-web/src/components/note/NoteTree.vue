@@ -16,7 +16,7 @@ const emits = defineEmits(['activateChange'])
 const expandKeys: Ref<string[]> = ref([])
 
 // 添加笔记
-const addNote = (note?: TreeNote): void => {
+const addNote = async (note?: TreeNote): Promise<void> => {
   let newNote: TreeNote = {
     id: generateRandomId(),
     label: '新笔记',
@@ -31,13 +31,13 @@ const addNote = (note?: TreeNote): void => {
     noteStore.noteData.noteTree.push(newNote)
   }
 
+  const response = await passwordStore.passwordManager.syncNoteData()
+  if (!response.status) return
   nextTick(() => {
     treeRef.value.setCurrentKey(newNote.id + '')
-    noteStore.noteData.currentNote = newNote.id + '';
     if (refStore.noteTitleRef && refStore.noteTitleRef.value) {
       refStore.noteTitleRef.focus()
     }
-    passwordStore.passwordManager.syncNoteData()
   })
 }
 
@@ -121,12 +121,11 @@ const contextmenu = (event: MouseEvent, _id: number) => {
 
 // 选择发生变化
 const currentChange = (treeNote: TreeNote): void => {
-  if (noteStore.noteData.currentNote === treeNote.id) {
+  if (!treeNote || noteStore.noteData.currentNote === treeNote.id) {
     return
   }
-  noteStore.noteData.currentNote = treeNote.id;
+  // 编辑器完成保存和加载后再确认切换，失败时保留原笔记。
   emits('activateChange', treeNote)
-  passwordStore.passwordManager.syncNoteData()
 }
 
 // 节点展开

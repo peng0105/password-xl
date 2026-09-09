@@ -4,6 +4,10 @@ import {useRefStore} from "@/stores/RefStore.js";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {TopicMode} from "@/types";
 import {useSettingStore} from "@/stores/SettingStore.ts";
+import desktopBackground from '@/assets/images/background.svg'
+import mobileBackground from '@/assets/images/background-m.svg'
+import desktopStaticBackground from '@/assets/images/background-static.svg'
+import mobileStaticBackground from '@/assets/images/background-m-static.svg'
 
 const refStore = useRefStore()
 const settingStore = useSettingStore()
@@ -21,29 +25,26 @@ isDarkTheme.addEventListener('change', () => {
   passwordStore.setTopicMode(topicMode as TopicMode);
 })
 
-// 是否显示动态背景
-const dynamicBackground = ref(false)
+const backgroundMode = computed(() => settingStore.setting.backgroundMode)
+const backgroundImages = computed(() => backgroundMode.value === 'static'
+  ? {desktop: desktopStaticBackground, mobile: mobileStaticBackground}
+  : {desktop: desktopBackground, mobile: mobileBackground})
 
-// 设置动态背景
-const setDynamicBackground = () => {
-  let config = localStorage.getItem('dynamicBackground')
-  if (!config || 'true' === config) {
-    dynamicBackground.value = true
-  }
-}
-setDynamicBackground()
-
-// 监听动态背景图设置变更
-watch(() => settingStore.setting.dynamicBackground, (newValue: boolean) => {
-  localStorage.setItem('dynamicBackground', newValue.toString())
-  dynamicBackground.value = settingStore.setting.dynamicBackground
-})
+// 同步更新旧版开关，确保保存设置时携带一致的兼容值。
+watch(backgroundMode, (mode) => {
+  const enabled = mode !== 'off'
+  settingStore.setting.dynamicBackground = enabled
+  localStorage.setItem('backgroundMode', mode)
+  localStorage.setItem('dynamicBackground', String(enabled))
+}, {immediate: true, flush: 'sync'})
 
 </script>
 <template>
   <!-- 背景-->
-  <img v-if="dynamicBackground" alt="" class="back-img hidden-xs-only" src="~@/assets/images/background.svg">
-  <img v-if="dynamicBackground" alt="" class="back-img hidden-sm-and-up" src="~@/assets/images/background-m.svg">
+  <picture v-if="backgroundMode !== 'off'" :key="backgroundMode" aria-hidden="true">
+    <source media="(max-width: 767px)" :srcset="backgroundImages.mobile">
+    <img alt="" class="back-img" :src="backgroundImages.desktop">
+  </picture>
 
   <div id="password-app" v-loading="passwordStore.globalLoading.vis" :element-loading-text="passwordStore.globalLoading.content"
        @click="passwordStore.resetTimeoutLock()">
@@ -75,6 +76,7 @@ body, html {
   top: 0;
   left: 0;
   z-index: -2;
+  pointer-events: none;
 }
 
 #password-app {

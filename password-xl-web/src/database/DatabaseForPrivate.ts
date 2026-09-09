@@ -152,30 +152,16 @@ export class DatabaseForPrivate implements Database {
     // 上传private文件
     private async uploadFile(fileName: string, content: string): Promise<RespData> {
         console.log('上传private文件：', fileName)
-        return new Promise(async (resolve, reject) => {
-            // 检查文件是否为最新
-            let checkResult = await this.checkEtag(fileName)
-            if (!checkResult) {
-                console.log('上传private文件 文件同步异常')
-                const message = '当前密码列表已被其他客户端更新，请刷新页面'
-                ElMessageBox({
-                    title: '文件同步异常',
-                    message,
-                    showCancelButton: false,
-                    showConfirmButton: true,
-                    closeOnPressEscape: false,
-                    showClose: false,
-                    closeOnClickModal: false,
-                    confirmButtonText: '刷新',
-                    callback: () => {
-                        console.log('刷新');
-                        location.reload()
-                    }
-                })
-                resolve({status: false, message})
-                return
-            }
+        // 检查文件是否为最新
+        let checkResult = await this.checkEtag(fileName)
+        if (!checkResult) {
+            console.log('上传private文件 文件同步异常')
+            const message = '当前密码列表已被其他客户端更新，请刷新页面'
+            // 交给调用方报告冲突，避免强制刷新中断主密码修改的回退。
+            return {status: false, message}
+        }
 
+        return new Promise((resolve, reject) => {
             axios.post(this.serverUrl + '/put', {
                 key: fileName,
                 content: content
@@ -237,7 +223,7 @@ export class DatabaseForPrivate implements Database {
 
     // 获取文件标记
     private getEtag(fileName: string): Promise<string> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             axios.post(this.serverUrl + '/getEtag', {key: fileName}, {headers: {Authorization: `Bearer ${this.token}`}}).then(res => {
                 if (res.data.code === 500) {
                     console.log('private 获取文件标记错误：', res.data)

@@ -92,13 +92,26 @@ export interface AiModelSetting {
 }
 
 // 密码生成规则
+export type PasswordCharacterType = 'uppercase' | 'lowercase' | 'symbol' | 'number'
+export type PasswordCharacterRatios = Record<PasswordCharacterType, number>
+
+export interface PasswordExclusions {
+    enabled: boolean,
+    characters?: string,// 完整排除字符，默认值可直接编辑
+    additional?: string,// 兼容旧版额外排除配置
+    defaultsVersion?: number,// 默认排除内容的迁移版本，避免重复覆盖用户修改
+}
+
 export interface GenerateRule {
     length: number,// 密码长度
     number: boolean,// 是否使用数字
     lowercase: boolean,// 是否使用小写字母
     uppercase: boolean,// 是否使用大写字母
     symbol: boolean,// 是否使用特殊符号
+    ratios?: PasswordCharacterRatios,// 字符搭配比例，兼容旧版类型开关
 }
+
+export type BackgroundMode = 'off' | 'static' | 'dynamic'
 
 // 设置
 export interface Setting {
@@ -116,6 +129,7 @@ export interface Setting {
     autoGeneratePassword: boolean,// 添加密码时是否默认自动一次
     generateRule: GenerateRule, // 密码生成规则
     easyConfuseChat: string,// 易混淆字符
+    passwordExclusions?: PasswordExclusions,// 易混淆字符开关与排除内容
     customFields: CustomField[], // 默认自定义字段
     timeoutLock: number, // 超时锁定（秒）
     passwordDisplayMode: PasswordDisplayMode, // 密码展示方式
@@ -125,7 +139,8 @@ export interface Setting {
     showPasswordStatistics: boolean, // 显示密码统计
     showNote: boolean, // 显示笔记功能
     bgColors: Array<string>, // 背景色
-    dynamicBackground: boolean, // 动态背景图
+    backgroundMode: BackgroundMode, // 背景图：关闭、静态、动态
+    dynamicBackground: boolean, // 兼容旧版：是否显示背景图
     passwordColor: boolean, // 密码颜色
     aiModel: AiModelSetting, // AI模型配置
 }
@@ -210,6 +225,9 @@ export interface PasswordManager {
 
 // 数据库
 export interface Database {
+    // 单文件存储可在一次提交中同时更新密码与设置；不改变持久化格式。
+    setMainPasswordData?(storeData: string, settingData: string): Promise<RespData>,
+
     login(form: any): Promise<RespData>,
 
     getStoreData(): Promise<string>,

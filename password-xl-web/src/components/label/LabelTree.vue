@@ -109,13 +109,11 @@ const affirmDeleteLabel = (node: any) => {
   recursionDeleteRef(node.data, preDeleteLabel)
 
   // 删除密码列表中的使用的标签
-  let needSyncPassword = false
   for (let i = 0; i < passwordStore.allPasswordArray.length; i++) {
     let password = passwordStore.allPasswordArray[i]
     for (let j = 0; j < password.labels.length; j++) {
       if (preDeleteLabel.includes(password.labels[j])) {
         password.labels.splice(j--, 1);
-        needSyncPassword = true
       }
     }
   }
@@ -136,10 +134,6 @@ const affirmDeleteLabel = (node: any) => {
   // 同步标签数据
   passwordStore.passwordManager.syncStoreData()
 
-  // 同步密码数据
-  if (needSyncPassword) {
-    passwordStore.passwordManager.syncStoreData();
-  }
 }
 
 // 保存标签

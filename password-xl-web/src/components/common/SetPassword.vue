@@ -159,7 +159,8 @@ const updateMainPassword = (newPassword: string) => {
       ElMessage.error(resp.message)
     }
     passwordStore.unloading()
-  }).catch(() => {
+  }).catch((error) => {
+    ElNotification.error({title: '主密码修改失败', message: error?.message || '保存失败，请检查存储连接后重试'})
     passwordStore.unloading()
   })
 }

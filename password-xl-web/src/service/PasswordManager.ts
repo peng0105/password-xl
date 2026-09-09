@@ -22,6 +22,7 @@ import {randomPassword} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useNoteStore} from "@/stores/NoteStore.ts";
 import {normalizePasswordArray, normalizePasswordFieldOrder} from "@/utils/passwordFieldOrder.ts";
+import {toRaw} from "vue";
 
 export class PasswordManagerImpl implements PasswordManager {
 
@@ -44,8 +45,54 @@ export class PasswordManagerImpl implements PasswordManager {
 
     private nodeCacheMap = new Map<string, string | null>()
 
+    // 同一客户端的所有写入串行执行；失败会使依赖失败快照的后续保存失效。
+    private writeQueue: Promise<unknown> = Promise.resolve()
+    private pendingWrites = 0
+    private storeRevision = 0
+    private noteRevision = 0
+    private changingMainPassword = false
+    private logging = false
+    private writeBlocked = false
+    private dataRevision = 0
+
+    private isCurrentSession(): boolean {
+        return toRaw(this.passwordStore.passwordManager) === toRaw(this)
+    }
+
+    private enqueueWrite<T>(operation: () => Promise<T>): Promise<T> {
+        this.pendingWrites++
+        const result = this.writeQueue.then(() => {
+            if (this.writeBlocked) throw new Error('存储状态尚未确认，请重新登录并检查数据后再修改')
+            return operation()
+        })
+        this.writeQueue = result.catch(() => undefined)
+        return result.finally(() => { this.pendingWrites-- })
+    }
+
+    private assertWritable(): void {
+        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+        if (this.logging) throw new Error('正在切换存储账号，请稍后再操作')
+        if (this.changingMainPassword) throw new Error('正在修改主密码，请稍后再操作')
+        if (this.writeBlocked) throw new Error('存储状态尚未确认，请重新登录并检查数据后再修改')
+    }
+
+    private requireSuccess(result: RespData): void {
+        if (result?.status !== true) throw new Error(result?.message || '保存失败，请重试')
+    }
+
+    private restoreStoreData(): void {
+        if (!this.isCurrentSession() || !this.storeData || this.passwordStore.serviceStatus !== ServiceStatus.UNLOCKED) return
+        this.passwordStore.allPasswordArray = normalizePasswordArray(decompressionArray(JSON.parse(
+            decryptAES(this.passwordStore.mainPassword, this.storeData.passwordData))))
+        this.passwordStore.labelArray = JSON.parse(decryptAES(this.passwordStore.mainPassword, this.storeData.labelData))
+    }
+
     // 登录
     async login(database: Database): Promise<RespData> {
+        if (this.changingMainPassword || this.logging) throw new Error('正在处理存储操作，请稍后再登录')
+        this.logging = true
+        // 旧账号的排队写入必须先结束，才能替换 databaseClient。
+        await this.writeQueue
         console.log('passwordManager 登录');
         return new Promise(async (resolve, reject) => {
             try {
@@ -56,6 +103,11 @@ export class PasswordManagerImpl implements PasswordManager {
                     database.getTreeNoteData()
                 ]);
 
+                this.storeData = null
+                this.treeNoteData = null
+                this.nodeCacheMap.clear()
+                this.dataRevision++
+                this.writeBlocked = false
                 // 验证通过初始化基本信息
                 if (storeDataText) {
                     this.storeData = JSON.parse(storeDataText);
@@ -66,8 +118,9 @@ export class PasswordManagerImpl implements PasswordManager {
 
                 if (settingDataText) {
                     console.log('passwordManager 验证通过初始化设置信息');
-                    Object.assign(this.settingStore.setting, JSON.parse(settingDataText));
-                    normalizeSetting(this.settingStore.setting);
+                    const savedSetting = JSON.parse(settingDataText);
+                    Object.assign(this.settingStore.setting, savedSetting);
+                    normalizeSetting(this.settingStore.setting, savedSetting);
                 }
 
                 if (noteTreeDataText) {
@@ -94,6 +147,8 @@ export class PasswordManagerImpl implements PasswordManager {
                 resolve({status: true});
             } catch (e) {
                 reject({status: false, message: e});
+            } finally {
+                this.logging = false
             }
         });
     }
@@ -185,77 +240,121 @@ export class PasswordManagerImpl implements PasswordManager {
         }
     }
 
-    // 修改主密码
+    // 修改主密码：先准备密文，存储全部完成后才切换内存主密码。
     async updateMainPassword(mainPassword: string, newMainPasswordType: MainPasswordType, newMainPassword: string): Promise<RespData> {
-        if (!this.databaseClient) return Promise.reject()
-        console.log('passwordManager 修改主密码')
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
-
-        // 验证旧密码是否正确
-        let verifyResult = this.verifyPassword(mainPassword);
-        if (!verifyResult) {
-            console.log('passwordManager 原密码验证失败，不允许修改')
-            return Promise.reject({status: false, message: '旧密码错误'});
-        }
-        console.log('passwordManager 原密码验证通过')
-
+        this.assertWritable()
+        if (!this.databaseClient || !this.storeData) throw new Error('存储引擎未初始化')
+        if (!this.verifyPassword(mainPassword)) throw new Error('旧密码错误')
+        if (!newMainPassword) throw new Error('新主密码不能为空')
+        this.changingMainPassword = true
         this.passwordStore.loading('密码修改中...')
+        try {
+            return await this.enqueueWrite(async () => {
+                const database = this.databaseClient!
+                const oldStore = this.storeData!
+                const oldTree = this.treeNoteData
+                const oldStoreText = await database.getStoreData()
+                const oldTreeText = await database.getTreeNoteData()
+                // 读取真实原文用于回退，也避免以旧缓存覆盖另一设备已经修改的文件。
+                if (JSON.stringify(JSON.parse(oldStoreText)) !== JSON.stringify(oldStore)
+                    || JSON.stringify(oldTreeText ? JSON.parse(oldTreeText) : null) !== JSON.stringify(oldTree)) {
+                    this.writeBlocked = true
+                    throw new Error('存储文件已发生变化，未修改主密码，请重新登录后再操作')
+                }
+                const oldSettingText = await database.getSettingData()
+                const setting = JSON.parse(JSON.stringify(this.settingStore.setting))
+                const savedSetting = oldSettingText ? JSON.parse(oldSettingText) : {}
+                let newSettingText = oldSettingText
+                if ((savedSetting.aiModel?.apiKey || '') !== (setting.aiModel?.apiKey || '')) {
+                    throw new Error('AI配置尚未同步，请保存设置后再修改主密码')
+                }
+                if (setting.aiModel?.apiKey) {
+                    const apiKey = decryptAES(mainPassword, setting.aiModel.apiKey)
+                    if (!apiKey) throw new Error('AI模型密钥解密失败，未修改主密码，请先检查AI配置')
+                    setting.aiModel.apiKey = encryptAES(newMainPassword, apiKey)
+                    savedSetting.aiModel.apiKey = setting.aiModel.apiKey
+                    newSettingText = JSON.stringify(savedSetting)
+                }
+                const passwordText = decryptAES(mainPassword, oldStore.passwordData)
+                const labelText = decryptAES(mainPassword, oldStore.labelData)
+                const noteText = oldTree ? decryptAES(mainPassword, oldTree.noteData) : null
+                // 任一密文无法读取时停止，不能把解密失败后的空内容重新加密覆盖。
+                JSON.parse(passwordText)
+                JSON.parse(labelText)
+                if (oldTree) JSON.parse(noteText!)
+                // 从最后确认保存的密文重新加密，避免锁定清空明文或未保存草稿影响文件。
+                const newStore: StoreData = {
+                    passwordData: encryptAES(newMainPassword, passwordText),
+                    labelData: encryptAES(newMainPassword, labelText),
+                    mainPasswordType: newMainPasswordType,
+                }
+                const newTree: TreeNoteData | null = oldTree ? {
+                    noteData: encryptAES(newMainPassword, noteText!),
+                    mainPasswordType: newMainPasswordType,
+                } : null
 
-        // 防止修改失败备份密文
-        let backStoreData = JSON.stringify(this.storeData);
-        let backTreeNoteData = JSON.stringify(this.treeNoteData);
-        let backSettingData = JSON.stringify(this.settingStore.setting);
-
-        if (this.settingStore.setting.aiModel?.apiKey) {
-            const apiKey = decryptAES(mainPassword, this.settingStore.setting.aiModel.apiKey);
-            if (apiKey) {
-                this.settingStore.setting.aiModel.apiKey = encryptAES(newMainPassword, apiKey);
-            } else {
-                this.settingStore.setting.aiModel.apiKey = '';
-                ElNotification.warning({title: 'AI配置提示', message: 'AI模型API Key解密失败，已清空，请重新配置'});
-            }
+                if (database.setMainPasswordData) {
+                    // 浏览器本地模式的原文件已同时包含这两个字段，只需要一次 close 提交。
+                    this.requireSuccess(await database.setMainPasswordData(JSON.stringify(newStore), newSettingText))
+                } else {
+                    const changes: Array<{before: string, after: string, read: () => Promise<string>, write: (text: string) => Promise<RespData>}> = []
+                    if (newTree && oldTree) changes.push({before: oldTreeText, after: JSON.stringify(newTree),
+                        read: () => database.getTreeNoteData(), write: text => database.setNoteData(text)})
+                    if (newSettingText !== oldSettingText) {
+                        changes.push({before: oldSettingText, after: newSettingText,
+                            read: () => database.getSettingData(), write: text => database.setSettingData(text)})
+                    }
+                    // 密码库最后提交，前面的文件失败时不会提前改变登录密码。
+                    changes.push({before: oldStoreText, after: JSON.stringify(newStore),
+                        read: () => database.getStoreData(), write: text => database.setStoreData(text)})
+                    const attempted: typeof changes = []
+                    try {
+                        for (const change of changes) {
+                            attempted.push(change)
+                            this.requireSuccess(await change.write(change.after))
+                        }
+                    } catch (error) {
+                        let restored = true
+                        for (const change of attempted.reverse()) {
+                            try {
+                                // 请求失败也可能已写入；只回退本次写入的内容，不覆盖未知版本。
+                                const current = await change.read()
+                                if (current === change.before) continue
+                                if (current !== change.after) throw new Error('文件内容已发生其他变化')
+                                this.requireSuccess(await change.write(change.before))
+                            } catch {
+                                restored = false
+                            }
+                        }
+                        if (!restored) {
+                            this.writeBlocked = true
+                            throw new Error('主密码修改未完成，且无法确认所有文件已恢复。请保留新旧主密码，检查存储连接和备份后重新登录；当前会话已停止写入。')
+                        }
+                        throw error
+                    }
+                }
+                this.storeData = newStore
+                this.treeNoteData = newTree
+                if (this.isCurrentSession()) {
+                    this.settingStore.setting = setting
+                    this.passwordStore.mainPasswordType = newMainPasswordType
+                    if (this.passwordStore.serviceStatus === ServiceStatus.UNLOCKED) {
+                        this.passwordStore.mainPassword = newMainPassword
+                    }
+                    this.loginStore.updateRememberLoginInfo(mainPassword, newMainPassword)
+                }
+                return {status: true}
+            })
+        } finally {
+            this.changingMainPassword = false
+            this.passwordStore.unloading()
         }
-
-        normalizePasswordArray(this.passwordStore.allPasswordArray)
-        this.storeData = {
-            passwordData: encryptAES(newMainPassword, JSON.stringify(compressArray(this.passwordStore.allPasswordArray))),
-            labelData: encryptAES(newMainPassword, JSON.stringify(this.passwordStore.labelArray)),
-            mainPasswordType: newMainPasswordType,
-        }
-        this.treeNoteData = {
-            noteData: encryptAES(newMainPassword, JSON.stringify(this.noteStore.noteData)),
-            mainPasswordType: newMainPasswordType,
-        }
-
-        // 修改密码文件
-        let passwordResult = await this.databaseClient.setStoreData(JSON.stringify(this.storeData))
-        let noteResult = await this.databaseClient.setNoteData(JSON.stringify(this.treeNoteData))
-        let settingResult = await this.syncSetting()
-        if (!passwordResult || !passwordResult.status || !noteResult || !noteResult.status || !settingResult || !settingResult.status) {
-            // 修改失败-回退
-            this.storeData = JSON.parse(backStoreData)
-            this.treeNoteData = JSON.parse(backTreeNoteData)
-            this.settingStore.setting = JSON.parse(backSettingData)
-            ElNotification.error({title: '系统异常', message: passwordResult?.message || noteResult?.message || settingResult?.message})
-            return Promise.reject()
-        }
-
-        // 修改主密码
-        this.passwordStore.mainPasswordType = newMainPasswordType
-        this.passwordStore.mainPassword = newMainPassword
-
-        // 处理自动登录信息
-        this.loginStore.updateRememberLoginInfo(mainPassword, newMainPassword);
-
-        console.log('passwordManager 主密码修改成功')
-        this.passwordStore.unloading()
-        return Promise.resolve({status: true});
     }
 
     // 添加密码
     addPassword(password: Password): Promise<RespData> {
         console.log('passwordManager 新增密码：', password);
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED);
+        this.assertWritable();
 
         const newPassword = normalizePasswordFieldOrder({
             ...password,
@@ -271,7 +370,7 @@ export class PasswordManagerImpl implements PasswordManager {
     // 修改密码
     updatePassword(password: Password): Promise<RespData> {
         console.log('passwordManager 修改密码：', password.id)
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+        this.assertWritable()
         normalizePasswordFieldOrder(password)
         const index = this.passwordStore.allPasswordArray.findIndex((p: Password) => p.id === password.id);
         if (index !== -1) {
@@ -281,26 +380,10 @@ export class PasswordManagerImpl implements PasswordManager {
         return Promise.reject('没有找到这个密码：' + password.id)
     }
 
-    // 批量操作失败时恢复内存中的密码数据和原始密码文件
-    private async syncBatchPasswordChange(passwordSnapshot: Password[], storeDataSnapshot: StoreData | null): Promise<RespData> {
-        try {
-            const resp = await this.syncStoreData()
-            if (!resp.status) {
-                this.passwordStore.allPasswordArray = passwordSnapshot
-                this.storeData = storeDataSnapshot
-            }
-            return resp
-        } catch (error) {
-            this.passwordStore.allPasswordArray = passwordSnapshot
-            this.storeData = storeDataSnapshot
-            throw error
-        }
-    }
-
     // 批量删除密码
     async batchDeletePasswords(ids: number[]): Promise<RespData> {
         console.log('passwordManager 批量删除密码：', ids)
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+        this.assertWritable()
 
         const passwordIds = new Set(ids)
         const passwords = this.passwordStore.allPasswordArray.filter(password =>
@@ -310,8 +393,6 @@ export class PasswordManagerImpl implements PasswordManager {
             return {status: true, message: '没有需要删除的密码'}
         }
 
-        const passwordSnapshot = JSON.parse(JSON.stringify(this.passwordStore.allPasswordArray)) as Password[]
-        const storeDataSnapshot = this.storeData ? {...this.storeData} : null
         if (this.settingStore.setting.enableRecycleBin) {
             const deleteTime = Date.now()
             passwords.forEach(password => {
@@ -322,13 +403,13 @@ export class PasswordManagerImpl implements PasswordManager {
             this.passwordStore.allPasswordArray = this.passwordStore.allPasswordArray.filter(password => !passwordIds.has(password.id))
         }
 
-        return this.syncBatchPasswordChange(passwordSnapshot, storeDataSnapshot)
+        return this.syncStoreData()
     }
 
     // 批量添加密码标签
     async batchAddPasswordLabels(passwordIds: number[], labelIds: number[]): Promise<RespData> {
         console.log('passwordManager 批量添加密码标签：', passwordIds, labelIds)
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+        this.assertWritable()
 
         const availableLabelIds = new Set<number>()
         const collectLabelIds = (labels: Label[]) => {
@@ -345,8 +426,6 @@ export class PasswordManagerImpl implements PasswordManager {
         }
 
         const passwordIdSet = new Set(passwordIds)
-        const passwordSnapshot = JSON.parse(JSON.stringify(this.passwordStore.allPasswordArray)) as Password[]
-        const storeDataSnapshot = this.storeData ? {...this.storeData} : null
         const updateTime = Date.now()
         let updatedPasswordCount = 0
 
@@ -368,7 +447,7 @@ export class PasswordManagerImpl implements PasswordManager {
             return {status: true, message: '所选标签已存在，无需重复添加'}
         }
 
-        const resp = await this.syncBatchPasswordChange(passwordSnapshot, storeDataSnapshot)
+        const resp = await this.syncStoreData()
         if (resp.status) {
             resp.message = `已为${updatedPasswordCount}个密码添加标签`
         }
@@ -378,7 +457,7 @@ export class PasswordManagerImpl implements PasswordManager {
     // 删除密码（移动到回收站）
     deletePassword(id: number): Promise<RespData> {
         console.log('passwordManager 删除密码：', id);
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED);
+        this.assertWritable();
         const enableRecycleBin = this.settingStore.setting.enableRecycleBin;
         if (enableRecycleBin) {
             const passwordIndex = this.passwordStore.allPasswordArray.findIndex((password: Password) => password.id === id);
@@ -403,7 +482,7 @@ export class PasswordManagerImpl implements PasswordManager {
     // 彻底删除密码
     completelyDeletePassword(id: number): Promise<RespData> {
         console.log('passwordManager 彻底删除密码：', id);
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED);
+        this.assertWritable();
 
         const index = this.passwordStore.allPasswordArray.findIndex((password: Password) => password.id === id);
         if (index !== -1) {
@@ -417,7 +496,7 @@ export class PasswordManagerImpl implements PasswordManager {
     // 取消删除密码
     cancelDeletePassword(id: number): Promise<RespData> {
         console.log('passwordManager 取消删除密码：', id);
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED);
+        this.assertWritable();
 
         const index = this.passwordStore.allPasswordArray.findIndex((password: Password) => password.id === id);
         if (index !== -1) {
@@ -435,6 +514,10 @@ export class PasswordManagerImpl implements PasswordManager {
         console.log('passwordManager 准备解锁密码本')
         this.serviceStatusAssert(ServiceStatus.LOGGED)
         if (!this.storeData) throw new Error('系统异常')
+        if (this.pendingWrites || this.changingMainPassword) {
+            ElMessage.warning('正在完成保存，请稍后解锁')
+            return false
+        }
 
         try {
             // 检查当前主密码是否正解锁备份文件
@@ -456,6 +539,8 @@ export class PasswordManagerImpl implements PasswordManager {
                 if (noteDataText) {
                     this.noteStore.noteData = JSON.parse(noteDataText)
                 }
+            } else {
+                this.noteStore.noteData = {noteTree: [], currentNote: ''}
             }
 
             // 开始恢复
@@ -480,6 +565,11 @@ export class PasswordManagerImpl implements PasswordManager {
     lock(): void {
         console.log('passwordManager 锁定密码')
         this.passwordStore.resetPrivacyMode()
+        this.refStore.showPasswordRef?.closePassword?.()
+        this.refStore.passwordFormRef?.closePasswordForm?.()
+        this.refStore.settingRef?.closeSetting?.()
+        this.nodeCacheMap.clear()
+        this.dataRevision++
         this.passwordStore.mainPassword = ''
         this.passwordStore.allPasswordArray = []
         this.passwordStore.labelArray = []
@@ -490,41 +580,78 @@ export class PasswordManagerImpl implements PasswordManager {
     // 清空回收站
     emptyRecycle(): Promise<RespData> {
         console.log('passwordManager 清空回收站')
+        this.assertWritable()
         this.passwordStore.allPasswordArray = this.passwordStore.allPasswordArray.filter(password => password.status !== PasswordStatus.DELETED)
         return this.syncStoreData()
     }
 
     // 同步设置
-    syncSetting(): Promise<RespData> {
-        if ([ServiceStatus.NO_LOGIN].includes(this.passwordStore.serviceStatus)) throw new Error('当前状态不允许该操作：' + this.passwordStore.serviceStatus)
-        if (!this.databaseClient) throw new Error('系统异常databaseClient isnull syncLabelData')
-
-        return this.databaseClient.setSettingData(JSON.stringify(this.settingStore.setting));
+    async syncSetting(): Promise<RespData> {
+        if (this.passwordStore.serviceStatus === ServiceStatus.NO_LOGIN) throw new Error('尚未登录')
+        if (this.changingMainPassword || this.logging) return {status: false, message: '正在处理存储操作，请稍后再操作'}
+        if (!this.databaseClient) throw new Error('存储引擎未初始化')
+        const text = JSON.stringify(this.settingStore.setting)
+        return this.enqueueWrite(() => this.databaseClient!.setSettingData(text))
     }
 
-    // 同步数据
-    syncStoreData(): Promise<RespData> {
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
+    // 只在存储确认成功后更新密文快照；失败时恢复最后一次成功保存的数据。
+    async syncStoreData(): Promise<RespData> {
+        try {
+            this.assertWritable()
+        } catch (error) {
+            this.restoreStoreData()
+            throw error
+        }
+        if (!this.databaseClient) throw new Error('存储引擎未初始化')
         normalizePasswordArray(this.passwordStore.allPasswordArray)
-        this.storeData = {
+        const content: StoreData = {
             passwordData: encryptAES(this.passwordStore.mainPassword, JSON.stringify(compressArray(this.passwordStore.allPasswordArray))),
             labelData: encryptAES(this.passwordStore.mainPassword, JSON.stringify(this.passwordStore.labelArray)),
             mainPasswordType: this.passwordStore.mainPasswordType,
         }
-        if (!this.databaseClient) throw new Error('系统异常databaseClient isnull syncLabelData')
-        return this.databaseClient.setStoreData(JSON.stringify(this.storeData))
+        const revision = this.storeRevision
+        return this.enqueueWrite(async () => {
+            if (revision !== this.storeRevision) return {status: false, message: '先前保存失败，本次操作未保存，请重新操作'}
+            try {
+                this.requireSuccess(await this.databaseClient!.setStoreData(JSON.stringify(content)))
+                this.storeData = content
+                return {status: true}
+            } catch (error) {
+                this.storeRevision++
+                this.restoreStoreData()
+                const message = error instanceof Error ? error.message : (error as RespData)?.message || '保存失败，请重试'
+                ElNotification.error({title: '保存失败', message})
+                return {status: false, message}
+            }
+        })
     }
 
-    // 同步数据
-    syncNoteData(): Promise<RespData> {
-        this.serviceStatusAssert(ServiceStatus.UNLOCKED)
-        if (!this.databaseClient) throw new Error('系统异常databaseClient isnull syncNoteData')
-        console.log('同步笔记数据', this.noteStore.noteData)
-        let content = {
+    async syncNoteData(): Promise<RespData> {
+        this.assertWritable()
+        if (!this.databaseClient) throw new Error('存储引擎未初始化')
+        const content: TreeNoteData = {
             noteData: encryptAES(this.passwordStore.mainPassword, JSON.stringify(this.noteStore.noteData)),
             mainPasswordType: this.passwordStore.mainPasswordType,
         }
-        return this.databaseClient.setNoteData(JSON.stringify(content))
+        const revision = this.noteRevision
+        return this.enqueueWrite(async () => {
+            if (revision !== this.noteRevision) return {status: false, message: '先前目录保存失败，请重新操作'}
+            try {
+                this.requireSuccess(await this.databaseClient!.setNoteData(JSON.stringify(content)))
+                this.treeNoteData = content
+                return {status: true}
+            } catch (error) {
+                this.noteRevision++
+                if (this.isCurrentSession() && this.passwordStore.serviceStatus === ServiceStatus.UNLOCKED) {
+                    this.noteStore.noteData = this.treeNoteData
+                        ? JSON.parse(decryptAES(this.passwordStore.mainPassword, this.treeNoteData.noteData))
+                        : {noteTree: [], currentNote: ''}
+                }
+                const message = error instanceof Error ? error.message : (error as RespData)?.message || '笔记目录保存失败'
+                ElNotification.error({title: '保存失败', message})
+                return {status: false, message}
+            }
+        })
     }
 
     // 获取StoreData
@@ -545,15 +672,12 @@ export class PasswordManagerImpl implements PasswordManager {
 
     // 注销账号
     async closeAccount(): Promise<RespData> {
-        console.log('passwordManager 注销账号')
-        return new Promise(async (resolve) => {
-            this.serviceStatusAssert(ServiceStatus.UNLOCKED)
-            if (!this.databaseClient) throw new Error('系统异常databaseClient isnull closeAccount')
-            // 删除密码与标签文件
-            let deleteResult = await this.databaseClient.deleteStoreData().catch((err) => err)
-            // 删除设置文件（失败不处理）
-            await this.databaseClient.deleteSettingData().catch((err) => err)
-            resolve(deleteResult)
+        this.assertWritable()
+        if (!this.databaseClient) throw new Error('存储引擎未初始化')
+        return this.enqueueWrite(async () => {
+            const result = await this.databaseClient!.deleteStoreData()
+            if (result.status) await this.databaseClient!.deleteSettingData().catch(() => undefined)
+            return result
         })
     }
 
@@ -564,44 +688,40 @@ export class PasswordManagerImpl implements PasswordManager {
         }
     }
 
-    // 获取数据
-    getData = (name: string): Promise<string> => {
-        if (!this.databaseClient) throw new Error('系统异常databaseClient isnull getData')
-        // 从缓存中获取
-        let data = this.nodeCacheMap.get(name)
-        if (data) {
-            return Promise.resolve(data)
+    // 等待此前写入；读取过程中发生新写入或锁定时，不再缓存旧读取结果。
+    getData = async (name: string): Promise<string> => {
+        if (!this.databaseClient) throw new Error('存储引擎未初始化')
+        await this.writeQueue
+        if (this.nodeCacheMap.has(name)) return this.nodeCacheMap.get(name) || ''
+        const revision = this.dataRevision
+        const data = await this.databaseClient.getData(name)
+        if (revision === this.dataRevision && this.isCurrentSession() && this.passwordStore.serviceStatus === ServiceStatus.UNLOCKED) {
+            this.nodeCacheMap.set(name, data)
         }
-
-        return new Promise((resolve) => {
-            if (!this.databaseClient) throw new Error('系统异常databaseClient isnull getData')
-            this.databaseClient.getData(name).then((data) => {
-                // 缓存数据
-                this.nodeCacheMap.set(name, data)
-                resolve(data)
-            })
-        })
+        return data
     }
 
-    // 设置数据
-    setData = (name: string, text: string): Promise<RespData> => {
-        return new Promise((resolve) => {
-            if (!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
-            this.databaseClient.setData(name, text).then((data) => {
-                // 缓存数据
+    setData = async (name: string, text: string): Promise<RespData> => {
+        this.assertWritable()
+        if (!this.databaseClient) throw new Error('存储引擎未初始化')
+        this.dataRevision++
+        return this.enqueueWrite(async () => {
+            const result = await this.databaseClient!.setData(name, text)
+            if (result?.status === true && this.isCurrentSession() && this.passwordStore.serviceStatus === ServiceStatus.UNLOCKED) {
                 this.nodeCacheMap.set(name, text)
-                resolve(data)
-            })
+            }
+            return result
         })
     }
 
-    // 删除数据
-    delData = (name: string): Promise<RespData> => {
-        return new Promise((resolve) => {
-            if (!this.databaseClient) throw new Error('系统异常databaseClient isnull setData')
-            this.databaseClient.deleteData(name).then((data) => {
-                resolve(data)
-            })
+    delData = async (name: string): Promise<RespData> => {
+        this.assertWritable()
+        if (!this.databaseClient) throw new Error('存储引擎未初始化')
+        this.dataRevision++
+        return this.enqueueWrite(async () => {
+            const result = await this.databaseClient!.deleteData(name)
+            if (result?.status === true) this.nodeCacheMap.delete(name)
+            return result
         })
     }
 

@@ -129,7 +129,7 @@ export class DatabaseForOSS implements Database {
             if (!this.ossClient) throw new Error('oss getFile 存储引擎不存在')
             this.ossClient.get(fileName).then((response) => {
                 // 更新文件标价
-                this.updateEtag(fileName, JSON.parse(JSON.stringify(response.res.headers))['last-modified']);
+                this.fileEtags[fileName] = (response.res.headers as Record<string, string>)['last-modified'] || 'unknown'
                 resolve(response.content.toString())
             }).catch((err: any) => {
                 if (err && err.status === 404) {
@@ -145,35 +145,26 @@ export class DatabaseForOSS implements Database {
     // 上传oss文件
     private async uploadFile(fileName: string, content: string): Promise<RespData> {
         console.log('上传oss文件：', fileName, 'length:', content.length)
-        return new Promise(async (resolve, reject) => {
-            if (!this.ossClient) throw new Error('oss uploadFile 存储引擎不存在')
+        if (!this.ossClient) throw new Error('存储引擎不存在')
+        // 检查文件是否为最新
+        let checkResult = await this.checkEtag(fileName)
+        if (!checkResult) {
+            console.log('上传oss文件 文件同步异常')
+            const message = '当前密码列表已被其他客户端更新，请刷新页面'
+            // 交给调用方报告冲突，避免强制刷新中断主密码修改的回退。
+            return {status: false, message}
+        }
 
-            // 检查文件是否为最新
-            let checkResult = await this.checkEtag(fileName)
-            if (!checkResult) {
-                console.log('上传oss文件 文件同步异常')
-                const message = '当前密码列表已被其他客户端更新，请刷新页面'
-                ElMessageBox({
-                    title: '文件同步异常',
-                    message,
-                    showCancelButton: false,
-                    showConfirmButton: true,
-                    closeOnPressEscape: false,
-                    showClose: false,
-                    closeOnClickModal: false,
-                    confirmButtonText: '刷新',
-                    callback: () => {
-                        console.log('刷新');
-                        location.reload()
-                    }
-                })
-                resolve({status: false, message})
-                return
-            }
-
+        return new Promise((resolve, reject) => {
             let buffer = Buffer.from(content);
-            this.ossClient.put(fileName, buffer).then(async () => {
-                await this.updateEtag(fileName)
+            this.ossClient!.put(fileName, buffer).then(async (response) => {
+                const headers = response.res.headers as Record<string, string>
+                // PUT 已成功，后续 HEAD 失败不能再把本次写入报告为失败。
+                // 未能取得版本时保留未知标记，下一次保存必须重新核对。
+                this.fileEtags[fileName] = headers['last-modified'] || 'unknown'
+                if (!headers['last-modified']) {
+                    await this.updateEtag(fileName).catch(() => undefined)
+                }
                 resolve({status: true})
             }).catch((err) => {
                 console.error('oss上传文件错误：', err)
@@ -221,13 +212,10 @@ export class DatabaseForOSS implements Database {
     }
 
     // 获取文件标记
-    private getEtag(fileName: string): Promise<string> {
-        return new Promise(async (resolve) => {
-            if (!this.ossClient) throw new Error('oss getEtag 存储引擎不存在')
-            let checkUpdate = await this.ossClient.head(fileName)
-            let etag = JSON.parse(JSON.stringify(checkUpdate.res.headers))['last-modified']
-            resolve(etag)
-        })
+    private async getEtag(fileName: string): Promise<string> {
+        if (!this.ossClient) throw new Error('oss getEtag 存储引擎不存在')
+        const response = await this.ossClient.head(fileName)
+        return (response.res.headers as Record<string, string>)['last-modified']
     }
 
     // 检查文件标记是否与当前客户端一致

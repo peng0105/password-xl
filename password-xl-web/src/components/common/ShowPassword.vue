@@ -1,7 +1,10 @@
 <!--查看密码-->
 <script lang="ts" setup>
 import {copyText, displaySize} from "@/utils/global.ts";
-import {Password} from "@/types";
+import {usePasswordStore} from "@/stores/PasswordStore.ts";
+import {Password, ServiceStatus} from "@/types";
+
+const passwordStore = usePasswordStore()
 
 // 查看密码弹窗
 const viewPassword = reactive({
@@ -11,13 +14,25 @@ const viewPassword = reactive({
 })
 
 const showPassword = (password: Password) => {
-  console.log('查看密码弹窗')
+  if (passwordStore.serviceStatus !== ServiceStatus.UNLOCKED) return
   viewPassword.content = password.password
   viewPassword.title = password.title
   viewPassword.alertVisible = true
 }
 
+const closePassword = () => {
+  viewPassword.alertVisible = false
+  viewPassword.content = ''
+  viewPassword.title = ''
+}
+
+watch(() => passwordStore.serviceStatus, status => {
+  if (status !== ServiceStatus.UNLOCKED) closePassword()
+}, {flush: 'sync'})
+onBeforeUnmount(closePassword)
+
 defineExpose({
+  closePassword,
   showPassword
 })
 </script>
@@ -25,7 +40,7 @@ defineExpose({
 <template>
   <!-- 查看密码弹窗 -->
   <el-dialog v-model="viewPassword.alertVisible" :width="['xs', 'sm'].includes(displaySize().value)?'95%':'40%'"
-             append-to-body>
+             append-to-body @close="closePassword">
     <template #header>
       <el-text size="large" style="user-select: none;">
         <span class="iconfont icon-show-password"></span>

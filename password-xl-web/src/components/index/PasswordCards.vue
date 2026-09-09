@@ -244,7 +244,7 @@ const cardStyle = (password: Password) => {
 }
 
 const getBackStyle = () => {
-  if (settingStore.setting.dynamicBackground) {
+  if (settingStore.setting.backgroundMode !== 'off') {
     return {'background-color': passwordStore.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)'}
   } else {
     return {'background-color': passwordStore.isDark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,1)'}
