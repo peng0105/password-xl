@@ -6,11 +6,11 @@ Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式
 
 | Jenkins 任务 | Script Path | TARGETS |
 |---|---|---|
-| password-xl/Release | `Jenkinsfile` | 以下全部 16 项 |
-| password-xl/Web | `password-xl-web/Jenkinsfile` | web-x86, web-arm, dist-zip, dist-tar-gz |
-| password-xl/Service | `password-xl-service/Jenkinsfile` | service-x86, service-arm, service-jvm-x86, service-jvm-arm, jar |
-| password-xl/Desktop | `ci/jenkins/Jenkinsfile.desktop` | appimage, rpm, snap, dmg, exe |
-| password-xl/Android | `ci/jenkins/Jenkinsfile.android` | apk-online, apk-local |
+| 密码管理/password-xl-release | `Jenkinsfile` | 以下全部 16 项 |
+| 密码管理/password-xl-web-release | `password-xl-web/Jenkinsfile` | web-x86, web-arm, dist-zip, dist-tar-gz |
+| 密码管理/password-xl-service-release | `password-xl-service/Jenkinsfile` | service-x86, service-arm, service-jvm-x86, service-jvm-arm, jar |
+| 密码管理/password-xl-desktop-release | `ci/jenkins/Jenkinsfile.desktop` | appimage, rpm, snap, dmg, exe |
+| 密码管理/password-xl-android-release | `ci/jenkins/Jenkinsfile.android` | apk-online, apk-local |
 
 每个领域任务包含构建、验证和发布，可独立运行。总入口按 Web → Service → Desktop → Android 顺序调用本次需要的领域任务；领域内部按运行平台合并 worker，Linux 三种桌面包一次编译，两个 APK 一次签名和升级验证。顺序调度使同一版本的 Release 写入有明确顺序，也减少集群内同时进行原生编译的内存压力。
 
@@ -40,7 +40,7 @@ buildctl build --frontend dockerfile.v0 \
   --output type=image,name=YOUR_REGISTRY/password-xl-ci:1,push=true
 ```
 
-Pod 模板使用 **rootless BuildKit** sidecar、临时 workspace，没有 hostPath 或宿主 Docker socket。其 seccomp/AppArmor 设置限定在该构建 Pod；节点需已允许非特权 user namespace。若当前 k3s 安全策略不接受模板，使用已有允许的 BuildKit Pod 策略调整模板，先验证工具镜像和一次小型 Web 构建；流水线不会修改节点内核或集群策略。默认 tools 内存限制 16Gi、CPU 限制 4，请按实际容量调整 `agent.yaml`。原生构建不能依靠插件替代这些编译资源。
+Pod 模板使用 **rootless BuildKit** sidecar、临时 workspace，没有 hostPath 或宿主 Docker socket。其 seccomp/AppArmor 设置限定在该构建 Pod；节点需已允许非特权 user namespace。若当前 k3s 安全策略不接受模板，使用已有允许的 BuildKit Pod 策略调整模板，先验证工具镜像和一次小型 Web 构建；流水线不会修改节点内核或集群策略。默认 tools 内存限制 16Gi、CPU 限制 4，请按实际容量调整 `agent.yaml`。 Gradle 缓存卷通过 `CI_GRADLE_CACHE_CLAIM` 指定，默认复用已有 `gradle-build-cache-pvc`，不创建新的存储设施。仅写入 `password-xl-v1` 子目录，分发包、依赖和构建缓存跨 Pod 保留；每次 Gradle 调用持有该目录的文件锁，避免不同容器同时写缓存。原生构建不能依靠插件替代这些编译资源。
 
 ## 凭据与网络
 
@@ -58,13 +58,13 @@ Pod 模板使用 **rootless BuildKit** sidecar、临时 workspace，没有 hostP
 
 GitHub 创建 `jenkins-workers` environment，设置允许的发布 Tag 策略。变量：`JENKINS_ACTOR` 为 Jenkins token 对应账号（workflow 会强制核对 actor），`REGISTRY_PRIVATE_PREFIX` 与 Jenkins 一致，`ANDROID_URL` 为安卓 Gitea 仓库 HTTPS 地址。Secrets：
 
-- `REGISTRY_PRIVATE_READ_USERNAME`、`REGISTRY_PRIVATE_READ_PASSWORD`：只读内部候选镜像。
+- `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN`：读取供 GitHub 验证的 Docker Hub 候选镜像。对应变量 `REGISTRY_WORKER_PREFIX`；允许匿名读取时可显式设置 `REGISTRY_WORKER_ANONYMOUS=true`。
 - `GITEA_ANDROID_READ_TOKEN`：只读安卓仓库及签名基线历史提交。
-- `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`：现有 Android 签名，不生成替代签名。
+- `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`：已确认的 Android 发布签名，流水线不会自行换签名。
 
-GitHub 自带的 `GITHUB_TOKEN` 只授予 contents:read，用于读取本次草稿中的共享前端，不负责对外发布。敏感值只注入需要它们的步骤；worker 上传目录严格限定 `.release/worker/`，签名 key 位于临时目录，注册表认证文件位于 `.release/private/`。
+GitHub 常规 worker 的 `GITHUB_TOKEN` 使用 contents:read；仅 native-arm job 因 GitHub 草稿附件读取要求使用 contents:write 的短期 token。该 job 只下载并校验共享前端，不执行 Release 创建、更新或发布。敏感值只注入需要它们的步骤；worker 上传目录严格限定 `.release/worker/`，签名 key 位于临时目录，注册表认证文件位于 `.release/private/`。
 
-Jenkins 与 GitHub runners 都需要访问依赖仓库；GitHub 还需要通过 HTTPS 读取 Gitea、内部候选镜像仓库和当前服务 Gradle wrapper 的下载地址。代理通过环境配置 `HTTP_PROXY/HTTPS_PROXY/NO_PROXY`，Java 构建自动转换为代理系统属性，仅接受不带嵌入凭据的代理 URL。自建基础镜像可设置 `JVM_BASE_IMAGE`，以及可选 `JVM_BASE_USERNAME/JVM_BASE_PASSWORD`。不要通过日志排查输出完整凭据配置。
+Jenkins 与 GitHub runners 都需要访问依赖仓库；GitHub 还需要通过 HTTPS 读取 Gitea、候选镜像仓库和 Gradle 官方下载地址。内部仓库只在内网可达时，将 `REGISTRY_WORKER_PREFIX` 设为已配置的 Docker Hub 命名空间；Jenkins 会按 digest 复制候选镜像供 runner 验证，正式镜像仍从内部仓库分发。代理通过环境配置 `HTTP_PROXY/HTTPS_PROXY/NO_PROXY`，Java 构建自动转换为代理系统属性，仅接受不带嵌入凭据的代理 URL。自建基础镜像可设置 `JVM_BASE_IMAGE`，以及可选 `JVM_BASE_USERNAME/JVM_BASE_PASSWORD`。不要通过日志排查输出完整凭据配置。 Jenkins 可配置 `GRADLE_DISTRIBUTION_URL` 为内网镜像；脚本仅在临时目录生成 wrapper 配置，保留源码固定的版本及 SHA256，不修改提交内 wrapper。`NEXUS_MAVEN_URL` 将 Nexus 放在插件和依赖仓库的首位；内网域名应加入 NO_PROXY。GitHub 不设置这两项，继续使用公开来源。
 
 ## 源码、版本与产物
 
@@ -114,7 +114,7 @@ Jenkins 在 dispatch 前就记录 request ID，获得 Run ID 后立即落盘；�
 
 回滚使用 Web 任务：`OSS_ROLLBACK=历史 VERSION-SHA12`（首次接入的旧站点为 `legacy-HASH12`）、`DEPLOY_OSS=true`、`DRAFT_ONLY=false`，其他构建选择不生效。回滚只读取已保存版本、恢复、刷新、验证，不重新编译。首次部署自动备份已有站点全部文件，检查备份期间站点未变动，并记录旧站点回滚 ID；每次激活前先验证完整备份摘要。
 
-OSS 和 CDN 可使用同一凭据，也可在配置的 `credentials.cdn` 指定独立 Username/password 凭据。启用部署时会在创建 Release 前检查 OSS 列举和 CDN 刷新查询权限。若内部仓库原本允许匿名访问，可显式配置 `REGISTRY_PRIVATE_ANONYMOUS=true`，同时在 GitHub 设置同名变量，私有仓库凭据不再必填。无版本标签的历史 latest 默认保留；迁移时用 `LEGACY_LATEST_VERSION` 明确其已知版本下限，避免旧版本补发导致回退。
+OSS 和 CDN 可使用同一凭据，也可在配置的 `credentials.cdn` 指定独立 Username/password 凭据。启用部署时会在创建 Release 前检查 OSS 列举和 CDN 刷新查询权限。若内部仓库原本允许匿名访问，可显式配置 `REGISTRY_PRIVATE_ANONYMOUS=true`，私有仓库凭据不再必填；GitHub worker 单独配置候选镜像读取权限。无版本标签的历史 latest 默认保留；迁移时用 `LEGACY_LATEST_VERSION` 明确其已知版本下限，避免旧版本补发导致回退。
 
 ## 验证与验收
 
@@ -122,6 +122,6 @@ OSS 和 CDN 可使用同一凭据，也可在配置的 `credentials.cdn` 指定�
 
 六种镜像必须在相应真实架构通过 `smoke.py` 才能进入版本分发。Web 检查 nginx、健康页、HTML 和资源；四种后端还执行登录、读写删除、图片上传下载和重启持久化测试。正式验收另需在完整 Web+Service 部署上检查 UI 登录及实际 vault 操作；静态 Web 镜像本身没有后端接口。
 
-首次草稿全量验收应确认：16 targets/6 images/10 downloads；双站附件摘要一致；镜像三个仓库和旧名 digest 一致；同版本重试、部分补发、错误 SHA/同名不同内容失败；取消后无继续运行 worker；Android 原签名/覆盖安装；三平台桌面包实际安装；OSS 测试前缀发布与回滚。通过后关闭 DRAFT_ONLY 切换正式发布。
+首次草稿全量验收应确认：16 targets/6 images/10 downloads；双站附件摘要一致；镜像三个仓库和旧名 digest 一致；同版本重试、部分补发、错误 SHA/同名不同内容失败；取消后无继续运行 worker；Android 当前签名、历史签名迁移边界及新包双向覆盖安装；三平台桌面包实际安装；OSS 测试前缀发布与回滚。通过后关闭 DRAFT_ONLY 切换正式发布。
 
 参考：[GitHub ARM runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)、[BuildKit rootless](https://github.com/moby/buildkit/blob/master/docs/rootless.md)、[Android 本地资源加载](https://developer.android.com/develop/ui/views/layout/webapps/load-local-content)、[CDN 刷新状态 API](https://www.alibabacloud.com/help/en/cdn/developer-reference/api-cdn-2018-05-10-describerefreshtasks)。

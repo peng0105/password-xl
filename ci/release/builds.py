@@ -5,6 +5,7 @@ import shutil
 import struct
 import sys
 import zipfile
+from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -34,6 +35,26 @@ def frontend(context, mode='web'):
     return output
 
 
+@contextmanager
+def gradle_cache_lock():
+    cache = os.environ.get('GRADLE_SHARED_CACHE')
+    if not cache:
+        yield
+        return
+    require(os.name == 'posix', 'Shared CI Gradle cache requires POSIX file locking')
+    import fcntl
+    directory = Path(cache)
+    directory.mkdir(parents=True, exist_ok=True)
+    require(directory.resolve() == Path(env('GRADLE_USER_HOME')).resolve(), 'Gradle cache lock/home must match')
+    with (directory / '.password-xl-ci.lock').open('a') as lock:
+        print('Waiting for the shared Gradle cache lock', flush=True)
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
 def gradle(context, tasks, extra=None):
     dist = frontend(context)
     wrapper = ROOT / 'password-xl-service' / ('gradlew.bat' if os.name == 'nt' else 'gradlew')
@@ -42,6 +63,23 @@ def gradle(context, tasks, extra=None):
     # Invoke the wrapper class directly on Windows so cmd.exe cannot interpret proxy/ref characters.
     command = (['java', '--enable-native-access=ALL-UNNAMED', '-classpath', str(wrapper.parent / 'gradle/wrapper/gradle-wrapper.jar'),
                 'org.gradle.wrapper.GradleWrapperMain'] if os.name == 'nt' else [str(wrapper)])
+    mirror = os.environ.get('GRADLE_DISTRIBUTION_URL')
+    if mirror:
+        import re
+        url = urlsplit(mirror)
+        require(url.scheme == 'https' and url.hostname and not url.username and not url.query and not url.fragment,
+                'Gradle mirror must be a plain HTTPS URL')
+        properties = (wrapper.parent / 'gradle/wrapper/gradle-wrapper.properties').read_text()
+        original = re.search(r'^distributionUrl=(.+)$', properties, re.MULTILINE)[1].replace('\\:', ':')
+        require(Path(url.path).name == Path(urlsplit(original).path).name, 'Gradle mirror version differs from the wrapper')
+        require(re.search(r'^distributionSha256Sum=[0-9a-f]{64}$', properties, re.MULTILINE), 'Gradle checksum must remain pinned')
+        temporary = OUT / 'gradle-wrapper'
+        temporary.mkdir(parents=True, exist_ok=True)
+        jar = temporary / 'gradle-wrapper.jar'
+        shutil.copyfile(wrapper.parent / 'gradle/wrapper/gradle-wrapper.jar', jar)
+        properties = re.sub(r'^distributionUrl=.+$', lambda _: 'distributionUrl=' + mirror.replace(':', '\\:'), properties, flags=re.MULTILINE)
+        (temporary / 'gradle-wrapper.properties').write_text(properties)
+        command = ['java', '--enable-native-access=ALL-UNNAMED', '-classpath', str(jar), 'org.gradle.wrapper.GradleWrapperMain']
     args = [*command, '--no-daemon', '--console=plain', '--build-cache', '--max-workers=2',
             '-PreleaseVersion=' + context['version'], '-PfrontendDist=' + str(dist), *(extra or []), *tasks]
     # Java does not inherit HTTP(S)_PROXY automatically, unlike the Python/Node tools.
@@ -53,7 +91,12 @@ def gradle(context, tasks, extra=None):
                     'Java CI proxy requires an HTTP(S) URL without embedded credentials')
             args += [f'-D{scheme}.proxyHost={proxy.hostname}', f'-D{scheme}.proxyPort={proxy.port or 80}']
     args += ['-Dhttp.nonProxyHosts=' + os.environ.get('NO_PROXY', 'localhost,127.0.0.1').replace(',', '|')]
-    run(args, cwd=wrapper.parent, extra_env={'RELEASE_SOURCE_SHA': context['source_sha']})
+    if os.environ.get('NEXUS_MAVEN_URL'):
+        nexus = urlsplit(env('NEXUS_MAVEN_URL'))
+        require(nexus.scheme == 'https' and nexus.hostname and not nexus.username, 'Nexus requires an HTTPS URL without credentials')
+        args += ['--init-script', str(ROOT / 'ci/gradle/nexus.init.gradle')]
+    with gradle_cache_lock():
+        run(args, cwd=wrapper.parent, extra_env={'RELEASE_SOURCE_SHA': context['source_sha']})
 
 
 def elf_arch(path):

@@ -17,6 +17,7 @@ import registry
 import release
 import oss
 import workers
+import builds
 from api import Api, ApiError
 
 
@@ -295,6 +296,42 @@ class Site(unittest.TestCase):
         with self.assertRaises(ValueError):
             oss.activate(storage, {}, {'files': [{'name': 'index.html', 'sha256': '0' * 64}]}, 'backup')
         storage.put.assert_not_called()
+
+
+class GradleMirror(unittest.TestCase):
+    def check_mirror(self, url, checksum=True):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            module = root / 'password-xl-service'
+            directory = module / 'gradle/wrapper'
+            directory.mkdir(parents=True)
+            (module / 'gradlew').touch()
+            (directory / 'gradle-wrapper.jar').write_bytes(b'wrapper fixture')
+            properties = 'distributionUrl=https\\://services.gradle.org/distributions/gradle-9.6.1-bin.zip\n'
+            if checksum:
+                properties += 'distributionSha256Sum=' + 'a' * 64 + '\n'
+            original = directory / 'gradle-wrapper.properties'
+            original.write_text(properties)
+            with patch.dict(os.environ, {'GRADLE_DISTRIBUTION_URL': url}, clear=True), \
+                    patch.object(builds, 'ROOT', root), patch.object(builds, 'OUT', root / '.release'), \
+                    patch.object(builds, 'frontend', return_value=root / 'dist'), patch.object(builds, 'run') as execute:
+                builds.gradle(context(), ['build'])
+                mirrored = (root / '.release/gradle-wrapper/gradle-wrapper.properties').read_text()
+                self.assertIn('distributionSha256Sum=' + 'a' * 64, mirrored)
+                self.assertIn(url.replace(':', '\\:'), mirrored)
+                self.assertEqual(original.read_text(), properties)
+                self.assertIn('org.gradle.wrapper.GradleWrapperMain', execute.call_args.args[0])
+
+    def test_internal_mirror_keeps_original_checksum_and_source(self):
+        self.check_mirror('https://mirror.example/gradle-9.6.1-bin.zip')
+
+    def test_mirror_cannot_change_gradle_version(self):
+        with self.assertRaises(ValueError):
+            self.check_mirror('https://mirror.example/gradle-9.7.1-bin.zip')
+
+    def test_mirror_requires_pinned_checksum(self):
+        with self.assertRaises(ValueError):
+            self.check_mirror('https://mirror.example/gradle-9.6.1-bin.zip', checksum=False)
 
 
 class WorkersAndApi(unittest.TestCase):

@@ -27,6 +27,13 @@ spec:
           value: tcp://127.0.0.1:1234
         - name: PYTHONUNBUFFERED
           value: '1'
+        - name: GRADLE_USER_HOME
+          value: /ci-cache/gradle/password-xl-v1
+        - name: GRADLE_SHARED_CACHE
+          value: /ci-cache/gradle/password-xl-v1
+      volumeMounts:
+        - name: gradle-cache
+          mountPath: /ci-cache/gradle
       resources:
         requests: {cpu: '2', memory: 4Gi}
         limits: {cpu: '4', memory: 16Gi}
@@ -45,3 +52,7 @@ spec:
       resources:
         requests: {cpu: '250m', memory: 256Mi}
         limits: {cpu: '2', memory: 2Gi}
+  volumes:
+    - name: gradle-cache
+      persistentVolumeClaim:
+        claimName: ${CI_GRADLE_CACHE_CLAIM}

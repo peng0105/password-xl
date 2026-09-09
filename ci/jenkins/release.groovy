@@ -139,6 +139,7 @@ def run(String domain, String podYaml) {
     def resolvedYaml = podYaml.replace('${CI_TOOLS_IMAGE}', env.CI_TOOLS_IMAGE)
         .replace('${CI_AGENT_IMAGE}', env.CI_AGENT_IMAGE ?: 'jenkins/inbound-agent:jdk21')
         .replace('${CI_BUILDKIT_IMAGE}', env.CI_BUILDKIT_IMAGE ?: 'moby/buildkit:v0.23.2-rootless')
+        .replace('${CI_GRADLE_CACHE_CLAIM}', env.CI_GRADLE_CACHE_CLAIM ?: 'gradle-build-cache-pvc')
     podTemplate(yaml: resolvedYaml) {
         node(POD_LABEL) {
             container('tools') {
