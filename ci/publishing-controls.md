@@ -53,3 +53,13 @@ Jenkins 配置增加 `GITEE_URL`、`GITEE_USERNAME` 和凭据 `password-xl-gitee
 GitHub worker 配置 `GITEA_SOURCE_URL`、`GITEA_URL`、`GITEA_REPO`，并将能读取主仓库、安卓仓库和构建输入的现有 Gitea 凭据放入 environment secret `GITEA_BUILD_READ_TOKEN`。原生 ARM 不再需要读取草稿 Release，其 GitHub token 已降为 contents:read。
 
 控制测试覆盖四开关全部 16 种组合、关闭时无相应外部调用、版本冲突、临时输入校验和上传失败清理。实际运行结果另见 Jenkins 归档的 `publication.json`、`repository-sync.json` 和 worker 记录；关闭的动作明确记录为 skipped。
+
+## 2026-09-10 实测
+
+- 本地 66 项测试通过，包含发布动作组合、同版本跨发布方式的源码冲突、镜像输入摘要、归档路径冲突，以及真实临时 Git 仓库的合并、重复同步和冲突保护。
+- 实际 Jenkins Groovy 检查通过：四个领域同时执行，通过 UpstreamCause 读取父任务归档；子任务页面的默认 true 不会覆盖父任务的 false。临时检查任务已归档并删除。
+- 正式 [Web 任务 #11](https://jenkins.huangyp.cn/job/%E5%AF%86%E7%A0%81%E7%AE%A1%E7%90%86/job/password-xl-web-release/11/) 成功，源码 `7b63745c1870408b77e40f467892a353731a226e`。设置为 `SYNC_REPOS=true`，其余三项 false；Jenkins 完成 GitHub/Gitee master 同步、Web 双架构镜像、dist ZIP/TAR.GZ 构建和归档，总耗时 6 分 14 秒。
+- [x86 worker](https://github.com/peng0105/password-xl/actions/runs/34437902826) 和 [ARM64 worker](https://github.com/peng0105/password-xl/actions/runs/34438048610) 均成功。两者直接检出固定 Gitea SHA，下载校验临时 Docker 归档，检查加载后的 config digest，并在对应真实架构执行启动、健康、内置资源和 nginx 配置检查。
+- 从 Jenkins 回读全部四个归档，65,195,155 字节的 SHA256 均与结果清单一致，归档内版本与源码标记正确。两次 worker 的临时输入均已删除；双站 1.5.0 Release 清单和正式站点入口摘要保持原值，发布报告中 Release、镜像、OSS 均为 skipped。
+
+本次重新编译验证的范围是 Web 四个目标，其他领域的安装包验收沿用此前 1.5.0 完整发布记录；参数继承和公共开关逻辑通过本轮专项检查。1.5.0 的已发布源码仍为 `b82d0795f80f47b5850348708950c566842a797b`，后续正式发布新提交必须先更新 package.json 版本，不能把本次 CI 提交覆盖到旧版本。

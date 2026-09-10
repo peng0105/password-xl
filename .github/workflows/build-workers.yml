@@ -112,7 +112,6 @@ jobs:
           REGISTRY_WORKER_ANONYMOUS: ${{ vars.REGISTRY_WORKER_ANONYMOUS }}
           REGISTRY_WORKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           REGISTRY_WORKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
-          GH_WORKER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: ${{ github.repository }}
           GITEA_URL: ${{ vars.GITEA_URL }}
           GITEA_REPO: ${{ vars.GITEA_REPO }}
