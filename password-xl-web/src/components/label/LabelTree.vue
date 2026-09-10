@@ -109,13 +109,11 @@ const affirmDeleteLabel = (node: any) => {
   recursionDeleteRef(node.data, preDeleteLabel)
 
   // 删除密码列表中的使用的标签
-  let needSyncPassword = false
   for (let i = 0; i < passwordStore.allPasswordArray.length; i++) {
     let password = passwordStore.allPasswordArray[i]
     for (let j = 0; j < password.labels.length; j++) {
       if (preDeleteLabel.includes(password.labels[j])) {
         password.labels.splice(j--, 1);
-        needSyncPassword = true
       }
     }
   }
@@ -136,10 +134,6 @@ const affirmDeleteLabel = (node: any) => {
   // 同步标签数据
   passwordStore.passwordManager.syncStoreData()
 
-  // 同步密码数据
-  if (needSyncPassword) {
-    passwordStore.passwordManager.syncStoreData();
-  }
 }
 
 // 保存标签
@@ -156,14 +150,6 @@ const saveLabel = (data: Label) => {
 
   // 同步标签数据
   passwordStore.passwordManager.syncStoreData()
-}
-
-// 点击标签
-const clickLabel = (node: any) => {
-  if (editLabelId.value !== 0) {
-    return;
-  }
-  refStore.labelTreeRef.setChecked(node, !node.checked)
 }
 
 // 标签过滤密码功能
@@ -201,6 +187,7 @@ defineExpose({
         :ref="(el: any) => refStore.labelTreeRef = el"
         :allow-drag="labelDrag"
         :check-strictly="true"
+        check-on-click-node
         :data="passwordStore.labelArray"
         :default-expanded-keys="getDefaultExpandedKeys()"
         :expand-on-click-node="false"
@@ -227,11 +214,10 @@ defineExpose({
           <div
               v-if="data.id !== editLabelId"
               class="label-content"
-              @click="clickLabel(node)"
               @contextmenu="contextmenu($event,data.id)">
             {{ data.name }}
           </div>
-          <div v-if="data.id === editLabelId" style="width: 100%;">
+          <div v-if="data.id === editLabelId" style="width: 100%;" @click.stop>
             <el-input
                 :ref="(el: any) => labelNodeRefs[node.data.id] = el"
                 v-model="data.name"

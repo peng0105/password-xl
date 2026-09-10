@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository contains three deployable areas. `password-xl-web/` is the Vue 3 + Vite + TypeScript client, with source in `src/`, Electron entry points in `electron/`, nginx config in `nginx/`, and assets in `public/` plus `src/assets/`. `password-xl-service/` is the Spring Boot backend; Java code lives in `src/main/java/com/passwordxl/`, configuration in `src/main/resources/`, and `src/main/resources/static/` contains built frontend artifacts. Prefer editing frontend source and rebuilding instead of hand-editing those static assets. `password-xl-home/` is a static landing/home site. Deployment manifests live under `k8s/`; CI/deployment pipelines are in Jenkinsfiles and `.github/workflows/`.
+This repository contains two deployable areas. `password-xl-web/` is the Vue 3 + Vite + TypeScript client, with source in `src/`, Electron entry points in `electron/`, nginx config in `nginx/`, and assets in `public/` plus `src/assets/`. `password-xl-service/` is the Spring Boot backend; Java code lives in `src/main/java/com/passwordxl/`, configuration in `src/main/resources/`, and `src/main/resources/static/` contains built frontend artifacts. Prefer editing frontend source and rebuilding instead of hand-editing those static assets. The landing/home site is maintained in its own `password-xl-home` repository. Deployment manifests live under `k8s/`; CI/deployment pipelines are in Jenkinsfiles, `ci/`, and `.github/workflows/`.
 
 ## Build, Test, and Development Commands
 

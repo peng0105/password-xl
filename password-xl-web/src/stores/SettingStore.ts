@@ -1,5 +1,7 @@
 import {defineStore} from "pinia";
 import {AiProvider, AiThinking, PasswordDisplayMode, Setting, Sort} from "@/types";
+import {DEFAULT_EXCLUDED_CHARACTERS, defaultGenerateRule, defaultPasswordExclusions, normalizePasswordGenerationSettings} from '@/utils/passwordGenerator.ts'
+import {resolveBackgroundMode} from '@/utils/background.ts'
 
 export const defaultAiModelSetting = () => ({
     provider: AiProvider.OFFICIAL,
@@ -9,7 +11,11 @@ export const defaultAiModelSetting = () => ({
     thinking: AiThinking.DISABLED,
 })
 
-export const normalizeSetting = (setting: Setting) => {
+export const normalizeSetting = (setting: Setting, source: Partial<Setting> = setting) => {
+    normalizePasswordGenerationSettings(setting, source)
+    // 使用原始配置判断旧版开关，避免合并后的默认动态模式覆盖用户的关闭设置。
+    setting.backgroundMode = resolveBackgroundMode(source.backgroundMode, source.dynamicBackground)
+    setting.dynamicBackground = setting.backgroundMode !== 'off'
     setting.enablePrivacyMode = setting.enablePrivacyMode ?? false
     setting.aiModel = {
         ...defaultAiModelSetting(),
@@ -24,6 +30,8 @@ export const normalizeSetting = (setting: Setting) => {
 
 export const useSettingStore = defineStore('settingStore', {
     state: (): { visSetting: boolean, setting: Setting } => {
+        const backgroundMode = resolveBackgroundMode(
+            localStorage.getItem('backgroundMode'), localStorage.getItem('dynamicBackground'))
         return {
             visSetting: false,
             setting: {
@@ -32,7 +40,8 @@ export const useSettingStore = defineStore('settingStore', {
                 // 自定义字段
                 customFields: [],
                 // 易混淆字符
-                easyConfuseChat: '0OoIil',
+                easyConfuseChat: DEFAULT_EXCLUDED_CHARACTERS,
+                passwordExclusions: defaultPasswordExclusions(),
                 // 启用标签
                 showLabelCard: true,
                 // 启用AI创建
@@ -44,13 +53,7 @@ export const useSettingStore = defineStore('settingStore', {
                 // 启用快捷键
                 enableShortcutKey: true,
                 // 密码生成规则
-                generateRule: {
-                    length: 16,
-                    lowercase: true,
-                    number: true,
-                    symbol: true,
-                    uppercase: true
-                },
+                generateRule: defaultGenerateRule(),
                 // 在列表中显示时间 no.不显示 addTime.添加时间 updateTime.修改时间
                 showTimeForTable: 'no',
                 // 显示标签
@@ -87,8 +90,9 @@ export const useSettingStore = defineStore('settingStore', {
                     'rgb(178,0,255)',
                     'rgb(0,0,0)',
                 ],
-                // 动态背景图
-                dynamicBackground: true,
+                // 登录前也沿用上次的背景模式；未配置时默认为动态。
+                backgroundMode,
+                dynamicBackground: backgroundMode !== 'off',
                 // 密码颜色
                 passwordColor: false,
                 // AI模型配置

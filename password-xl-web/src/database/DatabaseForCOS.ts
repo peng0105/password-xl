@@ -150,33 +150,18 @@ export class DatabaseForCOS implements Database {
     // 上传cos文件
     private async uploadFile(fileName: string, content: string): Promise<RespData> {
         console.log('上传cos文件：', fileName, content.length)
-        return new Promise(async (resolve, reject) => {
-            if (!this.cosClient) throw new Error('cos uploadFile 存储引擎不存在')
+        if (!this.cosClient) throw new Error('存储引擎不存在')
+        // 检查文件是否为最新
+        let checkResult = await this.checkEtag(fileName)
+        if (!checkResult) {
+            console.log('上传cos文件 文件同步异常')
+            const message = '当前密码列表已被其他客户端更新，请刷新页面'
+            // 交给调用方报告冲突，避免强制刷新中断主密码修改的回退。
+            return {status: false, message}
+        }
 
-            // 检查文件是否为最新
-            let checkResult = await this.checkEtag(fileName)
-            if (!checkResult) {
-                console.log('上传cos文件 文件同步异常')
-                const message = '当前密码列表已被其他客户端更新，请刷新页面'
-                ElMessageBox({
-                    title: '文件同步异常',
-                    message,
-                    showCancelButton: false,
-                    showConfirmButton: true,
-                    closeOnPressEscape: false,
-                    showClose: false,
-                    closeOnClickModal: false,
-                    confirmButtonText: '刷新',
-                    callback: () => {
-                        console.log('刷新');
-                        location.reload()
-                    }
-                })
-                resolve({status: false, message})
-                return
-            }
-
-            this.cosClient.putObject({
+        return new Promise((resolve, reject) => {
+            this.cosClient!.putObject({
                 Bucket: this.bucket,
                 Region: this.region,
                 Key: fileName,
@@ -244,14 +229,14 @@ export class DatabaseForCOS implements Database {
 
     // 获取文件标记
     private getEtag(fileName: string): Promise<string> {
-        return new Promise(async (resolve) => {
+        return new Promise((resolve, reject) => {
             if (!this.cosClient) throw new Error('cos getEtag 存储引擎不存在')
             this.cosClient.headObject({
                 Bucket: this.bucket,
                 Region: this.region,
                 Key: fileName,
             }, function (err, date) {
-                console.error(err)
+                if (err) { reject(err); return }
                 resolve(date.ETag)
             })
         })

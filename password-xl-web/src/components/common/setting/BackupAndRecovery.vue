@@ -167,10 +167,13 @@ const startMergeRecovery = () => {
     ElMessage.success('已为您自动备份现有密码')
   }
 
-  // 合并密码
-  mergePassword(passwordStore.allPasswordArray, recoveryPasswordArray.value)
-  // 合并标签树
-  mergeLabel(passwordStore.labelArray, recoveryLabelArray.value)
+  // 先合并标签并转换引用，再合并密码；保留恢复来源以便失败后重试。
+  const passwords: Password[] = JSON.parse(JSON.stringify(recoveryPasswordArray.value))
+  const idMap = mergeLabel(passwordStore.labelArray, recoveryLabelArray.value)
+  passwords.forEach(password => {
+    password.labels = password.labels.map(id => idMap.get(id) ?? id)
+  })
+  mergePassword(passwordStore.allPasswordArray, passwords)
 
   // 同步密码与标签文件
   syncPasswordAndLabel()

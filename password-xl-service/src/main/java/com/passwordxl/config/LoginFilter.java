@@ -34,6 +34,11 @@ public class LoginFilter extends OncePerRequestFilter {
 
         return "/".equals(uri)
                 || "/login".equals(uri)
+                || "/login/oss".equals(uri)
+                || "/login/cos".equals(uri)
+                || "/login/private".equals(uri)
+                || "/login/local".equals(uri)
+                || "/note".equals(uri)
                 || "/service/health".equals(uri)
                 || "/index.html".equals(uri)
 

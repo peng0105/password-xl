@@ -1,71 +1,8 @@
-pipeline {
-    agent { label 'graalvm-jdk-25' }
-
-    environment {
-        IMAGE_NAME = "harbor.huangyp.cn/password-xl/password-xl-service"
-        GRADLE_USER_HOME = '/home/jenkins/.gradle'
-    }
-
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        timeout(time: 30, unit: 'MINUTES')
-    }
-
-    stages {
-
-        stage('Prepare') {
-            steps {
-                sh 'chmod +x ./password-xl-service/gradlew'
-            }
-        }
-
-        stage('Install & Build') {
-            steps {
-                container('graalvm') {
-                    writeFile file: 'password-xl-service/nexus.init.gradle', text: '''
-                    allprojects {
-                      buildscript {
-                        repositories {
-                          maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
-                        }
-                      }
-                      repositories {
-                        maven { url = uri("https://nexus.huangyp.cn/repository/maven-public/") }
-                      }
-                    }
-                    '''.stripIndent()
-                    sh '''
-                    #!/usr/bin/env bash
-                    set -euo pipefail
-
-                    cd password-xl-service
-                    sed -i 's/\r$//' gradlew
-                    ./gradlew clean nativeCompile --init-script nexus.init.gradle --info --stacktrace
-                    '''
-                }
-            }
-        }
-
-        stage('Build & Push Image (BuildKit)') {
-            steps {
-                container('buildkit') {
-                    sh '''
-                    set -euo pipefail
-                    cd password-xl-service
-
-                    mkdir -p /root/.docker
-                    cp /root/.dockerconfigjson/.dockerconfigjson /root/.docker/config.json
-
-                    echo "🏗️ 使用 BuildKit 构建并推送镜像..."
-                    buildctl-daemonless.sh build \
-                      --frontend dockerfile.v0 \
-                      --local context="${WORKSPACE}/password-xl-service" \
-                      --local dockerfile="${WORKSPACE}/password-xl-service" \
-                      --opt filename=Dockerfile \
-                      --output type=image,\\"name=${IMAGE_NAME}:${BUILD_NUMBER},${IMAGE_NAME}:latest\\",push=true
-                    '''
-                }
-            }
-        }
-    }
+def flow
+def podYaml
+node(env.RELEASE_BOOTSTRAP_LABEL ?: 'nodejs-24') {
+    checkout scm
+    flow = load 'ci/jenkins/release.groovy'
+    podYaml = readFile 'ci/jenkins/agent.yaml'
 }
+flow.run('service', podYaml)

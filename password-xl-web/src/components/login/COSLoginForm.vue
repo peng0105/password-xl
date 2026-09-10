@@ -85,7 +85,7 @@ const login = async (formRef: any) => {
 
 // 从url初始化登录form
 const initForm = () => {
-  if (route.query.type === 'cos' && route.query.autoLogin) {
+  if ((route.params.type === 'cos' || route.query.type === 'cos') && route.query.autoLogin) {
     let autoLogin = refStore.fastLoginRef.getFastLoginForm(route.query.autoLogin as string)
     form.region = autoLogin.region || ''
     form.secretId = autoLogin.secretId || ''
@@ -102,7 +102,7 @@ const initForm = () => {
 // 是否支持查看密码
 const showPassword = () => {
   // 非自动登录链接支持
-  return !(route.query.autoLogin && route.query.type === 'cos')
+  return !(route.query.autoLogin && (route.params.type === 'cos' || route.query.type === 'cos'))
 }
 
 initForm()

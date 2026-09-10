@@ -1,0 +1,14 @@
+// Jenkins supplies the internal Maven group; cloud workers keep their normal repositories.
+def mirror = System.getenv('NEXUS_MAVEN_URL')
+if (mirror) {
+    settingsEvaluated { settings ->
+        settings.pluginManagement.repositories {
+            maven { url = uri(mirror) }
+            gradlePluginPortal()
+        }
+    }
+    gradle.beforeProject { project ->
+        project.buildscript.repositories { maven { url = uri(mirror) } }
+        project.repositories { maven { url = uri(mirror) } }
+    }
+}

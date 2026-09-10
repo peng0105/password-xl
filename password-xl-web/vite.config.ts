@@ -8,8 +8,8 @@ import Components from 'unplugin-vue-components/vite'
 const srcPath = path.resolve(import.meta.dirname, './src')
 
 // https://vitejs.dev/config/
-export default defineConfig({
-    base: './',
+export default defineConfig(({mode}) => ({
+    base: ['electron', 'android-local'].includes(mode) ? './' : '/',
     resolve: {
         alias: {
             '@': srcPath
@@ -61,4 +61,4 @@ export default defineConfig({
             }
         }
     }
-})
+}))

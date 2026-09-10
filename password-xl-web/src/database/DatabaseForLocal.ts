@@ -55,21 +55,7 @@ export class DatabaseForLocal implements Database {
 
     // 获取密码数据
     async getStoreData(): Promise<string> {
-        console.log('local 获取密码数据')
-        return new Promise(async (resolve, reject) => {
-            try {
-                const file = await this.fileHandle.getFile();
-                const fileContent = await file.text();
-                if (!fileContent) {
-                    resolve('')
-                    return
-                }
-                let data = JSON.parse(fileContent);
-                resolve(data.storeData)
-            } catch (err) {
-                reject({status: false, message: '登录失败，请检查存储文件是否正确'})
-            }
-        })
+        return (await this.readFileData()).storeData || ''
     }
 
     // 获取笔记数据
@@ -102,67 +88,55 @@ export class DatabaseForLocal implements Database {
         throw new Error('因为浏览器规则限制，本地存储不支持此功能，请改用其他存储方式');
     }
 
-    // 保存密码数据
-    async setStoreData(text: string): Promise<RespData> {
-        console.log('local 保存密码数据')
-        return new Promise(async (resolve) => {
-            let writable = await this.fileHandle.createWritable();
-            await writable.truncate(0)
-            let settingData = await this.getSettingData()
-            let fileData = {
-                info: this.getFileInfo(),
-                storeData: text,
-                settingData: settingData,
-            }
-            await writable.write(JSON.stringify(fileData));
-            await writable.close()
-            resolve({status: true})
-        })
+    // 文件中的密码和设置共享一个写入队列，避免相互覆盖。
+    private writeQueue: Promise<unknown> = Promise.resolve()
+
+    private async readFileData(): Promise<{storeData?: string, settingData?: string}> {
+        const file = await this.fileHandle.getFile()
+        const content = await file.text()
+        return content ? JSON.parse(content) : {}
     }
 
-    // 删除密码数据
-    async deleteStoreData() {
-        console.log('local 删除密码数据')
+    private writeFileData(change: {storeData?: string, settingData?: string}): Promise<RespData> {
+        const result = this.writeQueue.then(async () => {
+            // 必须读成功才能修改；不能把读取失败当成空密码库写回。
+            const previous = await this.readFileData()
+            const content = JSON.stringify({info: this.getFileInfo(), ...previous, ...change})
+            const writable = await this.fileHandle.createWritable()
+            try {
+                await writable.write(content)
+                await writable.close()
+                return {status: true}
+            } catch (error) {
+                await writable.abort().catch(() => undefined)
+                throw error
+            }
+        })
+        this.writeQueue = result.catch(() => undefined)
+        return result
+    }
+
+    async setStoreData(text: string): Promise<RespData> {
+        return this.writeFileData({storeData: text})
+    }
+
+    async setMainPasswordData(storeData: string, settingData: string): Promise<RespData> {
+        return this.writeFileData({storeData, settingData})
+    }
+
+    async deleteStoreData(): Promise<RespData> {
         return this.setStoreData('')
     }
 
-    // 获取设置
     async getSettingData(): Promise<string> {
-        console.log('local 获取设置数据')
-        return new Promise(async (resolve) => {
-            const file = await this.fileHandle.getFile();
-            const fileContent = await file.text();
-            if (!fileContent) {
-                resolve('')
-                return
-            }
-
-            let data = JSON.parse(fileContent);
-            resolve(data.settingData)
-        })
+        return (await this.readFileData()).settingData || ''
     }
 
-    // 更新设置
     async setSettingData(text: string): Promise<RespData> {
-        console.log('local 更新设置')
-        return new Promise(async (resolve) => {
-            let writable = await this.fileHandle.createWritable();
-            await writable.truncate(0)
-            let storeData = await this.getStoreData().catch(() => '')
-            let fileData = {
-                info: this.getFileInfo(),
-                storeData: storeData,
-                settingData: text,
-            }
-            await writable.write(JSON.stringify(fileData));
-            await writable.close()
-            resolve({status: true})
-        })
+        return this.writeFileData({settingData: text})
     }
 
-    // 删除设置数据
-    async deleteSettingData() {
-        console.log('local 删除设置数据')
+    async deleteSettingData(): Promise<RespData> {
         return this.setSettingData('')
     }
 

@@ -51,10 +51,12 @@
 ## 快速部署
 
 ```shell
-docker run -d --name password-xl -p 8080:8080 -v ./password-xl:/password-xl-service password-xl/password-xl-service
+docker run -d --name password-xl -p 8080:8080 -v ./password-xl:/password-xl-service huangypeng/password-xl-service:1.5.0
 ```
 
-容器启动后浏览器打开 [http://127.0.0.1:8080/login/private](http://127.0.0.1:8080/login/private) 既可访问项目
+此命令使用 x86 原生镜像；ARM64 使用 `huangypeng/password-xl-service-arm:1.5.0`。构建与发布说明见 [ci/README.md](ci/README.md)。
+
+容器启动后浏览器打开 [http://127.0.0.1:8080/login/private](http://127.0.0.1:8080/login/private) 即可访问项目
 
 默认的账号密码在 ./password-xl/password-xl.toml 文件中查看
 

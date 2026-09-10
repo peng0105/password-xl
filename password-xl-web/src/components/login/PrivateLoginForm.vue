@@ -88,7 +88,7 @@ const login = async (formRef: any) => {
 
 // 从url初始化登录form
 const initForm = () => {
-  if (route.query.type === 'private' && route.query.autoLogin) {
+  if ((route.params.type === 'private' || route.query.type === 'private') && route.query.autoLogin) {
     let autoLogin = refStore.fastLoginRef.getFastLoginForm(route.query.autoLogin as string)
     form.serverUrl = autoLogin.serverUrl || ''
     form.username = autoLogin.username || ''
@@ -112,7 +112,7 @@ const initForm = () => {
 // 是否支持查看密码
 const showPassword = () => {
   // 非自动登录链接支持
-  return !(route.query.autoLogin && route.query.type === 'private')
+  return !(route.query.autoLogin && (route.params.type === 'private' || route.query.type === 'private'))
 }
 
 initForm()

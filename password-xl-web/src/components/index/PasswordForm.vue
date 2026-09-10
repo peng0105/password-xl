@@ -172,8 +172,10 @@ const usernameSearch = (queryString: string, cb: any) => {
     return
   }
 
-  // 根据用户名开头预测
-  let results = passwordStore.passwordArray.filter((item) => item.username.startsWith(queryString)).map((password) => {
+  // 根据用户名开头预测，排除与当前输入完全相同的候选
+  let results = passwordStore.passwordArray.filter((item) =>
+      item.username !== queryString && item.username.startsWith(queryString)
+  ).map((password) => {
     return {value: password.username}
   }).filter((item, index, self) => index === self.findIndex((t) => t.value === item.value))
   cb([...new Set(results)])
