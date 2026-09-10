@@ -14,16 +14,16 @@ Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式
 
 每个领域任务包含构建、验证和发布，可独立运行。总入口锁定版本、构建共享前端后，并行调用 Web、Service、Desktop、Android；任何领域失败会中止其他分支，全部成功才进入最终发布。Desktop 三平台并行，Linux 三种包一次编译；Service 原生 ARM worker 与 k3s 构建重叠执行；两个 APK 一次签名和升级验证。
 
-日常构建无需选择源码、目标或发布模式。主仓库和安卓仓库固定读取 `master`，运行时解析并锁定实际 SHA；任务始终构建自身全部目标，总入口为全部 16 项。成功后自动更新相关 `latest`，已有更高版本不会被回退。Release 说明由版本、源码和产物清单自动生成。
+日常构建无需选择源码或目标。主仓库和安卓仓库固定读取 `master`，运行时解析并锁定实际 SHA；任务始终构建自身全部目标，总入口为全部 16 项。启用镜像推送时，成功后更新相关 `latest`，已有更高版本不会被回退。Release 说明由版本、源码和产物清单自动生成。
 
-只有总入口和 Web 任务保留 **`DEPLOY_OSS`**，默认 false；勾选后在产物全部成功时部署正式站点。其他三个领域任务没有构建参数。演练、目标多选、手动源码和父任务参数均已移除。发布过程中仍先创建草稿，以便失败时不公开半成品。
+总入口和 Web 提供 **`DEPLOY_OSS`**（默认 false）、**`PUBLISH_RELEASE`**、**`PUSH_IMAGES`**、**`SYNC_REPOS`**（后三项默认 true）。Service 不展示 OSS；Desktop/Android 只展示 Release 和同步。四种发布动作独立控制，全关时仍构建验证并在 Jenkins 归档。演练、目标多选、手动源码和父任务参数仍不提供。详见 [发布开关与组合](publishing-controls.md)。
 
 子任务读取 Jenkins 自带的 UpstreamCause，确认来源为配置的 `jobs.coordinator`，再取该次总任务归档的上下文。没有上游时按独立完整发布执行。大文件只在领域任务归档一次，总入口只收集结果和 worker 记录，不再次搬运全部安装包。
 
 ## 首次接入
 
 1. 将主仓库的 CI 改动和安卓仓库改动分别审查、提交到 Gitea。需要发布的业务源文件也必须已提交；流水线只读取提交，不读取开发机未提交文件。新版本手工修改前端 package.json；不要复用已经绑定旧 SHA 的版本。
-2. 将 `build-workers.yml` 安装到 GitHub 的 `master`，关闭旧自动发布入口。Jenkins 同步数字版本 Tag，显式调度 master 上的工作流，并传入固定源码 SHA。工作流定义 SHA 和实际检出源码 SHA 分别校验和记录；master 在调度期间变动会拒绝该次运行。同步使用正常合并，不强推覆盖。
+2. 将 `build-workers.yml` 安装到 GitHub 的 `master`，关闭旧自动发布入口。启用同步后，Jenkins 将 Gitea 代码正常合并到 GitHub/Gitee master；启用 Release 后创建数字版本 Tag。worker 显式检出 Gitea 固定源码 SHA，不依赖本次是否开启同步。工作流定义 SHA 和实际源码 SHA 分别校验；master 在调度期间变动会拒绝该次运行。
 3. 构建一次 `ci/jenkins/tools.Dockerfile`，推到集群可拉取的内部工具镜像仓库，将固定镜像地址（建议 digest）设置为 Jenkins 全局变量 `CI_TOOLS_IMAGE`。此步骤只初始化 CI 工具镜像，日常产品构建与推送仍在同一个任务内。
 4. 安装/确认 Jenkins 插件：Pipeline、Kubernetes、Git、Credentials Binding、Pipeline Utility Steps、Copy Artifact、Lockable Resources。不再依赖 Active Choices；已安装的插件可能被其他项目使用，无需全局卸载。`ci/jenkins/jobs.groovy` 是可选 Job DSL seed；不用 seed 时创建上表五个 Pipeline from SCM 即可。
 5. 将 `ci/jenkins/release-config.example.json` 填写后保存为 Jenkins **Secret file**，ID 固定为 `password-xl-release-config`。示例中的域名/命名空间只是占位值。三个 registry prefix 必须沿用现有任务的值，不带协议；GitHub/Gitea repo 使用 `owner/name`。`jobs` 要与实际任务全名一致。OSS 暂不开启时四个站点配置允许空值。
@@ -52,6 +52,7 @@ Web/Service 使用 **rootless BuildKit** sidecar、临时 workspace，没有 hos
 |---|---|---|
 | Jenkins | `password-xl-gitea` Secret text | 读取主仓库/安卓仓库、同步主仓库 Tag、创建 Release 和附件 |
 | Jenkins | `password-xl-github` Secret text | 推送 Tag、dispatch/read/cancel Actions、创建 Release 和附件 |
+| Jenkins | `password-xl-gitee` Username/password | 同步 Gitee master；仅启用同步时注入 |
 | Jenkins | `password-xl-registry-private` Username/password | 内部候选镜像及正式镜像 |
 | Jenkins | `dockerhub-password-xl` Username/password | Docker Hub 发布和默认 Jib 基础镜像认证 |
 | Jenkins | `tencent-ccr-password-xl` Username/password | 腾讯云 CCR 发布 |
@@ -63,10 +64,10 @@ Web/Service 使用 **rootless BuildKit** sidecar、临时 workspace，没有 hos
 GitHub 创建 `jenkins-workers` environment，允许 `master` 分支。变量：`JENKINS_ACTOR` 为 Jenkins token 对应账号（workflow 会强制核对 actor），`REGISTRY_PRIVATE_PREFIX` 与 Jenkins 一致，`ANDROID_URL` 为安卓 Gitea 仓库 HTTPS 地址。Secrets：
 
 - `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN`：读取供 GitHub 验证的 Docker Hub 候选镜像。对应变量 `REGISTRY_WORKER_PREFIX`；允许匿名读取时可显式设置 `REGISTRY_WORKER_ANONYMOUS=true`。
-- `GITEA_ANDROID_READ_TOKEN`：只读安卓仓库及签名基线历史提交。
+- `GITEA_BUILD_READ_TOKEN`：读取主仓库、安卓仓库、签名基线历史提交及临时构建输入。
 - `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`：已确认的 Android 发布签名，流水线不会自行换签名。
 
-GitHub 常规 worker 的 `GITHUB_TOKEN` 使用 contents:read；仅 native-arm job 因 GitHub 草稿附件读取要求使用 contents:write 的短期 token。该 job 只下载并校验共享前端，不执行 Release 创建、更新或发布。敏感值只注入需要它们的步骤；worker 上传目录严格限定 `.release/worker/`，签名 key 位于临时目录，注册表认证文件位于 `.release/private/`。
+所有 GitHub worker 的 `GITHUB_TOKEN` 使用 contents:read。共享前端和未推送镜像的验证输入通过独立临时文件传输，不再依赖草稿 Release。敏感值只注入需要它们的步骤；worker 上传目录严格限定 `.release/worker/`，签名 key 位于临时目录，注册表认证文件位于 `.release/private/`。
 
 Jenkins 与 GitHub runners 都需要访问依赖仓库；GitHub 还需要通过 HTTPS 读取 Gitea、候选镜像仓库和 Gradle 官方下载地址。内部仓库只在内网可达时，将 `REGISTRY_WORKER_PREFIX` 设为已配置的 Docker Hub 命名空间；Jenkins 会按 digest 复制候选镜像供 runner 验证，正式镜像仍从内部仓库分发。代理通过环境配置 `HTTP_PROXY/HTTPS_PROXY/NO_PROXY`，Java 构建自动转换为代理系统属性，仅接受不带嵌入凭据的代理 URL。自建基础镜像可设置 `JVM_BASE_IMAGE`，以及可选 `JVM_BASE_USERNAME/JVM_BASE_PASSWORD`。不要通过日志排查输出完整凭据配置。 Jenkins 可配置 `GRADLE_DISTRIBUTION_URL` 为内网镜像；脚本仅在临时目录生成 wrapper 配置，保留源码固定的版本及 SHA256，不修改提交内 wrapper。`NEXUS_MAVEN_URL` 将 Nexus 放在插件和依赖仓库的首位；内网域名应加入 NO_PROXY。GitHub 不设置这两项，继续使用公开来源。
 
@@ -74,7 +75,7 @@ Jenkins 与 GitHub runners 都需要访问依赖仓库；GitHub 还需要通过 
 
 所有发布以 Gitea 实际提交为准。Jenkins fetch → 固定主仓库 SHA → 读取 package.json 数字版本；需要 APK 时再固定安卓 SHA。数字 Tag 在两站必须指向同一主提交，遇到不同提交立即失败，绝不强推 master 或覆盖 Tag。`release-source.json` 和 `android-source.json` 分别绑定两类源码；首次只发 Web 时不会提前绑定 Android，因此同一主提交可以稍后补齐 APK。绑定后的安卓 SHA 也不能更换。
 
-共享 Web dist 编译一次并打为内部 `frontend.zip`，传给领域任务及 ARM 原生 worker。后端使用 `-PreleaseVersion/-PfrontendDist`；Gradle 显式排除仓库旧 static，再装入本次完整 dist。JAR 是 bootJar，包含 Implementation-Version 和前端 release.json。Electron、Android 使用相对路径模式的前端，每个平台内部复用。
+共享 Web dist 编译一次并打为内部 `frontend.zip`，传给领域任务及 ARM 原生 worker；关闭 Release 时仍可传递。后端使用 `-PreleaseVersion/-PfrontendDist`；Gradle 显式排除仓库旧 static，再装入本次完整 dist。JAR 是 bootJar，包含 Implementation-Version 和前端 release.json。Electron、Android 使用相对路径模式的前端，每个平台内部复用。
 
 | 类型 | 下载名或新镜像仓库名 |
 |---|---|

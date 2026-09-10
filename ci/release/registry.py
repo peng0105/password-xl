@@ -4,7 +4,7 @@ import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
-from model import OUT, env, image_arch, image_names, require, run, version_tuple
+from model import OUT, enabled, env, extract_zip, image_arch, image_names, pack_directory, read_json, require, run, sha256, version_tuple
 
 
 REGISTRIES = ('private', 'dockerhub', 'tencent')
@@ -55,6 +55,15 @@ def stage(archive_reference, context, target):
     archive_reference = 'dir:' + str(normalized)
     info = inspect(archive_reference)
     validate(info, context, target)
+    if not enabled(context, 'push_images'):
+        archive = OUT / 'files' / f'password-xl-image-{target}-{context["version"]}.zip'
+        pack_directory(normalized, archive, 'image')
+        import cache
+        cache.remember(archive.read_bytes())
+        return {'target': target, 'arch': image_arch(target), 'digest': info['Digest'],
+                'source': '', 'worker_source': '', 'destinations': [],
+                'config_digest': read_json(normalized / 'manifest.json')['config']['digest'],
+                'archive': {'name': archive.name, 'sha256': sha256(archive), 'size': archive.stat().st_size}}
     repository = prefix('private') + '/' + image_names(target, 'private')[0]
     candidate = repository + ':ci-' + context['version'] + '-' + context['source_sha'][:12]
     # A repository might not exist on its first publication; list-tags cannot distinguish that
@@ -90,6 +99,15 @@ def optional_tag(reference):
 
 
 def distribute(record, context):
+    if not enabled(context, 'push_images'):
+        return record
+    if not record.get('source'):
+        local = restore_archive(record)
+        repository = prefix('private') + '/' + image_names(record['target'], 'private')[0]
+        candidate = repository + ':ci-' + context['source_sha'][:12] + '-' + record['digest'].split(':')[1][:12]
+        copy('dir:' + str(local), candidate)
+        require(inspect('docker://' + candidate)['Digest'] == record['digest'], 'Restored staging digest differs')
+        record['source'] = repository + '@' + record['digest']
     validate(inspect('docker://' + record['source']), context, record['target'])
     def distribute_registry(registry):
         destinations = []
@@ -116,6 +134,8 @@ def distribute(record, context):
 
 
 def promote_latest(record, context):
+    if not enabled(context, 'push_images'):
+        return []
     updates = []
     for destination in record['destinations']:
         latest = destination.rsplit(':', 1)[0] + ':latest'
@@ -140,3 +160,27 @@ def promote_latest(record, context):
         require(inspect('docker://' + latest)['Digest'] == record['digest'], 'latest digest mismatch')
         updates.append({'image': latest, 'status': 'updated'})
     return updates
+
+
+def restore_archive(record):
+    archive = OUT / 'files' / record['archive']['name']
+    require(sha256(archive) == record['archive']['sha256'], 'Image archive checksum mismatch')
+    directory = OUT / 'restored-images' / record['target']
+    extract_zip(archive, directory)
+    info = inspect('dir:' + str(directory / 'image'))
+    require(info['Digest'] == record['digest'], 'Image archive manifest mismatch')
+    return directory / 'image'
+
+
+def worker_archive(record):
+    """Export the exact image config/rootfs for validation without a registry push."""
+    import gzip
+    import shutil
+    directory = restore_archive(record)
+    path = OUT / 'images' / (record['target'] + '.tar')
+    run(['skopeo', 'copy', '--authfile', env('REGISTRY_AUTH_FILE'), 'dir:' + str(directory),
+         'docker-archive:' + str(path) + ':password-xl-worker:' + record['target']])
+    compressed = path.with_suffix('.tar.gz')
+    with path.open('rb') as source, gzip.open(compressed, 'wb', compresslevel=1) as destination:
+        shutil.copyfileobj(source, destination)
+    return compressed

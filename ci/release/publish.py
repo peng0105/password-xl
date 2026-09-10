@@ -7,8 +7,9 @@ import uuid
 from pathlib import Path
 
 import cache
+import image_state
 from api import Api
-from model import OUT, checked_relative, env, identity, require, sha256, write_json
+from model import OUT, IMAGE_TARGETS, checked_relative, enabled, env, identity, require, sha256, write_json
 
 
 class Release:
@@ -141,6 +142,8 @@ class Release:
 
 
 def releases(context):
+    if not enabled(context, 'publish_release'):
+        return []
     result = [Release(provider, context) for provider in ('github', 'gitea')]
     for release in result:
         release.reserve()
@@ -149,21 +152,25 @@ def releases(context):
 
 def restore_target(context, target, destination, endpoints=None):
     """Resume from matching, verified receipts; never download a different run's 'latest'."""
-    endpoints = endpoints or releases(context)
+    endpoints = releases(context) if endpoints is None else endpoints
     receipts = [release.get_json('receipt-' + target + '.json') for release in endpoints]
     available = [receipt for receipt in receipts if receipt]
     if not available:
         receipts = [release.get_json('validated-' + target + '.json') for release in endpoints]
         available = [receipt for receipt in receipts if receipt]
         if not available:
-            return None
+            previous = image_state.receipt(context, target) if target in IMAGE_TARGETS else None
+            if not previous:
+                return None
+            available = [previous]
     receipt = available[0]
     require(all(value == receipt for value in available), 'Release receipts disagree across providers')
     require(receipt['source_sha'] == context['source_sha'] and receipt['version'] == context['version'],
             'Receipt source mismatch')
     if target.startswith('apk-'):
         require(receipt.get('android_sha') == context.get('android_sha'), 'APK receipt source mismatch')
-    for record in receipt.get('files', []):
+    archives = [image['archive'] for image in receipt.get('images', []) if image.get('archive') and not image.get('source')]
+    for record in receipt.get('files', []) + archives:
         require('/' not in checked_relative(record['name']), 'Unsafe asset filename')
         path = Path(destination) / record['name']
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -206,7 +213,12 @@ def target_receipt(context, target, files, images, worker_runs):
 def save_checkpoint(context, target, files, images, worker_runs, endpoints=None):
     path = OUT / 'metadata' / ('validated-' + target + '.json')
     write_json(path, target_receipt(context, target, files, images, worker_runs))
-    for release in endpoints or releases(context):
+    if images:
+        image_state.put(context, 'validated-' + target, target_receipt(context, target, files, images, worker_runs))
+    for release in releases(context) if endpoints is None else endpoints:
+        for image in images:
+            if image.get('archive'):
+                release.put(OUT / 'files' / image['archive']['name'])
         release.put(path)
 
 
@@ -214,19 +226,39 @@ def publish_target(context, target, files, images, worker_runs, endpoints=None):
     receipt = target_receipt(context, target, files, images, worker_runs)
     path = OUT / 'metadata' / ('receipt-' + target + '.json')
     write_json(path, receipt)
-    for release in endpoints or releases(context):
+    if images and enabled(context, 'push_images'):
+        image_state.put(context, 'receipt-' + target, receipt)
+    for release in releases(context) if endpoints is None else endpoints:
         for record in files:
             release.put(OUT / 'files' / record['name'])
+        if images and not enabled(context, 'push_images'):
+            # This target is built/validated; an immutable publication receipt is
+            # written only when its image destinations actually exist.
+            if not release.assets().get('receipt-' + target + '.json'):
+                checkpoint = OUT / 'metadata' / ('validated-' + target + '.json')
+                write_json(checkpoint, receipt)
+                for image in images:
+                    if image.get('archive'):
+                        release.put(OUT / 'files' / image['archive']['name'])
+                release.put(checkpoint)
+            continue
         release.put(path)
 
 
 def combined_manifest(context, current):
     """Reconstruct all completed targets, including earlier partial publications."""
     endpoints = releases(context)
+    if not endpoints:
+        manifest = {**current, 'requested_targets': context['targets'], 'jenkins_build': context.get('jenkins_build'),
+                    'status': 'built-and-verified'}
+        save_manifest(manifest)
+        return [], manifest
     merged = {'schema': 1, **identity(context), 'targets': [], 'files': [], 'images': [], 'worker_runs': []}
     from model import TARGETS
     for target in TARGETS:
         values = [release.get_json('receipt-' + target + '.json') for release in endpoints]
+        if not any(values) and target in IMAGE_TARGETS and not enabled(context, 'push_images'):
+            values = [release.get_json('validated-' + target + '.json') for release in endpoints]
         if not any(values):
             continue
         require(all(values) and values[0] == values[1], 'Both releases must contain matching target receipts')
@@ -243,12 +275,18 @@ def combined_manifest(context, current):
     merged['requested_targets'] = context['targets']
     merged['jenkins_build'] = context.get('jenkins_build')
     merged['status'] = 'artifacts-published'
-    path = OUT / 'metadata' / 'release-manifest.json'
-    write_json(path, merged)
-    sums = OUT / 'metadata' / 'SHA256SUMS'
-    sums.write_text(''.join(f'{f["sha256"]}  {f["name"]}\n' for f in sorted(merged['files'], key=lambda x: x['name']))
-                   + f'{sha256(path)}  release-manifest.json\n', encoding='utf-8')
+    path, sums = save_manifest(merged)
     for release in endpoints:
         release.put(path, mutable=True)
         release.put(sums, mutable=True)
     return endpoints, merged
+
+
+def save_manifest(manifest):
+    path = OUT / 'metadata' / 'release-manifest.json'
+    write_json(path, manifest)
+    sums = OUT / 'metadata' / 'SHA256SUMS'
+    files = manifest['files'] + [image['archive'] for image in manifest.get('images', []) if image.get('archive')]
+    sums.write_text(''.join(f'{f["sha256"]}  {f["name"]}\n' for f in sorted(files, key=lambda x: x['name']))
+                   + f'{sha256(path)}  release-manifest.json\n', encoding='utf-8')
+    return path, sums

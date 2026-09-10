@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from model import OUT, ROOT, env, file_record, image_arch, pack_directory, read_json, require, run, sha256, write_json
+from model import OUT, ROOT, enabled, env, file_record, image_arch, pack_directory, read_json, require, run, sha256, write_json
 
 
 def yarn(args, cwd=None):
@@ -150,8 +150,9 @@ def dockerfile_image(context, target, cloud=False):
     if cache_prefix:
         # Separate per-target cache manifests from immutable product images and other projects.
         reference = cache_prefix.rstrip('/') + '/password-xl-build-cache:' + target
-        args += ['--import-cache', 'type=registry,ref=' + reference,
-                 '--export-cache', 'type=registry,ref=' + reference + ',mode=max,image-manifest=true,oci-mediatypes=true']
+        args += ['--import-cache', 'type=registry,ref=' + reference]
+        if enabled(context, 'push_images'):
+            args += ['--export-cache', 'type=registry,ref=' + reference + ',mode=max,image-manifest=true,oci-mediatypes=true']
     for key, value in labels.items():
         args += ['--opt', 'label:' + key + '=' + value]
     for key, value in build_args.items():
