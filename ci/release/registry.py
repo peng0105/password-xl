@@ -177,7 +177,9 @@ def worker_archive(record):
     import gzip
     import shutil
     directory = restore_archive(record)
-    path = OUT / 'images' / (record['target'] + '.tar')
+    # BuildKit/Jib already wrote images/TARGET.tar; Skopeo refuses to overwrite it.
+    path = OUT / 'worker-inputs' / (record['target'] + '.tar')
+    path.parent.mkdir(parents=True, exist_ok=True)
     run(['skopeo', 'copy', '--authfile', env('REGISTRY_AUTH_FILE'), 'dir:' + str(directory),
          'docker-archive:' + str(path) + ':password-xl-worker:' + record['target']])
     compressed = path.with_suffix('.tar.gz')

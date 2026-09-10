@@ -97,6 +97,23 @@ class Switches(unittest.TestCase):
 
 
 class WorkerInputs(unittest.TestCase):
+    def test_worker_export_preserves_the_original_build_archive(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(registry,'OUT',Path(tmp)), \
+                patch.object(registry,'restore_archive',return_value=Path(tmp)/'image'), \
+                patch.dict(os.environ,{'REGISTRY_AUTH_FILE':'fixture'}):
+            original=Path(tmp)/'images/web-x86.tar'
+            original.parent.mkdir()
+            original.write_bytes(b'original OCI archive')
+            def export(args):
+                destination=Path(args[-1].removeprefix('docker-archive:').split(':password-xl-worker:')[0])
+                self.assertFalse(destination.exists())
+                destination.write_bytes(b'exported Docker archive')
+            with patch.object(registry,'run',side_effect=export):
+                result=registry.worker_archive({'target':'web-x86'})
+            self.assertEqual(original.read_bytes(),b'original OCI archive')
+            import gzip
+            self.assertEqual(gzip.decompress(result.read_bytes()),b'exported Docker archive')
+
     def test_native_frontend_transport_does_not_access_a_release(self):
         c=context()
         with tempfile.TemporaryDirectory() as tmp, patch.object(release,'OUT',Path(tmp)), \
