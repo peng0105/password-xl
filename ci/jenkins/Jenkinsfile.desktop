@@ -3,6 +3,6 @@ def podYaml
 node(env.RELEASE_BOOTSTRAP_LABEL ?: 'nodejs-24') {
     checkout scm
     flow = load 'ci/jenkins/release.groovy'
-    podYaml = readFile 'ci/jenkins/agent.yaml'
+    podYaml = readFile 'ci/jenkins/agent-light.yaml'
 }
 flow.run('desktop', podYaml)

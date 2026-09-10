@@ -2,6 +2,7 @@
 import json
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 from model import OUT, env, image_arch, image_names, require, run, version_tuple
 
@@ -90,19 +91,26 @@ def optional_tag(reference):
 
 def distribute(record, context):
     validate(inspect('docker://' + record['source']), context, record['target'])
-    destinations = []
-    for registry in REGISTRIES:
+    def distribute_registry(registry):
+        destinations = []
+        source = record['source']
         for name in image_names(record['target'], registry):
             destination = f'{prefix(registry)}/{name}:{context["version"]}'
             existing = optional_tag(destination)
             if existing:
                 require(existing['Digest'] == record['digest'], f'Immutable image tag conflict: {destination}')
+                actual = existing
             else:
-                copy('docker://' + record['source'], destination)
-            actual = inspect('docker://' + destination)
+                copy('docker://' + source, destination)
+                actual = inspect('docker://' + destination)
             validate(actual, context, record['target'])
             require(actual['Digest'] == record['digest'], 'Registry digest mismatch')
             destinations.append(destination)
+            # Subsequent compatibility names can mount blobs within the destination registry.
+            source = destination.rsplit(':', 1)[0] + '@' + record['digest']
+        return destinations
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        destinations = [item for group in pool.map(distribute_registry, REGISTRIES) for item in group]
     record['destinations'] = destinations
     return record
 
@@ -112,6 +120,9 @@ def promote_latest(record, context):
     for destination in record['destinations']:
         latest = destination.rsplit(':', 1)[0] + ':latest'
         existing = optional_tag(latest)
+        if existing and existing.get('Digest') == record['digest']:
+            updates.append({'image': latest, 'status': 'unchanged'})
+            continue
         if existing:
             previous_version = (existing.get('Labels') or {}).get('org.opencontainers.image.version')
             if not previous_version:
@@ -124,7 +135,8 @@ def promote_latest(record, context):
             if previous_version and version_tuple(previous_version) > version_tuple(context['version']):
                 updates.append({'image': latest, 'status': 'kept-newer-version'})
                 continue
-        copy('docker://' + record['source'], latest)
+        # The version in this very repository was verified by distribute(). No WAN layer round-trip.
+        copy('docker://' + destination.rsplit(':', 1)[0] + '@' + record['digest'], latest)
         require(inspect('docker://' + latest)['Digest'] == record['digest'], 'latest digest mismatch')
         updates.append({'image': latest, 'status': 'updated'})
     return updates

@@ -47,19 +47,22 @@ def recover_file(records, file, destination):
     raise ValueError('Original worker artifact expired or missing; restore the archived Jenkins artifact')
 
 
-def dispatch(context, task, targets, **extra):
+def dispatch(context, task, targets, cancel_event=None, **extra):
+    require(not cancel_event or not cancel_event.is_set(), 'Worker group was cancelled')
     api = github()
     repo = '/repos/' + env('GITHUB_REPO')
     request_id = uuid.uuid4().hex
-    payload = {**context, 'task': task, 'targets': targets, 'request_id': request_id, **extra}
+    workflow_sha = api.request('GET', repo + '/git/ref/heads/master')['object']['sha']
+    payload = {**context, 'workflow_sha': workflow_sha, 'task': task, 'targets': targets, 'request_id': request_id, **extra}
     workflow = env('GITHUB_WORKFLOW', 'build-workers.yml')
     api.request('GET', repo + '/actions/workflows/' + workflow)
-    record = {'request_id': request_id, 'task': task, 'repo': env('GITHUB_REPO'), 'workflow': workflow}
+    record = {'request_id': request_id, 'task': task, 'repo': env('GITHUB_REPO'), 'workflow': workflow,
+              'workflow_sha': workflow_sha, 'source_sha': context['source_sha']}
     path = OUT / 'workers' / f'{request_id}.json'
     write_json(path, record)
     try:
         response = api.request('POST', repo + '/actions/workflows/' + workflow + '/dispatches', {
-            'ref': context['version'], 'inputs': {'request_id': request_id, 'task': task, 'payload': json.dumps(payload)},
+            'ref': 'master', 'inputs': {'request_id': request_id, 'task': task, 'payload': json.dumps(payload)},
         })
         run_id = response.get('workflow_run_id') if response else None
         deadline = time.monotonic() + 180
@@ -72,12 +75,16 @@ def dispatch(context, task, targets, **extra):
         write_json(path, record)
         deadline = time.monotonic() + int(env('WORKER_TIMEOUT_SECONDS', '7200'))
         while time.monotonic() < deadline:
+            require(not cancel_event or not cancel_event.is_set(), 'Worker group was cancelled')
             status = api.request('GET', f'{repo}/actions/runs/{run_id}')
-            require(status['head_sha'] == context['source_sha'], 'Worker workflow ran from a different commit')
+            require(status['head_sha'] == workflow_sha, 'Worker workflow changed during dispatch')
             if status['status'] == 'completed':
                 require(status['conclusion'] == 'success', f'GitHub worker {run_id} failed: {status["conclusion"]}')
                 break
-            time.sleep(15)
+            if cancel_event:
+                cancel_event.wait(15)
+            else:
+                time.sleep(15)
         else:
             raise TimeoutError(f'GitHub worker {run_id} timed out')
         artifacts = api.pages(f'{repo}/actions/runs/{run_id}/artifacts', 'artifacts')
@@ -90,6 +97,7 @@ def dispatch(context, task, targets, **extra):
         result = read_json(destination / 'result.json')
         check_identity(context, result)
         require(result['request_id'] == request_id and result['status'] == 'success', 'Worker receipt mismatch')
+        require(result.get('workflow_sha') == workflow_sha, 'Worker workflow receipt mismatch')
         require(set(result['targets']) == set(targets), 'Worker returned the wrong targets')
         for file in result.get('files', []) + result.get('archives', []):
             from model import checked_relative

@@ -42,15 +42,6 @@ def version_code(version):
     return code
 
 
-def selected_targets(domain, profile, value):
-    require(profile in ('all', 'custom'), 'PROFILE must be all or custom')
-    allowed = TARGETS if domain == 'all' else DOMAINS[domain]
-    selected = allowed if profile == 'all' else [v.strip() for v in value.split(',') if v.strip()]
-    require(bool(selected), 'Select at least one target')
-    require(set(selected) <= set(allowed), f'Unsupported targets for {domain}: {selected}')
-    return [target for target in TARGETS if target in selected]
-
-
 def identity(context):
     return {key: context.get(key) for key in ('version', 'source_sha', 'android_sha')}
 

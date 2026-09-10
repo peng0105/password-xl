@@ -1,37 +1,12 @@
 // Loaded by the five thin Jenkinsfiles. Business commands live in ci/release/*.py.
-def targetsFor(String domain) {
-    def groups = [web: ['web-x86', 'web-arm', 'dist-zip', 'dist-tar-gz'],
-        service: ['service-x86', 'service-arm', 'service-jvm-x86', 'service-jvm-arm', 'jar'],
-        desktop: ['appimage', 'rpm', 'snap', 'dmg', 'exe'], android: ['apk-online', 'apk-local']]
-    return domain == 'all' ? groups.values().flatten() : groups[domain]
-}
-
 def configure(String domain) {
-    def options = targetsFor(domain).collect { "'${it}'" }.join(',')
-    def definitions = [
-        string(name: 'SOURCE_REF', defaultValue: 'master', description: 'Gitea 主仓库分支、Tag 或 SHA'),
-        choice(name: 'PROFILE', choices: ['all', 'custom'], description: 'all 构建当前任务全部产物'),
-        [$class: 'ChoiceParameter', name: 'TARGETS', choiceType: 'PT_CHECKBOX',
-         description: 'PROFILE=custom 时生效', filterable: false, randomName: "targets-${domain}",
-         script: [$class: 'GroovyScript', script: [sandbox: true, classpath: [], script: "return [${options}]"],
-                  fallbackScript: [sandbox: true, classpath: [], script: 'return []']]],
-        booleanParam(name: 'UPDATE_LATEST', defaultValue: true, description: '所有所选目标成功后更新相关 latest；不回退新版本'),
-        booleanParam(name: 'DRAFT_ONLY', defaultValue: false, description: '演练：上传版本镜像及草稿附件，跳过公开 Release、latest、OSS'),
-        text(name: 'RELEASE_NOTES', defaultValue: '', description: '补充说明；自动附上版本、源码和产物清单'),
-        string(name: 'PARENT_JOB', defaultValue: '', description: '内部协调参数，手工构建留空'),
-        string(name: 'PARENT_BUILD', defaultValue: '', description: '内部协调参数，手工构建留空')]
-    if (domain in ['all', 'android']) {
-        definitions.add(string(name: 'ANDROID_REF', defaultValue: 'master', description: 'Gitea 安卓仓库分支、Tag 或 SHA'))
-    }
+    def definitions = []
     if (domain in ['all', 'web']) {
         definitions.add(booleanParam(name: 'DEPLOY_OSS', defaultValue: false, description: '全部成功后用本次 dist 发布 OSS/CDN'))
     }
-    if (domain == 'web') {
-        definitions.add(string(name: 'OSS_ROLLBACK', defaultValue: '',
-            description: '仅回滚 OSS：填历史部署 ID，例如 1.5.0-abcdef012345，同时勾选 DEPLOY_OSS；不重新编译'))
-    }
-    properties([parameters(definitions), pipelineTriggers([]), buildDiscarder(logRotator(numToKeepStr: '20')),
-                copyArtifactPermission('*')])
+    def settings = [pipelineTriggers([]), buildDiscarder(logRotator(numToKeepStr: '20')), copyArtifactPermission('*')]
+    if (definitions) settings.add(parameters(definitions))
+    properties(settings)
 }
 
 def credentialsFor(config, boolean images, boolean oss) {
@@ -61,6 +36,19 @@ def cli(String command) { sh "python3 ci/release/release.py ${command}" }
 
 def absoluteJob(String name) { name.startsWith('/') ? name : '/' + name }
 
+def upstream(String domain, config) {
+    // Pipeline's build step uses BuildUpstreamCause, a subclass which the String
+    // overload does not include when filtering only hudson.model.Cause$UpstreamCause.
+    def causes = currentBuild.getBuildCauses().findAll { it._class in [
+        'hudson.model.Cause$UpstreamCause', 'org.jenkinsci.plugins.workflow.support.steps.build.BuildUpstreamCause'] }
+    if (!causes) return null
+    if (domain == 'all' || causes.size() != 1 || !config.jobs.coordinator ||
+        absoluteJob(causes[0].upstreamProject) != absoluteJob(config.jobs.coordinator)) {
+        error('Only the configured release coordinator may supply an upstream build context')
+    }
+    return [job: causes[0].upstreamProject, number: "${causes[0].upstreamBuild}"]
+}
+
 def executeDomain(context, domain) {
     stage("构建、验证并发布 ${domain}") { cli("domain --domain ${domain}") }
 }
@@ -71,11 +59,6 @@ def archiveReports(boolean allFiles = true) {
 }
 
 def completeRelease(context) {
-    if (params.DRAFT_ONLY) {
-        cli('draft')
-        echo '草稿演练完成：保留版本产物，跳过公开 Release、latest 和 OSS。'
-        return
-    }
     // Global promotion lock also serializes *different* versions, preventing latest races.
     lock(resource: 'password-xl-promotion') {
         if (context.deploy_oss) {
@@ -84,18 +67,9 @@ def completeRelease(context) {
     }
 }
 
-def releaseBody(String domain, config, boolean managed) {
-    if (domain == 'web' && params.OSS_ROLLBACK?.trim()) {
-        if (!params.DEPLOY_OSS || managed || params.DRAFT_ONLY) error('OSS 回滚要求 DEPLOY_OSS=true、DRAFT_ONLY=false，且独立运行 Web 任务')
-        if (!(params.OSS_ROLLBACK ==~ /(?:[0-9]+\.[0-9]+\.[0-9]+|legacy)-[0-9a-f]{12}/)) error('Invalid OSS deployment ID')
-        stage('回滚 OSS/CDN') {
-            lock(resource: 'password-xl-oss-site') { cli("rollback-oss --deployment ${params.OSS_ROLLBACK}") }
-        }
-        return
-    }
-    if (managed) {
-        if (!(params.PARENT_BUILD ==~ /[1-9][0-9]*/)) error('Invalid parent build number')
-        copyArtifacts(projectName: absoluteJob(params.PARENT_JOB), selector: specific(params.PARENT_BUILD),
+def releaseBody(String domain, config, parent) {
+    if (parent) {
+        copyArtifacts(projectName: absoluteJob(parent.job), selector: specific(parent.number),
                       filter: '.release/context.json,.release/frontend.zip')
         cli('checkout')
         def context = readJSON(file: '.release/context.json', returnPojo: true)
@@ -109,23 +83,20 @@ def releaseBody(String domain, config, boolean managed) {
         stage('锁定双站版本') { cli('reserve') }
         stage('构建共享前端') { cli('frontend'); archiveReports(false) }
         if (domain == 'all') {
-            // Sequential children keep per-version release writes ordered; each child owns build + publish.
+            // Reservations and the frontend exist before children start. Each child owns unique
+            // receipts/assets; only the coordinator writes the combined manifest and promotes.
+            def branches = [:]
             ['web', 'service', 'desktop', 'android'].each { group ->
-                if (context.targets.any { targetsFor(group).contains(it) }) {
+                branches[group] = {
                     stage("领域任务 ${group}") {
-                        def child = build(job: absoluteJob(config.jobs[group]), wait: true, propagate: true, parameters: [
-                            string(name: 'PARENT_JOB', value: env.JOB_NAME),
-                            string(name: 'PARENT_BUILD', value: env.BUILD_NUMBER),
-                            string(name: 'SOURCE_REF', value: context.source_sha),
-                            string(name: 'PROFILE', value: 'custom'),
-                            string(name: 'TARGETS', value: context.targets.findAll { targetsFor(group).contains(it) }.join(',')),
-                            booleanParam(name: 'UPDATE_LATEST', value: false),
-                            booleanParam(name: 'DRAFT_ONLY', value: params.DRAFT_ONLY)])
+                        def child = build(job: absoluteJob(config.jobs[group]), wait: true, propagate: true)
                         copyArtifacts(projectName: absoluteJob(config.jobs[group]), selector: specific("${child.number}"),
-                                      filter: '.release/result-*.json,.release/files/*,.release/workers/*.json')
+                                      filter: '.release/result-*.json,.release/workers/*.json')
                     }
                 }
             }
+            branches.failFast = true
+            parallel branches
         } else { executeDomain(context, domain) }
         stage('汇总并完成发布') { completeRelease(context) }
     }
@@ -156,17 +127,14 @@ def run(String domain, String podYaml) {
                 withCredentials([file(credentialsId: 'password-xl-release-config', variable: 'RELEASE_CONFIG_FILE')]) {
                     def config = readJSON(file: env.RELEASE_CONFIG_FILE, returnPojo: true)
                     def variables = config.environment.collect { key, value -> "${key}=${value}" }
-                    def managed = params.PARENT_JOB?.trim() as boolean
-                    def chosen = params.PROFILE == 'custom' ? (params.TARGETS ?: '').tokenize(',') : targetsFor(domain)
-                    def images = chosen.any { it.startsWith('web-') || it.startsWith('service-') }
-                    variables.addAll(["SOURCE_REF=${params.SOURCE_REF ?: 'master'}", "ANDROID_REF=${params.ANDROID_REF ?: 'master'}",
-                        "PROFILE=${params.PROFILE ?: 'all'}", "TARGETS=${params.TARGETS ?: ''}",
-                        "UPDATE_LATEST=${params.UPDATE_LATEST == null ? true : params.UPDATE_LATEST}", "DEPLOY_OSS=${params.DEPLOY_OSS ?: false}",
-                        "RELEASE_NOTES=${params.RELEASE_NOTES ?: ''}"])
+                    def parent = upstream(domain, config)
+                    def images = domain in ['all', 'web', 'service']
+                    def deploy = !parent && domain in ['all', 'web'] && (params.DEPLOY_OSS ?: false)
+                    variables.addAll(["DEPLOY_OSS=${deploy}"])
                     withEnv(variables) {
-                        withCredentials(credentialsFor(config, images, params.DEPLOY_OSS ?: false)) {
+                        withCredentials(credentialsFor(config, images, deploy)) {
                             try {
-                                timeout(time: 12, unit: 'HOURS') { releaseBody(domain, config, managed) }
+                                timeout(time: 12, unit: 'HOURS') { releaseBody(domain, config, parent) }
                             } finally {
                                 // Jenkins build-step interruption propagates to running children; each cancels its exact Run IDs.
                                 def cancelled = sh(script: 'python3 ci/release/release.py cancel', returnStatus: true)
