@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path
 
 from api import Api
+import transport
 from model import OUT, check_identity, env, extract_zip, read_json, require, sha256, write_json
 
 
@@ -47,7 +48,7 @@ def recover_file(records, file, destination):
     raise ValueError('Original worker artifact expired or missing; restore the archived Jenkins artifact')
 
 
-def dispatch(context, task, targets, cancel_event=None, **extra):
+def dispatch(context, task, targets, cancel_event=None, input_files=None, **extra):
     require(not cancel_event or not cancel_event.is_set(), 'Worker group was cancelled')
     api = github()
     repo = '/repos/' + env('GITHUB_REPO')
@@ -57,10 +58,16 @@ def dispatch(context, task, targets, cancel_event=None, **extra):
     workflow = env('GITHUB_WORKFLOW', 'build-workers.yml')
     api.request('GET', repo + '/actions/workflows/' + workflow)
     record = {'request_id': request_id, 'task': task, 'repo': env('GITHUB_REPO'), 'workflow': workflow,
-              'workflow_sha': workflow_sha, 'source_sha': context['source_sha']}
+              'workflow_sha': workflow_sha, 'source_sha': context['source_sha'], 'dispatched': False}
     path = OUT / 'workers' / f'{request_id}.json'
     write_json(path, record)
     try:
+        if input_files:
+            record['input_package'] = request_id
+            write_json(path, record)  # Cleanup still knows the ID if an upload fails midway.
+            payload['inputs'] = transport.upload(request_id, input_files)
+        record['dispatched'] = True
+        write_json(path, record)
         response = api.request('POST', repo + '/actions/workflows/' + workflow + '/dispatches', {
             'ref': 'master', 'inputs': {'request_id': request_id, 'task': task, 'payload': json.dumps(payload)},
         })
@@ -107,8 +114,11 @@ def dispatch(context, task, targets, cancel_event=None, **extra):
         write_json(path, record)
         return result, destination, record
     except BaseException:
-        cancel(record)
+        if record.get('run_id') or record.get('dispatched'):
+            cancel(record)
         raise
+    finally:
+        transport.cleanup(record)
 
 
 def cancel(record):
@@ -130,9 +140,13 @@ def cancel_all():
     errors = []
     for path in (OUT / 'workers').glob('*.json'):
         record = read_json(path)
-        if record.get('status') != 'success':
+        if record.get('status') != 'success' and record.get('dispatched', True):
             try:
                 cancel(record)
             except Exception as error:
                 errors.append(str(error))
+        try:
+            transport.cleanup(record)
+        except Exception as error:
+            errors.append(str(error))
     require(not errors, 'Some workers could not be cancelled: ' + '; '.join(errors))

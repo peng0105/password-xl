@@ -4,6 +4,8 @@
     "GITEA_URL": "https://gitea.example.com",
     "GITEA_REPO": "owner/password-xl",
     "GITHUB_REPO": "owner/password-xl",
+    "GITEE_URL": "https://gitee.com/your-account/password-xl.git",
+    "GITEE_USERNAME": "your-account",
     "ANDROID_URL": "https://gitea.example.com/owner/password-xl-android.git",
     "REGISTRY_PRIVATE_PREFIX": "registry.example.com/password-xl",
     "REGISTRY_DOCKERHUB_PREFIX": "docker.io/your-namespace",
@@ -24,6 +26,7 @@
   "credentials": {
     "github": "password-xl-github",
     "gitea": "password-xl-gitea",
+    "gitee": "password-xl-gitee",
     "private": "password-xl-registry-private",
     "dockerhub": "dockerhub-password-xl",
     "tencent": "tencent-ccr-password-xl",

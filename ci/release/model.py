@@ -74,6 +74,19 @@ def env(name, default=None):
     return value
 
 
+def enabled(context, action):
+    """Missing fields keep archived contexts compatible with the previous publisher."""
+    value = context.get(action, action != 'deploy_oss')
+    require(isinstance(value, bool), 'Invalid publication switch: ' + action)
+    return value
+
+
+def switch(name, default=True):
+    value = env(name, str(default).lower()).lower()
+    require(value in ('true', 'false'), 'Invalid boolean parameter: ' + name)
+    return value == 'true'
+
+
 def run(args, cwd=ROOT, capture=False, extra_env=None):
     # Argument arrays only: refs, notes and credentials never become shell code.
     process_env = os.environ.copy()

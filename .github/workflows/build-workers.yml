@@ -44,11 +44,18 @@ jobs:
         env:
           JENKINS_ACTOR: ${{ vars.JENKINS_ACTOR }}
         run: test -n "$JENKINS_ACTOR" && test "$GITHUB_ACTOR" = "$JENKINS_ACTOR"
-      - name: Check out the pinned source
+      - name: Check out the pinned workflow tools
         uses: actions/checkout@v6
         with:
-          ref: ${{ fromJSON(inputs.payload).source_sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
+      - name: Check out the pinned Gitea source
+        shell: bash
+        env:
+          GITEA_SOURCE_URL: ${{ vars.GITEA_SOURCE_URL }}
+          GITEA_TOKEN: ${{ secrets.GITEA_BUILD_READ_TOKEN }}
+        run: |
+          python -c 'import json,os,re,sys; sys.path.insert(0,"ci/release"); import source; p=json.loads(os.environ["WORKER_PAYLOAD"]); assert re.fullmatch("[0-9a-f]{40}",p["source_sha"]); actual=source.pin(os.environ["GITEA_SOURCE_URL"],p["source_sha"],os.environ["GITEA_TOKEN"]); assert actual==p["source_sha"]; source.git(["checkout","--detach",actual],os.environ["GITEA_TOKEN"])'
       - name: Validate dispatch identity
         shell: bash
         env:
@@ -107,6 +114,9 @@ jobs:
           REGISTRY_WORKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
           GH_WORKER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: ${{ github.repository }}
+          GITEA_URL: ${{ vars.GITEA_URL }}
+          GITEA_REPO: ${{ vars.GITEA_REPO }}
+          GITEA_TOKEN: ${{ secrets.GITEA_BUILD_READ_TOKEN }}
         run: python ci/release/release.py worker
       - name: Set up Android command line tools
         if: ${{ inputs.task == 'android' }}
@@ -129,7 +139,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_URL: ${{ vars.ANDROID_URL }}
-          GITEA_TOKEN: ${{ secrets.GITEA_ANDROID_READ_TOKEN }}
+          GITEA_TOKEN: ${{ secrets.GITEA_BUILD_READ_TOKEN }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -157,9 +167,7 @@ jobs:
     environment: jenkins-workers
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 115
-    # GitHub requires push access to read draft release assets. This short-lived
-    # token only downloads the shared frontend; publication is still Jenkins-owned.
     permissions:
-      contents: write
+      contents: read
     env: *worker_env
     steps: *worker_steps

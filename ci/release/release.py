@@ -13,18 +13,20 @@ from pathlib import Path
 
 import builds
 import cache
+import image_state
 import publish
 import registry
 import source
 import workers
-from model import (DOMAINS, IMAGE_TARGETS, OUT, ROOT, check_identity, checked_relative, env,
+import transport
+from model import (DOMAINS, IMAGE_TARGETS, OUT, ROOT, check_identity, checked_relative, enabled, env,
                    extract_zip, identity, merge_results, pack_directory, read_json, require, run,
                    sha256, write_json)
 
 
-def auth():
+def auth(push=True):
     auths = {}
-    for name in registry.REGISTRIES:
+    for name in registry.REGISTRIES if push else []:
         prefix = registry.prefix(name)
         if name == 'private' and env('REGISTRY_PRIVATE_ANONYMOUS', 'false') == 'true':
             continue
@@ -62,17 +64,18 @@ def reserve(context):
     if context['deploy_oss']:
         from oss import preflight
         preflight()  # Reject missing settings or access before any publication.
-    source.synchronize(context)
-    publish.releases(context)
+    if enabled(context, 'publish_release'):
+        image_state.check_source(context)  # A previous image-only publication also owns this version.
+        source.synchronize(context)  # Release tags; master mirroring is independently controlled.
+        publish.releases(context)
+    if enabled(context, 'push_images') and any(t in IMAGE_TARGETS for t in context['targets']):
+        source.check_primary_version(context)
+        image_state.reserve(context)
 
 
 def consume_worker(context, task, targets, cancel_event=None, **extra):
     if task == 'native-arm' and (OUT / 'frontend.zip').exists():
-        extra['frontend_sha256'] = sha256(OUT / 'frontend.zip')
-        endpoint = publish.Release('github', context)
-        asset = endpoint.assets().get('frontend.zip')
-        require(asset, 'Shared frontend release asset is missing')
-        extra['frontend_asset_id'] = asset['id']
+        extra['input_files'] = [OUT / 'frontend.zip']
     result, directory, record = workers.dispatch(context, task, targets, cancel_event=cancel_event, **extra)
     files = []
     for item in result.get('files', []):
@@ -141,8 +144,9 @@ def domain(context, name):
                     else:
                         archive_ref = builds.build_local(context, target)
                         image = registry.stage(archive_ref, context, target)
-                        worker, _, record, _ = consume_worker(context, 'smoke-' + image['arch'], [target],
-                                                              image=image['worker_source'])
+                        inputs = ({'image': image['worker_source']} if image['worker_source'] else
+                                  {'input_files': [registry.worker_archive(image)], 'image_config': image['config_digest']})
+                        worker, _, record, _ = consume_worker(context, 'smoke-' + image['arch'], [target], **inputs)
                         require(worker.get('verified_images') == [target], 'Image was not verified')
                         runs.append(record)
                     images.append(image)
@@ -177,14 +181,19 @@ def finalize(context):
     results = [read_json(path) for path in sorted(OUT.glob('result-*.json'))]
     merged = merge_results(context, results)
     endpoints, manifest = publish.combined_manifest(context, merged)
-    state = {'schema': 1, **identity(context), 'status': 'finalizing', 'steps': {}}
+    state = {'schema': 1, **identity(context), 'status': 'finalizing',
+             'actions': {key: enabled(context, key) for key in ('deploy_oss', 'publish_release', 'push_images', 'sync_repos')},
+             'steps': {'release': 'pending' if endpoints else 'skipped',
+                       'images': 'pending' if enabled(context, 'push_images') else 'skipped',
+                       'oss': 'pending' if context['deploy_oss'] else 'skipped'}}
     path = OUT / 'publication.json'
     try:
-        if context['update_latest']:
+        if enabled(context, 'push_images') and context['update_latest']:
             state['steps']['latest'] = []
             for image in merged['images']:
                 state['steps']['latest'].extend(registry.promote_latest(image, context))
                 write_json(path, state)
+            state['steps']['images'] = 'success'
         if context['deploy_oss']:
             from oss import deploy
             state['steps']['oss'] = deploy(context, OUT / 'dist-web')
@@ -193,6 +202,8 @@ def finalize(context):
             endpoint.finish(manifest, context.get('release_notes'))
             state['steps'][endpoint.provider] = 'public'
             write_json(path, state)
+        if endpoints:
+            state['steps']['release'] = 'success'
         state['status'] = 'success'
     except BaseException as error:
         state['status'] = 'partial-failure'
@@ -239,12 +250,7 @@ def worker():
             result['files'] = builds.desktop(context, targets)
         elif task == 'native-arm':
             require(targets == ['service-arm'], 'Invalid native worker request')
-            from api import Api
-            api = Api('https://api.github.com', env('GH_WORKER_TOKEN'), True)
-            repo_path = '/repos/' + env('GITHUB_REPO')
-            api.download(repo_path + '/releases/assets/' + str(int(context['frontend_asset_id'])), OUT / 'frontend.zip',
-                         headers={'Accept': 'application/octet-stream'})
-            require(sha256(OUT / 'frontend.zip') == context['frontend_sha256'], 'Shared frontend checksum mismatch')
+            transport.download(context, 'frontend.zip', OUT / 'frontend.zip')
             extract_zip(OUT / 'frontend.zip', OUT)
             builds.gradle(context, ['build', 'nativeCompile'])
             reference = builds.dockerfile_image(context, targets[0], cloud=True)
@@ -256,6 +262,18 @@ def worker():
             result['archives'] = [{'target': targets[0], 'path': 'images/' + archive.name, 'sha256': sha256(archive)}]
         elif task in ('smoke-amd64', 'smoke-arm64'):
             require(len(targets) == 1 and targets[0] in IMAGE_TARGETS, 'Invalid smoke request')
+            if context.get('inputs'):
+                archive = OUT / (targets[0] + '.tar.gz')
+                transport.download(context, archive.name, archive)
+                run(['docker', 'load', '-i', str(archive)])
+                image = 'password-xl-worker:' + targets[0]
+                require(run(['docker', 'image', 'inspect', '--format={{.Id}}', image], capture=True) == context['image_config'],
+                        'Loaded image config/rootfs differs from the Jenkins build')
+                from smoke import check_image
+                check_image(image, context, targets[0])
+                result['verified_images'] = targets
+                result['status'] = 'success'
+                return
             image = context['image']
             allowed = os.environ.get('REGISTRY_WORKER_PREFIX') or env('REGISTRY_PRIVATE_PREFIX')
             require('@sha256:' in image and image.startswith(allowed + '/'), 'Invalid image source')
@@ -288,7 +306,7 @@ def worker():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['prepare', 'checkout', 'reserve', 'frontend', 'domain', 'finalize', 'worker', 'cancel', 'rollback-oss'])
+    parser.add_argument('command', choices=['prepare', 'checkout', 'sync', 'reserve', 'frontend', 'domain', 'finalize', 'worker', 'cancel', 'rollback-oss'])
     parser.add_argument('--domain', choices=['all', *DOMAINS], default='all')
     parser.add_argument('--deployment')
     args = parser.parse_args()
@@ -308,13 +326,15 @@ def main():
         require(sha == context['source_sha'], 'Pinned checkout could not be obtained')
         return source.git(['checkout', '--detach', sha], env('GITEA_TOKEN'))
     require(run(['git', 'rev-parse', 'HEAD'], capture=True) == context['source_sha'], 'Jenkins checkout SHA mismatch')
+    if args.command == 'sync':
+        return source.synchronize_repositories(context)
     if args.command == 'reserve':
         return reserve(context)
     if args.command == 'frontend':
         return bundle_frontend(context)
     relevant = DOMAINS[args.domain] if args.command == 'domain' else context['targets']
     if any(t in IMAGE_TARGETS and t in relevant for t in context['targets']):
-        auth()
+        auth(enabled(context, 'push_images'))
     if args.command == 'domain':
         return domain(context, args.domain)
     return finalize(context)

@@ -4,14 +4,27 @@ def configure(String domain) {
     if (domain in ['all', 'web']) {
         definitions.add(booleanParam(name: 'DEPLOY_OSS', defaultValue: false, description: '全部成功后用本次 dist 发布 OSS/CDN'))
     }
+    definitions.add(booleanParam(name: 'PUBLISH_RELEASE', defaultValue: true, description: '发布 GitHub / Gitea Release；关闭时产物只归档到 Jenkins'))
+    if (domain in ['all', 'web', 'service']) {
+        definitions.add(booleanParam(name: 'PUSH_IMAGES', defaultValue: true, description: '推送三个镜像仓库及兼容名称，全部成功后更新 latest'))
+    }
+    definitions.add(booleanParam(name: 'SYNC_REPOS', defaultValue: true, description: '以 Gitea master 为主，同步代码到 Gitee 和 GitHub master'))
     def settings = [pipelineTriggers([]), buildDiscarder(logRotator(numToKeepStr: '20')), copyArtifactPermission('*')]
     if (definitions) settings.add(parameters(definitions))
     properties(settings)
 }
 
-def credentialsFor(config, boolean images, boolean oss) {
+def credentialsFor(config, boolean images, boolean oss, boolean sync = false) {
     def credentials = [string(credentialsId: config.credentials.github, variable: 'GH_TOKEN'),
                        string(credentialsId: config.credentials.gitea, variable: 'GITEA_TOKEN')]
+    if (sync) {
+        if (config.credentials.giteeType == 'secretText') {
+            credentials.add(string(credentialsId: config.credentials.gitee, variable: 'GITEE_TOKEN'))
+        } else {
+            credentials.add(usernamePassword(credentialsId: config.credentials.gitee,
+                usernameVariable: 'GITEE_USERNAME', passwordVariable: 'GITEE_TOKEN'))
+        }
+    }
     if (images) {
         ['private', 'dockerhub', 'tencent'].each { registry ->
             if (registry != 'private' || config.environment.REGISTRY_PRIVATE_ANONYMOUS != 'true') {
@@ -36,6 +49,16 @@ def cli(String command) { sh "python3 ci/release/release.py ${command}" }
 
 def absoluteJob(String name) { name.startsWith('/') ? name : '/' + name }
 
+def actionsFor(parent, inherited, selected) {
+    def actions = [:]
+    [PUBLISH_RELEASE: 'publish_release', PUSH_IMAGES: 'push_images', SYNC_REPOS: 'sync_repos'].each { key, field ->
+        def value = parent ? inherited[field] : (selected.containsKey(key) ? selected[key] : true)
+        if (!(value instanceof Boolean)) error("Missing or invalid release switch: ${key}")
+        actions[key] = value
+    }
+    return actions
+}
+
 def upstream(String domain, config) {
     // Pipeline's build step uses BuildUpstreamCause, a subclass which the String
     // overload does not include when filtering only hudson.model.Cause$UpstreamCause.
@@ -56,6 +79,7 @@ def executeDomain(context, domain) {
 def archiveReports(boolean allFiles = true) {
     archiveArtifacts artifacts: allFiles ? '.release/result-*.json,.release/files/*,.release/metadata/*,.release/publication.json,.release/oss-*.json,.release/workers/*.json' : '.release/context.json,.release/frontend.zip',
         allowEmptyArchive: true, fingerprint: true
+    if (allFiles) archiveArtifacts artifacts: '.release/repository-sync.json', allowEmptyArchive: true
 }
 
 def completeRelease(context) {
@@ -69,8 +93,10 @@ def completeRelease(context) {
 
 def releaseBody(String domain, config, parent) {
     if (parent) {
-        copyArtifacts(projectName: absoluteJob(parent.job), selector: specific(parent.number),
-                      filter: '.release/context.json,.release/frontend.zip')
+        if (!fileExists('.release/context.json')) {
+            copyArtifacts(projectName: absoluteJob(parent.job), selector: specific(parent.number),
+                          filter: '.release/context.json,.release/frontend.zip')
+        }
         cli('checkout')
         def context = readJSON(file: '.release/context.json', returnPojo: true)
         executeDomain(context, domain)
@@ -79,8 +105,13 @@ def releaseBody(String domain, config, parent) {
     cli("prepare --domain ${domain}")
     def context = readJSON(file: '.release/context.json', returnPojo: true)
     currentBuild.displayName = "#${env.BUILD_NUMBER} ${context.version}"
+    if (context.sync_repos) {
+        stage('同步 Gitee / GitHub 代码') {
+            lock(resource: 'password-xl-source-sync') { cli('sync') }
+        }
+    }
     lock(resource: "password-xl-version-${context.version}") {
-        stage('锁定双站版本') { cli('reserve') }
+        stage('检查发布配置与版本') { cli('reserve') }
         stage('构建共享前端') { cli('frontend'); archiveReports(false) }
         if (domain == 'all') {
             // Reservations and the frontend exist before children start. Each child owns unique
@@ -128,11 +159,19 @@ def run(String domain, String podYaml) {
                     def config = readJSON(file: env.RELEASE_CONFIG_FILE, returnPojo: true)
                     def variables = config.environment.collect { key, value -> "${key}=${value}" }
                     def parent = upstream(domain, config)
-                    def images = domain in ['all', 'web', 'service']
+                    def inherited = [:]
+                    if (parent) {
+                        copyArtifacts(projectName: absoluteJob(parent.job), selector: specific(parent.number),
+                                      filter: '.release/context.json,.release/frontend.zip')
+                        inherited = readJSON(file: '.release/context.json', returnPojo: true)
+                    }
+                    def actions = actionsFor(parent, inherited, params)
+                    def images = domain in ['all', 'web', 'service'] && actions.PUSH_IMAGES
                     def deploy = !parent && domain in ['all', 'web'] && (params.DEPLOY_OSS ?: false)
                     variables.addAll(["DEPLOY_OSS=${deploy}"])
+                    variables.addAll(actions.collect { key, value -> "${key}=${value}" })
                     withEnv(variables) {
-                        withCredentials(credentialsFor(config, images, deploy)) {
+                        withCredentials(credentialsFor(config, images, deploy, !parent && actions.SYNC_REPOS)) {
                             try {
                                 timeout(time: 12, unit: 'HOURS') { releaseBody(domain, config, parent) }
                             } finally {
