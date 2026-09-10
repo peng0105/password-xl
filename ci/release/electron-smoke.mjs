@@ -78,7 +78,7 @@ try {
   socket = new WebSocket(page.webSocketDebuggerUrl)
   await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject })
   let id = 0
-  const evaluate = expression => new Promise((resolve, reject) => {
+  const command = (method, params) => new Promise((resolve, reject) => {
     const current = ++id
     const timer = setTimeout(() => reject(new Error('Electron evaluation timed out')), 15000)
     const listener = event => {
@@ -86,12 +86,13 @@ try {
       if (message.id !== current) return
       clearTimeout(timer)
       socket.removeEventListener('message', listener)
-      if (message.error || message.result.exceptionDetails) reject(new Error('Packaged frontend evaluation failed'))
-      else resolve(message.result.result.value)
+      if (message.error || message.result?.exceptionDetails) reject(new Error('Packaged frontend evaluation failed'))
+      else resolve(message.result)
     }
     socket.addEventListener('message', listener)
-    socket.send(JSON.stringify({id: current, method: 'Runtime.evaluate', params: {expression, awaitPromise: true, returnByValue: true}}))
+    socket.send(JSON.stringify({id: current, method, params}))
   })
+  const evaluate = async expression => (await command('Runtime.evaluate', {expression, awaitPromise: true, returnByValue: true})).result.value
   let ready = false
   for (let attempt = 0; attempt < 30; attempt++) {
     ready = await evaluate("Boolean(document.querySelector('#app')?.children.length && window.electronAPI?.getFile)")
@@ -99,6 +100,19 @@ try {
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
   assert(ready, 'Vue frontend or Electron bridge did not initialize')
+  assert(await evaluate("location.pathname.endsWith('/index.html') && location.hash.startsWith('#/')"),
+    'Bundled routing must preserve the local entry path')
+  await evaluate('window.__ciBeforeReload = true')
+  await command('Page.reload', {ignoreCache: true})
+  ready = false
+  for (let attempt = 0; attempt < 30; attempt++) {
+    try {
+      ready = await evaluate("!window.__ciBeforeReload && Boolean(document.querySelector('#app')?.children.length && window.electronAPI?.getFile)")
+      if (ready) break
+    } catch {} // Reload destroys the old JavaScript execution context.
+    await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+  assert(ready, 'Packaged frontend failed to reload at its local route')
   const result = await evaluate(`(async () => {
     const name = 'ci-smoke.json';
     await window.electronAPI.uploadFile(name, 'ci-test');
@@ -107,7 +121,7 @@ try {
     return value;
   })()`)
   assert.equal(result, 'ci-test', 'Packaged IPC storage round trip failed')
-  console.log(`Desktop ${version}: architecture, page startup and isolated IPC storage passed`)
+  console.log(`Desktop ${version}: architecture, page startup/reload and isolated IPC storage passed`)
 } finally {
   socket?.close()
   if (process.platform === 'win32') {

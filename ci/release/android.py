@@ -37,7 +37,7 @@ def instrument(test_apk):
     run(['adb', 'install', '-r', str(test_apk)])
     output = run(['adb', 'shell', 'am', 'instrument', '-w', 'com.passwordxl.test/androidx.test.runner.AndroidJUnitRunner'], capture=True)
     require('OK (1 test)' in output and 'FAILURES' not in output and 'INSTRUMENTATION_FAILED' not in output,
-            'Android entry/bridge/upgrade test failed: ' + output[-1500:])
+            'Android entry/bridge/upgrade test failed: ' + output[-6000:])
 
 
 def build(context, targets):
