@@ -31,6 +31,8 @@ Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式
 
 已有 `nodejs-24` 标签仅用于短暂检出 Jenkinsfile 的公共脚本和 Pod 模板；可用 `RELEASE_BOOTSTRAP_LABEL` 改成已有可检出 Git 的标签。真正编译使用临时 k3s Pod，工具容器含 Node 24、Yarn 4.18、Python、GraalVM 25、Skopeo、buildctl 和 OSS SDK。无需再提供 Windows Docker。
 
+Gitea 与 Jenkins 位于同一集群时，可将全局变量 `CI_GITEA_HOST` 设为 Gitea 的 HTTPS 域名、`CI_GITEA_INTERNAL_IP` 设为已有 ingress Service 的 ClusterIP。流水线仅在构建 Pod 中添加 hostAliases，让大附件走内网，仍使用原 URL、TLS 证书验证和入口策略；不修改集群 DNS 或其他应用。入口 Service 重建导致 IP 改变时同步更新该变量。
+
 工具镜像可在已有的 x86 BuildKit 任务中初始化，例如从仓库根目录执行：
 
 ```sh

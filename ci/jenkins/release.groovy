@@ -136,6 +136,15 @@ def run(String domain, String podYaml) {
         .replace('${CI_AGENT_IMAGE}', env.CI_AGENT_IMAGE ?: 'jenkins/inbound-agent:jdk21')
         .replace('${CI_BUILDKIT_IMAGE}', env.CI_BUILDKIT_IMAGE ?: 'moby/buildkit:v0.23.2-rootless')
         .replace('${CI_GRADLE_CACHE_CLAIM}', env.CI_GRADLE_CACHE_CLAIM ?: 'gradle-build-cache-pvc')
+    if (env.CI_GITEA_INTERNAL_IP?.trim()) {
+        def parts = env.CI_GITEA_INTERNAL_IP.tokenize('.')
+        if (parts.size() != 4 || parts.any { !(it ==~ /[0-9]{1,3}/) || it.toInteger() > 255 }) {
+            error('CI_GITEA_INTERNAL_IP must be the existing ingress Service IPv4 address')
+        }
+        if (!(env.CI_GITEA_HOST ==~ /[A-Za-z0-9][A-Za-z0-9.-]*/)) error('Set CI_GITEA_HOST to the HTTPS repository hostname')
+        // Keep the public URL, certificate verification and ingress policy, while avoiding WAN hairpin upload limits.
+        resolvedYaml = resolvedYaml.replace('\nspec:\n', "\nspec:\n  hostAliases:\n    - ip: '${env.CI_GITEA_INTERNAL_IP}'\n      hostnames: ['${env.CI_GITEA_HOST}']\n")
+    }
     podTemplate(yaml: resolvedYaml) {
         node(POD_LABEL) {
             container('tools') {
