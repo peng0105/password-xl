@@ -14,7 +14,7 @@ Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式
 
 每个领域任务包含构建、验证和发布，可独立运行。总入口锁定版本、构建共享前端后，并行调用 Web、Service、Desktop、Android；任何领域失败会中止其他分支，全部成功才进入最终发布。Desktop 三平台并行，Linux 三种包一次编译；Service 原生 ARM worker 与 k3s 构建重叠执行；两个 APK 一次签名和升级验证。
 
-日常构建无需选择源码或目标。主仓库和安卓仓库固定读取 `master`，运行时解析并锁定实际 SHA；任务始终构建自身全部目标，总入口为全部 16 项。启用镜像推送时，成功后更新相关 `latest`，已有更高版本不会被回退。Release 说明由版本、源码和产物清单自动生成。
+日常构建无需选择源码或目标。主仓库和安卓仓库固定读取 `master`，运行时解析并锁定实际 SHA；任务始终构建自身全部目标，总入口为全部 16 项。所有任务提供可修改的 `VERSION`，默认是该任务上次使用版本的补丁号 +1；总入口统一传给子任务。成功后回写 Gitea 的前端 package.json，开启同步时也更新两个镜像库。启用镜像推送时，成功后更新相关 `latest`，已有更高版本不会被回退。Release 说明自动生成。
 
 总入口和 Web 提供 **`DEPLOY_OSS`**（默认 false）、**`PUBLISH_RELEASE`**、**`PUSH_IMAGES`**、**`SYNC_REPOS`**（后三项默认 true）。Service 不展示 OSS；Desktop/Android 只展示 Release 和同步。四种发布动作独立控制，全关时仍构建验证并在 Jenkins 归档。演练、目标多选、手动源码和父任务参数仍不提供。详见 [发布开关与组合](publishing-controls.md)。
 
@@ -22,7 +22,7 @@ Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式
 
 ## 首次接入
 
-1. 将主仓库的 CI 改动和安卓仓库改动分别审查、提交到 Gitea。需要发布的业务源文件也必须已提交；流水线只读取提交，不读取开发机未提交文件。新版本手工修改前端 package.json；不要复用已经绑定旧 SHA 的版本。
+1. 将主仓库的 CI 改动和安卓仓库改动分别审查、提交到 Gitea。需要发布的业务源文件也必须已提交；流水线只读取提交，不读取开发机未提交文件。版本在 Jenkins VERSION 中选择，成功后自动回写；不要复用已经绑定不同源码的旧版本。
 2. 将 `build-workers.yml` 安装到 GitHub 的 `master`，关闭旧自动发布入口。启用同步后，Jenkins 将 Gitea 代码正常合并到 GitHub/Gitee master；启用 Release 后创建数字版本 Tag。worker 显式检出 Gitea 固定源码 SHA，不依赖本次是否开启同步。工作流定义 SHA 和实际源码 SHA 分别校验；master 在调度期间变动会拒绝该次运行。
 3. 构建一次 `ci/jenkins/tools.Dockerfile`，推到集群可拉取的内部工具镜像仓库，将固定镜像地址（建议 digest）设置为 Jenkins 全局变量 `CI_TOOLS_IMAGE`。此步骤只初始化 CI 工具镜像，日常产品构建与推送仍在同一个任务内。
 4. 安装/确认 Jenkins 插件：Pipeline、Kubernetes、Git、Credentials Binding、Pipeline Utility Steps、Copy Artifact、Lockable Resources。不再依赖 Active Choices；已安装的插件可能被其他项目使用，无需全局卸载。`ci/jenkins/jobs.groovy` 是可选 Job DSL seed；不用 seed 时创建上表五个 Pipeline from SCM 即可。
@@ -73,7 +73,7 @@ Jenkins 与 GitHub runners 都需要访问依赖仓库；GitHub 还需要通过 
 
 ## 源码、版本与产物
 
-所有发布以 Gitea 实际提交为准。Jenkins fetch → 固定主仓库 SHA → 读取 package.json 数字版本；需要 APK 时再固定安卓 SHA。数字 Tag 在两站必须指向同一主提交，遇到不同提交立即失败，绝不强推 master 或覆盖 Tag。`release-source.json` 和 `android-source.json` 分别绑定两类源码；首次只发 Web 时不会提前绑定 Android，因此同一主提交可以稍后补齐 APK。绑定后的安卓 SHA 也不能更换。
+所有发布以 Gitea 实际提交为准。Jenkins fetch → 固定 master 基础 SHA → 按 VERSION 生成版本提交并锁定构建 SHA；需要 APK 时再固定安卓 SHA。版本提交先由临时 ref 提供给 worker，成功后才合入 master，保留期间新增代码。数字 Tag 在两站必须指向同一构建提交，遇到不同提交立即失败，绝不强推 master 或覆盖 Tag。`release-source.json` 和 `android-source.json` 分别绑定两类源码；首次只发 Web 时不会提前绑定 Android，因此同一主提交可以稍后补齐 APK。绑定后的安卓 SHA 也不能更换。详见 [版本参数和回写规则](publishing-controls.md)。
 
 共享 Web dist 编译一次并打为内部 `frontend.zip`，传给领域任务及 ARM 原生 worker；关闭 Release 时仍可传递。后端使用 `-PreleaseVersion/-PfrontendDist`；Gradle 显式排除仓库旧 static，再装入本次完整 dist。JAR 是 bootJar，包含 Implementation-Version 和前端 release.json。Electron、Android 使用相对路径模式的前端，每个平台内部复用。
 

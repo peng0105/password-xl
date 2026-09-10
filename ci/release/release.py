@@ -304,9 +304,47 @@ def worker():
         write_json(output / 'result.json', result)
 
 
+def write_version(context):
+    import versioning
+    state = read_json(OUT / 'publication.json')
+    require(state['status'] == 'success', 'Version writeback requires a successful build/publication')
+    check_identity(context, state)
+    try:
+        report = versioning.writeback(context)
+        state['steps']['source_version'] = report
+        if enabled(context, 'sync_repos'):
+            before = OUT / 'repository-sync.json'
+            if before.exists():
+                shutil.copyfile(before, OUT / 'repository-sync-before.json')
+            source.synchronize_repositories({**context, 'source_sha': report['master_sha']})
+    except BaseException:
+        state['status'] = 'partial-failure'
+        state['steps']['source_version'] = 'failed'
+        raise
+    finally:
+        write_json(OUT / 'publication.json', state)
+        endpoints = publish.releases(context)
+        errors = []
+        for endpoint in endpoints:
+            try:
+                endpoint.put(OUT / 'publication.json', mutable=True)
+            except Exception as error:
+                errors.append(type(error).__name__)
+        if errors:
+            state['status'] = 'partial-failure'
+            state['version_report_errors'] = errors
+            write_json(OUT / 'publication.json', state)
+            for endpoint in endpoints:
+                try:
+                    endpoint.put(OUT / 'publication.json', mutable=True)
+                except Exception:
+                    pass
+            raise ValueError('Version writeback status could not be saved to both releases')
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['prepare', 'checkout', 'sync', 'reserve', 'frontend', 'domain', 'finalize', 'worker', 'cancel', 'rollback-oss'])
+    parser.add_argument('command', choices=['prepare', 'checkout', 'sync', 'reserve', 'frontend', 'domain', 'finalize', 'write-version', 'worker', 'cancel', 'rollback-oss'])
     parser.add_argument('--domain', choices=['all', *DOMAINS], default='all')
     parser.add_argument('--deployment')
     args = parser.parse_args()
@@ -314,7 +352,11 @@ def main():
     if args.command == 'worker':
         return worker()
     if args.command == 'cancel':
-        return workers.cancel_all()
+        workers.cancel_all()
+        if (OUT / 'context.json').exists():
+            import versioning
+            versioning.cleanup(read_json(OUT / 'context.json'))
+        return
     if args.command == 'prepare':
         return source.prepare(args.domain)
     if args.command == 'rollback-oss':
@@ -327,7 +369,9 @@ def main():
         return source.git(['checkout', '--detach', sha], env('GITEA_TOKEN'))
     require(run(['git', 'rev-parse', 'HEAD'], capture=True) == context['source_sha'], 'Jenkins checkout SHA mismatch')
     if args.command == 'sync':
-        return source.synchronize_repositories(context)
+        return source.synchronize_repositories({**context, 'source_sha': context.get('base_source_sha', context['source_sha'])})
+    if args.command == 'write-version':
+        return write_version(context)
     if args.command == 'reserve':
         return reserve(context)
     if args.command == 'frontend':

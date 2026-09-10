@@ -1,8 +1,10 @@
 def flow
 def podYaml
+def initialVersion
 node(env.RELEASE_BOOTSTRAP_LABEL ?: 'nodejs-24') {
     checkout scm
     flow = load 'ci/jenkins/release.groovy'
+    initialVersion = flow.nextVersion(readJSON(file: 'password-xl-web/package.json', returnPojo: true).version)
     podYaml = readFile 'ci/jenkins/agent.yaml'
 }
-flow.run('service', podYaml)
+flow.run('service', podYaml, initialVersion)
