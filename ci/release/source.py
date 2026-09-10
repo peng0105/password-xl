@@ -4,7 +4,7 @@ import re
 import sys
 from pathlib import Path
 
-from model import DOMAINS, TARGETS, OUT, ROOT, enabled, env, read_json, require, run, switch, version_tuple, write_json
+from model import DOMAINS, TARGETS, OUT, ROOT, enabled, env, read_json, require, run, switch, version_code, version_tuple, write_json
 
 
 def git(args, token, cwd=ROOT):
@@ -46,10 +46,11 @@ def prepare(domain):
     require(not deploy or domain in ('all', 'web'), 'Only the coordinator/Web can deploy OSS')
     sha = pin(env('GITEA_SOURCE_URL'), 'master', env('GITEA_TOKEN'))
     git(['checkout', '--detach', sha], env('GITEA_TOKEN'))
-    version = read_json(ROOT / 'password-xl-web/package.json')['version']
+    version = env('RELEASE_VERSION', read_json(ROOT / 'password-xl-web/package.json')['version']).strip()
     version_tuple(version)
     android_sha = None
     if any(t.startswith('apk-') for t in targets):
+        version_code(version)
         _, android_sha = android_checkout('master')
     context = {'schema': 1, 'version': version, 'source_sha': sha, 'android_sha': android_sha,
                'targets': targets, 'deploy_oss': deploy,
@@ -58,6 +59,8 @@ def prepare(domain):
                'update_latest': True, 'release_notes': '',
                'jenkins_build': {'job': os.environ.get('JOB_NAME'), 'number': os.environ.get('BUILD_NUMBER'),
                                  'url': os.environ.get('BUILD_URL')}}
+    from versioning import prepare as prepare_version
+    prepare_version(context)
     write_json(OUT / 'context.json', context)
     return context
 

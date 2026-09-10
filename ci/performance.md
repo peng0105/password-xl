@@ -1,6 +1,6 @@
 # 发布提速分析与验证
 
-本文保留提速改造时的历史测量；构建参数后来调整为四个独立发布开关，当前规则以 [发布开关](publishing-controls.md) 为准。
+本文保留提速改造时的历史测量；当前参数为可编辑 VERSION 和四个独立发布开关，规则以 [发布开关](publishing-controls.md) 为准。
 
 ## 当前结论
 
@@ -91,6 +91,6 @@
 
 后续新版本重点记录原生 x86/ARM 编译、GitHub 排队及依赖缓存命中、CDN 生效等待。若主要耗时转移到原生编译，再评估 GraalVM 编译参数和独立缓存容量；若私有仓库积累无引用层，再按仓库维护流程安排 GC。此次不提高现有 Jenkins 容器上限，不扩大所有编译任务的 CPU。
 
-1.5.0 已绑定旧源码；新的源码发布需要先手工增加前端 package.json 版本。CI 改动不覆盖现有发布，也不自动递增业务版本。
+1.5.0 已绑定旧源码；新的发布版本通过 Jenkins VERSION 选择，默认在上次构建版本的补丁号上加一，成功后回写 package.json。CI 不覆盖现有版本绑定。
 
 参考：[Docker registry 构建缓存](https://docs.docker.com/build/cache/backends/registry/)、[GitHub cache 范围](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching)、[GitHub Release API](https://docs.github.com/en/rest/releases/releases)、[Gitea 附件元数据和修改字段](https://github.com/go-gitea/gitea/blob/main/modules/structs/attachment.go)。

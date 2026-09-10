@@ -177,6 +177,7 @@ class DefaultsAndWorker(unittest.TestCase):
                   'GITEA_TOKEN':'fixture','DEPLOY_OSS':'false'},clear=True), \
                 patch.object(source,'pin',return_value='a'*40) as pin, patch.object(source,'git'), \
                 patch.object(source,'read_json',return_value={'version':'1.5.0'}), \
+                patch('versioning.prepare'), \
                 patch.object(source,'android_checkout',return_value=(Path(tmp),'b'*40)) as android:
             result = source.prepare('all')
         self.assertEqual(pin.call_args.args[1],'master')

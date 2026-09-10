@@ -1,6 +1,29 @@
 // Loaded by the five thin Jenkinsfiles. Business commands live in ci/release/*.py.
-def configure(String domain) {
-    def definitions = []
+def checkedVersion(value) {
+    def version = "${value ?: ''}".trim()
+    if (!(version ==~ /(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)/)) {
+        error('VERSION 必须是 major.minor.patch，例如 1.5.1')
+    }
+    return version
+}
+
+def nextVersion(value) {
+    def parts = checkedVersion(value).tokenize('.')
+    // Decimal carry avoids both overflow and additional Jenkins sandbox signatures.
+    def patch = parts[2]
+    def zeros = ''
+    while (patch.endsWith('9')) {
+        zeros += '0'
+        patch = patch.substring(0, patch.length() - 1)
+    }
+    def incremented = patch ? patch.substring(0, patch.length() - 1) +
+        (patch.substring(patch.length() - 1).toInteger() + 1) + zeros : '1' + zeros
+    return "${parts[0]}.${parts[1]}.${incremented}"
+}
+
+def configure(String domain, String next = '') {
+    def definitions = [string(name: 'VERSION', defaultValue: next, trim: true,
+        description: '本次构建版本，可修改；默认是上次构建版本的补丁号 +1，成功后回写 Gitea 源码')]
     if (domain in ['all', 'web']) {
         definitions.add(booleanParam(name: 'DEPLOY_OSS', defaultValue: false, description: '全部成功后用本次 dist 发布 OSS/CDN'))
     }
@@ -79,7 +102,7 @@ def executeDomain(context, domain) {
 def archiveReports(boolean allFiles = true) {
     archiveArtifacts artifacts: allFiles ? '.release/result-*.json,.release/files/*,.release/metadata/*,.release/publication.json,.release/oss-*.json,.release/workers/*.json' : '.release/context.json,.release/frontend.zip',
         allowEmptyArchive: true, fingerprint: true
-    if (allFiles) archiveArtifacts artifacts: '.release/repository-sync.json', allowEmptyArchive: true
+    if (allFiles) archiveArtifacts artifacts: '.release/repository-sync*.json,.release/version-*.json', allowEmptyArchive: true
 }
 
 def completeRelease(context) {
@@ -102,15 +125,15 @@ def releaseBody(String domain, config, parent) {
         executeDomain(context, domain)
         return
     }
-    cli("prepare --domain ${domain}")
-    def context = readJSON(file: '.release/context.json', returnPojo: true)
-    currentBuild.displayName = "#${env.BUILD_NUMBER} ${context.version}"
-    if (context.sync_repos) {
-        stage('同步 Gitee / GitHub 代码') {
-            lock(resource: 'password-xl-source-sync') { cli('sync') }
+    lock(resource: "password-xl-version-${checkedVersion(env.RELEASE_VERSION)}") {
+        cli("prepare --domain ${domain}")
+        def context = readJSON(file: '.release/context.json', returnPojo: true)
+        currentBuild.displayName = "#${env.BUILD_NUMBER} ${context.version}"
+        if (context.sync_repos) {
+            stage('同步 Gitee / GitHub 代码') {
+                lock(resource: 'password-xl-source-sync') { cli('sync') }
+            }
         }
-    }
-    lock(resource: "password-xl-version-${context.version}") {
         stage('检查发布配置与版本') { cli('reserve') }
         stage('构建共享前端') { cli('frontend'); archiveReports(false) }
         if (domain == 'all') {
@@ -120,7 +143,8 @@ def releaseBody(String domain, config, parent) {
             ['web', 'service', 'desktop', 'android'].each { group ->
                 branches[group] = {
                     stage("领域任务 ${group}") {
-                        def child = build(job: absoluteJob(config.jobs[group]), wait: true, propagate: true)
+                        def child = build(job: absoluteJob(config.jobs[group]), wait: true, propagate: true,
+                                          parameters: [string(name: 'VERSION', value: context.version)])
                         copyArtifacts(projectName: absoluteJob(config.jobs[group]), selector: specific("${child.number}"),
                                       filter: '.release/result-*.json,.release/workers/*.json')
                     }
@@ -130,11 +154,15 @@ def releaseBody(String domain, config, parent) {
             parallel branches
         } else { executeDomain(context, domain) }
         stage('汇总并完成发布') { completeRelease(context) }
+        stage('回写源码版本') {
+            lock(resource: 'password-xl-source-sync') { cli('write-version') }
+        }
     }
 }
 
-def run(String domain, String podYaml) {
-    configure(domain)
+def run(String domain, String podYaml, String initialVersion) {
+    def selectedVersion = checkedVersion(params.VERSION ?: initialVersion)
+    configure(domain, nextVersion(selectedVersion))
     if (!env.CI_TOOLS_IMAGE) error('Set Jenkins CI_TOOLS_IMAGE to the image built from ci/jenkins/tools.Dockerfile')
     def resolvedYaml = podYaml.replace('${CI_TOOLS_IMAGE}', env.CI_TOOLS_IMAGE)
         .replace('${CI_AGENT_IMAGE}', env.CI_AGENT_IMAGE ?: 'jenkins/inbound-agent:jdk21')
@@ -169,6 +197,7 @@ def run(String domain, String podYaml) {
                     def images = domain in ['all', 'web', 'service'] && actions.PUSH_IMAGES
                     def deploy = !parent && domain in ['all', 'web'] && (params.DEPLOY_OSS ?: false)
                     variables.addAll(["DEPLOY_OSS=${deploy}"])
+                    variables.add("RELEASE_VERSION=${parent ? checkedVersion(inherited.version) : selectedVersion}")
                     variables.addAll(actions.collect { key, value -> "${key}=${value}" })
                     withEnv(variables) {
                         withCredentials(credentialsFor(config, images, deploy, !parent && actions.SYNC_REPOS)) {
@@ -178,7 +207,7 @@ def run(String domain, String podYaml) {
                                 // Jenkins build-step interruption propagates to running children; each cancels its exact Run IDs.
                                 def cancelled = sh(script: 'python3 ci/release/release.py cancel', returnStatus: true)
                                 archiveReports()
-                                if (cancelled != 0) error('GitHub worker cancellation failed; inspect archived Run IDs')
+                                if (cancelled != 0) error('Worker cancellation or temporary source cleanup failed; inspect archived reports')
                             }
                         }
                     }
