@@ -11,7 +11,9 @@
 - Linux AppImage/RPM/Snap、Windows x64 EXE、macOS Universal DMG 构建、格式、版本、架构、内置页面启动与刷新、IPC 存储通过。源码 `cf8ee11d61a0b0df1c23da6fcbd0d9452d8b8c57`，GitHub Runs：34423049964、34423049742、34423050129。
 - GitHub 原生 ARM worker 下载草稿中的共享前端、校验 SHA256、编译及实际运行通过，Run 34337343909。
 - GitHub/Gitea 草稿 API 的创建、上传、下载、同摘要复用、不同内容冲突拒绝通过；临时草稿已清理。
-- 原 OSS 站点 45 个文件已完整备份并校验，回滚 ID `legacy-fa3ceac54220`；CDN 查询权限已验证可用。
+- 两站约 113 MB EXE 的上传、下载、重复校验通过；Jenkins 向 Gitea 使用集群内 HTTPS 路径。
+- Android 两种 APK 构建、签名、历史签名迁移边界、online → local → online 覆盖升级数据保留、本地断网打开及刷新通过。主源码 `eb871ec86e6746e5bf57fdcb959432ef9ab68b0f`、安卓源码 `c684233`，GitHub Run 34424595178。
+- 原 OSS 站点 45 个文件已完整备份并校验，回滚 ID `legacy-fa3ceac54220`。新 Web 任务第 3 次构建已完成恢复、CDN 刷新和正式域名逐文件校验，刷新任务 33356457449。
 - 五个新 Jenkins 任务和必要插件已配置；旧首页模块及旧任务已移除，独立首页仓库的现有部署保留。
 
 ## 正式切换的门禁
