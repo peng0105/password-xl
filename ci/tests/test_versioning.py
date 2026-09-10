@@ -136,6 +136,31 @@ class VersionCommits(unittest.TestCase):
 
 
 class Completion(unittest.TestCase):
+    def test_a_failed_mirror_does_not_hide_a_successful_primary_writeback(self):
+        c={'version':'1.5.1','source_sha':'a'*40,'android_sha':None,'publish_release':False,'sync_repos':True}
+        with tempfile.TemporaryDirectory() as tmp, patch.object(release,'OUT',Path(tmp)), \
+                patch.object(versioning,'writeback',return_value={'status':'success','master_sha':'a'*40}), \
+                patch.object(source,'synchronize_repositories',side_effect=ValueError('mirror unavailable')):
+            model.write_json(Path(tmp)/'publication.json',{**c,'status':'success','steps':{}})
+            with self.assertRaisesRegex(ValueError,'mirror unavailable'):
+                release.write_version(c)
+            state=model.read_json(Path(tmp)/'publication.json')
+        self.assertEqual(state['status'],'partial-failure')
+        self.assertEqual(state['steps']['source_version']['status'],'success')
+        self.assertEqual(state['steps']['repository_sync'],'failed')
+
+    def test_a_report_api_failure_is_not_archived_as_overall_success(self):
+        c={'version':'1.5.1','source_sha':'a'*40,'android_sha':None,'publish_release':True,'sync_repos':False}
+        with tempfile.TemporaryDirectory() as tmp, patch.object(release,'OUT',Path(tmp)), \
+                patch.object(versioning,'writeback',return_value={'status':'success','master_sha':'a'*40}), \
+                patch.object(publish,'releases',side_effect=ValueError('provider unavailable')):
+            model.write_json(Path(tmp)/'publication.json',{**c,'status':'success','steps':{}})
+            with self.assertRaisesRegex(ValueError,'provider unavailable'):
+                release.write_version(c)
+            state=model.read_json(Path(tmp)/'publication.json')
+        self.assertEqual(state['status'],'partial-failure')
+        self.assertEqual(state['steps']['source_version']['status'],'success')
+
     def test_failed_publication_cannot_write_the_source_version(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(release, 'OUT', Path(tmp)), \
                 patch.object(versioning, 'writeback') as writeback:

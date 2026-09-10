@@ -43,7 +43,7 @@ def reserve(context):
 def check_source(context):
     existing = get(context, 'source')
     require(existing is None or existing == {key: context[key] for key in ('version', 'source_sha')},
-            'Version already belongs to different image source; bump package.json')
+            'Version already belongs to different image source; choose a new Jenkins VERSION')
 
 
 def receipt(context, target):

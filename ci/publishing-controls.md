@@ -75,3 +75,13 @@ GitHub worker 配置 `GITEA_SOURCE_URL`、`GITEA_URL`、`GITEA_REPO`，并将能
 - 从 Jenkins 回读全部四个归档，65,195,155 字节的 SHA256 均与结果清单一致，归档内版本与源码标记正确。两次 worker 的临时输入均已删除；双站 1.5.0 Release 清单和正式站点入口摘要保持原值，发布报告中 Release、镜像、OSS 均为 skipped。
 
 本次重新编译验证的范围是 Web 四个目标，其他领域的安装包验收沿用此前 1.5.0 完整发布记录；参数继承和公共开关逻辑通过本轮专项检查。1.5.0 的已发布源码仍为 `b82d0795f80f47b5850348708950c566842a797b`，后续使用 Jenkins VERSION 选择新版本，不覆盖旧版本的源码绑定。
+
+## VERSION 管理验收
+
+- 77 项本地测试通过，包含相同基础源码与版本生成同一提交、失败不回写、成功快进、并发代码及 package.json 改动保留、较晚完成的旧版本不降级、父子临时 ref 归属及部分失败记录。
+- 真实 Jenkins 协调检查分别使用默认 `1.5.1` 和手工输入 `2.0.0`；四个子任务均继承同一版本，后一轮的页面默认值变为 `2.0.1`。检查任务和未使用的沙箱审批请求已清理，没有新增脚本授权。
+- [Web #12](https://jenkins.huangyp.cn/job/%E5%AF%86%E7%A0%81%E7%AE%A1%E7%90%86/job/password-xl-web-release/12/) 成功，使用 `1.5.1`、开启 SYNC_REPOS、关闭其余三个发布动作，耗时 6 分 6 秒。[x86](https://github.com/peng0105/password-xl/actions/runs/34439346934) 和 [ARM64](https://github.com/peng0105/password-xl/actions/runs/34439501779) 真实运行验证通过。
+- 构建时 master 保持 `1.5.0`，固定构建提交 `7e0bbb70f708e82c8058a41c793a4522aecbac5a` 内为 `1.5.1`；成功后该提交由 Jenkins 写入 Gitea master，并同步到 GitHub/Gitee。临时 ref 已删除，dist 内版本与源码 SHA 核验正确。
+- Web 下一次默认 VERSION 为 `1.5.2`；其他四个正式任务上次仍使用 `1.5.0`，因此默认 `1.5.1`。默认值按各任务上次构建计算，总入口启动的子任务始终使用父任务传入值。
+
+本次没有创建 1.5.1 Release、推送版本镜像或部署 OSS，正式站点仍是已发布的 1.5.0。后续在 Jenkins 选择所需版本和发布开关即可，无需手工修改 package.json。

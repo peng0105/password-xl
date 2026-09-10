@@ -87,7 +87,7 @@ def check_primary_version(context):
     lines = git(['ls-remote', env('GITEA_SOURCE_URL'), tag, tag + '^{}'], env('GITEA_TOKEN')).splitlines()
     refs = {line.split('\t')[1]: line.split('\t')[0] for line in lines}
     existing = refs.get(tag + '^{}') or refs.get(tag)
-    require(existing is None or existing == context['source_sha'], 'Published version already belongs to different source; bump package.json')
+    require(existing is None or existing == context['source_sha'], 'Published version already belongs to different source; choose a new Jenkins VERSION')
 
 
 def synchronize_repositories(context):
