@@ -4,5 +4,6 @@
 /.release/
 /ci/release/__pycache__/
 /ci/tests/__pycache__/
+/ci/jenkins/__pycache__/
 /ci/jenkins/agent.local.yaml
 /ci/release-config.local.json

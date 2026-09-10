@@ -14,15 +14,15 @@ Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式
 
 每个领域任务包含构建、验证和发布，可独立运行。总入口锁定版本、构建共享前端后，并行调用 Web、Service、Desktop、Android；任何领域失败会中止其他分支，全部成功才进入最终发布。Desktop 三平台并行，Linux 三种包一次编译；Service 原生 ARM worker 与 k3s 构建重叠执行；两个 APK 一次签名和升级验证。
 
-日常构建无需选择源码或目标。主仓库和安卓仓库固定读取 `master`，运行时解析并锁定实际 SHA；任务始终构建自身全部目标，总入口为全部 16 项。所有任务提供可修改的 `VERSION`，默认是该任务上次使用版本的补丁号 +1；总入口统一传给子任务。成功后回写 Gitea 的前端 package.json，开启同步时也更新两个镜像库。启用镜像推送时，成功后更新相关 `latest`，已有更高版本不会被回退。Release 说明自动生成。
+日常构建无需选择源码或目标。主仓库和安卓仓库固定读取 `master`，运行时解析并锁定实际 SHA；任务始终构建自身全部目标，总入口为全部 16 项。所有任务提供可修改的 `构建版本`，默认是该任务上次使用版本的补丁号 +1；总入口统一传给子任务。成功后回写 Gitea 的前端 package.json，开启同步时也更新两个镜像库。启用镜像推送时，成功后更新相关 `latest`，已有更高版本不会被回退。Release 说明自动生成。
 
-总入口和 Web 提供 **`DEPLOY_OSS`**（默认 false）、**`PUBLISH_RELEASE`**、**`PUSH_IMAGES`**、**`SYNC_REPOS`**（后三项默认 true）。Service 不展示 OSS；Desktop/Android 只展示 Release 和同步。四种发布动作独立控制，全关时仍构建验证并在 Jenkins 归档。演练、目标多选、手动源码和父任务参数仍不提供。详见 [发布开关与组合](publishing-controls.md)。
+总入口和 Web 提供 **`发布OSS`**（默认 false）、**`发布Release`**、**`推送镜像`**、**`同步仓库`**（后三项默认 true）。Service 不展示 OSS；Desktop/Android 只展示 Release 和同步。四种发布动作独立控制，全关时仍构建验证并在 Jenkins 归档。构建脚本内部仍使用英文变量。演练、目标多选、手动源码和父任务参数仍不提供。详见 [发布开关与组合](publishing-controls.md)。
 
 子任务读取 Jenkins 自带的 UpstreamCause，确认来源为配置的 `jobs.coordinator`，再取该次总任务归档的上下文。没有上游时按独立完整发布执行。大文件只在领域任务归档一次，总入口只收集结果和 worker 记录，不再次搬运全部安装包。
 
 ## 首次接入
 
-1. 将主仓库的 CI 改动和安卓仓库改动分别审查、提交到 Gitea。需要发布的业务源文件也必须已提交；流水线只读取提交，不读取开发机未提交文件。版本在 Jenkins VERSION 中选择，成功后自动回写；不要复用已经绑定不同源码的旧版本。
+1. 将主仓库的 CI 改动和安卓仓库改动分别审查、提交到 Gitea。需要发布的业务源文件也必须已提交；流水线只读取提交，不读取开发机未提交文件。版本在 Jenkins 的“构建版本”中选择，成功后自动回写；不要复用已经绑定不同源码的旧版本。
 2. 将 `build-workers.yml` 安装到 GitHub 的 `master`，关闭旧自动发布入口。启用同步后，Jenkins 将 Gitea 代码正常合并到 GitHub/Gitee master；启用 Release 后创建数字版本 Tag。worker 显式检出 Gitea 固定源码 SHA，不依赖本次是否开启同步。工作流定义 SHA 和实际源码 SHA 分别校验；master 在调度期间变动会拒绝该次运行。
 3. 构建一次 `ci/jenkins/tools.Dockerfile`，推到集群可拉取的内部工具镜像仓库，将固定镜像地址（建议 digest）设置为 Jenkins 全局变量 `CI_TOOLS_IMAGE`。此步骤只初始化 CI 工具镜像，日常产品构建与推送仍在同一个任务内。
 4. 安装/确认 Jenkins 插件：Pipeline、Kubernetes、Git、Credentials Binding、Pipeline Utility Steps、Copy Artifact、Lockable Resources。不再依赖 Active Choices；已安装的插件可能被其他项目使用，无需全局卸载。`ci/jenkins/jobs.groovy` 是可选 Job DSL seed；不用 seed 时创建上表五个 Pipeline from SCM 即可。

@@ -1,8 +1,30 @@
 // Loaded by the five thin Jenkinsfiles. Business commands live in ci/release/*.py.
+def parameterNames() {
+    [VERSION: '构建版本', DEPLOY_OSS: '发布OSS', PUBLISH_RELEASE: '发布Release',
+     PUSH_IMAGES: '推送镜像', SYNC_REPOS: '同步仓库']
+}
+
+def selectedParameters(selected) {
+    def normalized = [:]
+    parameterNames().each { key, label ->
+        // Old queued/replayed builds may still carry English names. Snapshot before
+        // properties() adds new defaults; an explicitly false switch must stay false.
+        def value = selected.containsKey(key) ? selected[key] : selected[label]
+        if (key == 'VERSION') {
+            normalized[key] = value ?: ''
+        } else {
+            if (value == null) value = key != 'DEPLOY_OSS'
+            if (!(value instanceof Boolean)) error("${label} 必须是布尔值")
+            normalized[key] = value
+        }
+    }
+    return normalized
+}
+
 def checkedVersion(value) {
     def version = "${value ?: ''}".trim()
     if (!(version ==~ /(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)/)) {
-        error('VERSION 必须是 major.minor.patch，例如 1.5.1')
+        error('构建版本必须是 major.minor.patch，例如 1.5.1')
     }
     return version
 }
@@ -22,16 +44,17 @@ def nextVersion(value) {
 }
 
 def configure(String domain, String next = '') {
-    def definitions = [string(name: 'VERSION', defaultValue: next, trim: true,
+    def names = parameterNames()
+    def definitions = [string(name: names.VERSION, defaultValue: next, trim: true,
         description: '本次构建版本，可修改；默认是上次构建版本的补丁号 +1，成功后回写 Gitea 源码')]
     if (domain in ['all', 'web']) {
-        definitions.add(booleanParam(name: 'DEPLOY_OSS', defaultValue: false, description: '全部成功后用本次 dist 发布 OSS/CDN'))
+        definitions.add(booleanParam(name: names.DEPLOY_OSS, defaultValue: false, description: '全部成功后用本次 dist 发布 OSS/CDN'))
     }
-    definitions.add(booleanParam(name: 'PUBLISH_RELEASE', defaultValue: true, description: '发布 GitHub / Gitea Release；关闭时产物只归档到 Jenkins'))
+    definitions.add(booleanParam(name: names.PUBLISH_RELEASE, defaultValue: true, description: '发布 GitHub / Gitea Release；关闭时产物只归档到 Jenkins'))
     if (domain in ['all', 'web', 'service']) {
-        definitions.add(booleanParam(name: 'PUSH_IMAGES', defaultValue: true, description: '推送三个镜像仓库及兼容名称，全部成功后更新 latest'))
+        definitions.add(booleanParam(name: names.PUSH_IMAGES, defaultValue: true, description: '推送三个镜像仓库及兼容名称，全部成功后更新 latest'))
     }
-    definitions.add(booleanParam(name: 'SYNC_REPOS', defaultValue: true, description: '以 Gitea master 为主，同步代码到 Gitee 和 GitHub master'))
+    definitions.add(booleanParam(name: names.SYNC_REPOS, defaultValue: true, description: '以 Gitea master 为主，同步代码到 Gitee 和 GitHub master'))
     def settings = [pipelineTriggers([]), buildDiscarder(logRotator(numToKeepStr: '20')), copyArtifactPermission('*')]
     if (definitions) settings.add(parameters(definitions))
     properties(settings)
@@ -144,7 +167,7 @@ def releaseBody(String domain, config, parent) {
                 branches[group] = {
                     stage("领域任务 ${group}") {
                         def child = build(job: absoluteJob(config.jobs[group]), wait: true, propagate: true,
-                                          parameters: [string(name: 'VERSION', value: context.version)])
+                                          parameters: [string(name: parameterNames().VERSION, value: context.version)])
                         copyArtifacts(projectName: absoluteJob(config.jobs[group]), selector: specific("${child.number}"),
                                       filter: '.release/result-*.json,.release/workers/*.json')
                     }
@@ -161,7 +184,8 @@ def releaseBody(String domain, config, parent) {
 }
 
 def run(String domain, String podYaml, String initialVersion) {
-    def selectedVersion = checkedVersion(params.VERSION ?: initialVersion)
+    def selected = selectedParameters(params)
+    def selectedVersion = checkedVersion(selected.VERSION ?: initialVersion)
     configure(domain, nextVersion(selectedVersion))
     if (!env.CI_TOOLS_IMAGE) error('Set Jenkins CI_TOOLS_IMAGE to the image built from ci/jenkins/tools.Dockerfile')
     def resolvedYaml = podYaml.replace('${CI_TOOLS_IMAGE}', env.CI_TOOLS_IMAGE)
@@ -193,9 +217,9 @@ def run(String domain, String podYaml, String initialVersion) {
                                       filter: '.release/context.json,.release/frontend.zip')
                         inherited = readJSON(file: '.release/context.json', returnPojo: true)
                     }
-                    def actions = actionsFor(parent, inherited, params)
+                    def actions = actionsFor(parent, inherited, selected)
                     def images = domain in ['all', 'web', 'service'] && actions.PUSH_IMAGES
-                    def deploy = !parent && domain in ['all', 'web'] && (params.DEPLOY_OSS ?: false)
+                    def deploy = !parent && domain in ['all', 'web'] && selected.DEPLOY_OSS
                     variables.addAll(["DEPLOY_OSS=${deploy}"])
                     variables.add("RELEASE_VERSION=${parent ? checkedVersion(inherited.version) : selectedVersion}")
                     variables.addAll(actions.collect { key, value -> "${key}=${value}" })
