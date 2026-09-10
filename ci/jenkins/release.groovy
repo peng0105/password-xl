@@ -59,6 +59,8 @@ def credentialsFor(config, boolean images, boolean oss) {
 
 def cli(String command) { sh "python3 ci/release/release.py ${command}" }
 
+def absoluteJob(String name) { name.startsWith('/') ? name : '/' + name }
+
 def executeDomain(context, domain) {
     stage("构建、验证并发布 ${domain}") { cli("domain --domain ${domain}") }
 }
@@ -93,7 +95,7 @@ def releaseBody(String domain, config, boolean managed) {
     }
     if (managed) {
         if (!(params.PARENT_BUILD ==~ /[1-9][0-9]*/)) error('Invalid parent build number')
-        copyArtifacts(projectName: params.PARENT_JOB, selector: specific(params.PARENT_BUILD),
+        copyArtifacts(projectName: absoluteJob(params.PARENT_JOB), selector: specific(params.PARENT_BUILD),
                       filter: '.release/context.json,.release/frontend.zip')
         cli('checkout')
         def context = readJSON(file: '.release/context.json', returnPojo: true)
@@ -111,7 +113,7 @@ def releaseBody(String domain, config, boolean managed) {
             ['web', 'service', 'desktop', 'android'].each { group ->
                 if (context.targets.any { targetsFor(group).contains(it) }) {
                     stage("领域任务 ${group}") {
-                        def child = build(job: config.jobs[group], wait: true, propagate: true, parameters: [
+                        def child = build(job: absoluteJob(config.jobs[group]), wait: true, propagate: true, parameters: [
                             string(name: 'PARENT_JOB', value: env.JOB_NAME),
                             string(name: 'PARENT_BUILD', value: env.BUILD_NUMBER),
                             string(name: 'SOURCE_REF', value: context.source_sha),
@@ -119,7 +121,7 @@ def releaseBody(String domain, config, boolean managed) {
                             string(name: 'TARGETS', value: context.targets.findAll { targetsFor(group).contains(it) }.join(',')),
                             booleanParam(name: 'UPDATE_LATEST', value: false),
                             booleanParam(name: 'DRAFT_ONLY', value: params.DRAFT_ONLY)])
-                        copyArtifacts(projectName: config.jobs[group], selector: specific("${child.number}"),
+                        copyArtifacts(projectName: absoluteJob(config.jobs[group]), selector: specific("${child.number}"),
                                       filter: '.release/result-*.json,.release/files/*,.release/workers/*.json')
                     }
                 }
