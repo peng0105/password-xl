@@ -8,12 +8,14 @@
     "REGISTRY_PRIVATE_PREFIX": "registry.example.com/password-xl",
     "REGISTRY_DOCKERHUB_PREFIX": "docker.io/your-namespace",
     "REGISTRY_TENCENT_PREFIX": "ccr.ccs.tencentyun.com/your-namespace",
+    "YARN_NPM_REGISTRY_SERVER": "https://nexus.example.com/repository/npm-group/",
     "OSS_BUCKET": "",
     "OSS_ENDPOINT": "",
     "OSS_PREFIX": "",
     "OSS_PUBLIC_URL": ""
   },
   "jobs": {
+    "coordinator": "password-xl/Release",
     "web": "password-xl/Web",
     "service": "password-xl/Service",
     "desktop": "password-xl/Desktop",

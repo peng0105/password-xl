@@ -35,11 +35,6 @@ class Contracts(unittest.TestCase):
     def test_sixteen_unique_targets(self):
         self.assertEqual((len(model.TARGETS), len(set(model.TARGETS)), len(model.IMAGE_TARGETS)), (16, 16, 6))
 
-    def test_domain_rejects_foreign_target(self):
-        with self.assertRaises(ValueError):
-            model.selected_targets('web', 'custom', 'apk-online')
-        self.assertEqual(model.selected_targets('web', 'custom', 'dist-zip,dist-zip'), ['dist-zip'])
-
     def test_android_version_bounds_and_order(self):
         self.assertEqual(model.version_code('1.5.0'), 1005000)
         self.assertLess(model.version_code('1.999.999'), model.version_code('2.0.0'))
@@ -119,6 +114,7 @@ class Publishing(unittest.TestCase):
         endpoint = publish.Release.__new__(publish.Release)
         endpoint.assets = Mock(return_value={'app.exe': {'id': 1}})
         endpoint.content = Mock(return_value=b'existing')
+        endpoint.known_digest = Mock(return_value=None)
         endpoint.api = Mock()
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'app.exe'

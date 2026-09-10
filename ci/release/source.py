@@ -4,7 +4,7 @@ import re
 import sys
 from pathlib import Path
 
-from model import OUT, ROOT, env, read_json, require, run, selected_targets, version_tuple, write_json
+from model import DOMAINS, TARGETS, OUT, ROOT, env, read_json, require, run, version_tuple, write_json
 
 
 def git(args, token, cwd=ROOT):
@@ -40,20 +40,19 @@ def android_checkout(ref):
 
 
 def prepare(domain):
-    targets = selected_targets(domain, env('PROFILE', 'all'), os.environ.get('TARGETS', ''))
+    targets = list(TARGETS if domain == 'all' else DOMAINS[domain])
     deploy = env('DEPLOY_OSS', 'false').lower() == 'true'
     require(not deploy or domain in ('all', 'web'), 'Only the coordinator/Web can deploy OSS')
-    sha = pin(env('GITEA_SOURCE_URL'), env('SOURCE_REF', 'master'), env('GITEA_TOKEN'))
+    sha = pin(env('GITEA_SOURCE_URL'), 'master', env('GITEA_TOKEN'))
     git(['checkout', '--detach', sha], env('GITEA_TOKEN'))
     version = read_json(ROOT / 'password-xl-web/package.json')['version']
     version_tuple(version)
     android_sha = None
     if any(t.startswith('apk-') for t in targets):
-        _, android_sha = android_checkout(env('ANDROID_REF', 'master'))
+        _, android_sha = android_checkout('master')
     context = {'schema': 1, 'version': version, 'source_sha': sha, 'android_sha': android_sha,
                'targets': targets, 'deploy_oss': deploy,
-               'update_latest': env('UPDATE_LATEST', 'true').lower() == 'true',
-               'release_notes': os.environ.get('RELEASE_NOTES', ''),
+               'update_latest': True, 'release_notes': '',
                'jenkins_build': {'job': os.environ.get('JOB_NAME'), 'number': os.environ.get('BUILD_NUMBER'),
                                  'url': os.environ.get('BUILD_URL')}}
     write_json(OUT / 'context.json', context)

@@ -146,6 +146,12 @@ def dockerfile_image(context, target, cloud=False):
             '--frontend', 'dockerfile.v0', '--local', 'context=' + str(build_context),
             '--local', 'dockerfile=' + str(build_context), '--opt', 'platform=linux/' + image_arch(target),
             '--output', f'type=oci,dest={image_path}']
+    cache_prefix = os.environ.get('REGISTRY_PRIVATE_PREFIX')
+    if cache_prefix:
+        # Separate per-target cache manifests from immutable product images and other projects.
+        reference = cache_prefix.rstrip('/') + '/password-xl-build-cache:' + target
+        args += ['--import-cache', 'type=registry,ref=' + reference,
+                 '--export-cache', 'type=registry,ref=' + reference + ',mode=max,image-manifest=true,oci-mediatypes=true']
     for key, value in labels.items():
         args += ['--opt', 'label:' + key + '=' + value]
     for key, value in build_args.items():

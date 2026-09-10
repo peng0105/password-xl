@@ -31,6 +31,12 @@ spec:
           value: /ci-cache/gradle/password-xl-v1
         - name: GRADLE_SHARED_CACHE
           value: /ci-cache/gradle/password-xl-v1
+        - name: RELEASE_CACHE_ROOT
+          value: /ci-cache/gradle/password-xl-artifacts-v1
+        - name: YARN_CACHE_FOLDER
+          value: /ci-cache/gradle/password-xl-yarn-v1
+        - name: YARN_ENABLE_GLOBAL_CACHE
+          value: 'false'
       volumeMounts:
         - name: gradle-cache
           mountPath: /ci-cache/gradle

@@ -24,7 +24,7 @@ permissions:
 jobs:
   build:
     if: ${{ inputs.task != 'native-arm' }}
-    # The protected environment must allow only the Jenkins service account/tag policy.
+    # The protected environment allows master; the first step verifies the Jenkins account.
     environment: jenkins-workers
     runs-on: ${{ fromJSON('{"native-arm":"ubuntu-24.04-arm","smoke-arm64":"ubuntu-24.04-arm","smoke-amd64":"ubuntu-24.04","desktop-linux":"ubuntu-22.04","desktop-macos":"macos-14","desktop-windows":"windows-2022","android":"ubuntu-24.04"}')[inputs.task] }}
     timeout-minutes: 115
@@ -34,6 +34,10 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       PYTHONUNBUFFERED: '1'
       PYTHONIOENCODING: utf-8
+      YARN_ENABLE_GLOBAL_CACHE: 'false'
+      YARN_CACHE_FOLDER: ${{ github.workspace }}/.ci-dependency-cache/yarn
+      ELECTRON_CACHE: ${{ github.workspace }}/.ci-dependency-cache/electron
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.ci-dependency-cache/electron-builder
     steps: &worker_steps
       - name: Require the Jenkins dispatch account
         shell: bash
@@ -50,7 +54,20 @@ jobs:
         env:
           DISPATCH_TASK: ${{ inputs.task }}
         run: |
-          python -c 'import json,os,re,subprocess; p=json.loads(os.environ["WORKER_PAYLOAD"]); assert re.fullmatch("[0-9a-f]{32}",p["request_id"]); assert p["request_id"]==os.environ["WORKER_REQUEST_ID"]; assert p["task"]==os.environ["DISPATCH_TASK"]; assert p["source_sha"]==os.environ["GITHUB_SHA"]==subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()'
+          python -c 'import json,os,re,subprocess; p=json.loads(os.environ["WORKER_PAYLOAD"]); assert re.fullmatch("[0-9a-f]{32}",p["request_id"]); assert p["request_id"]==os.environ["WORKER_REQUEST_ID"]; assert p["task"]==os.environ["DISPATCH_TASK"]; assert p["workflow_sha"]==os.environ["GITHUB_SHA"]; assert p["source_sha"]==subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()'
+      # Dispatch on master so caches survive version tags. Checkout still uses the
+      # separately pinned source SHA; both revisions are validated and recorded.
+      - name: Restore reusable build dependencies
+        if: ${{ !startsWith(inputs.task, 'smoke-') }}
+        uses: actions/cache@v5
+        with:
+          path: |
+            .ci-dependency-cache/
+            ~/.gradle/caches/
+            ~/.gradle/wrapper/
+          key: deps-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.task }}-${{ hashFiles('password-xl-web/yarn.lock', 'password-xl-service/**/*.gradle', 'password-xl-service/gradle/wrapper/gradle-wrapper.properties') }}-${{ fromJSON(inputs.payload).android_sha || 'none' }}
+          restore-keys: |
+            deps-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.task }}-
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
@@ -134,6 +151,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
   native-arm:
     if: ${{ inputs.task == 'native-arm' }}
     environment: jenkins-workers

@@ -6,9 +6,13 @@ import json
 import os
 import shutil
 import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import builds
+import cache
 import publish
 import registry
 import source
@@ -36,9 +40,21 @@ def auth():
 
 def bundle_frontend(context):
     if context['deploy_oss'] or any(t in DOMAINS['web'] + DOMAINS['service'] for t in context['targets']):
+        endpoints = publish.releases(context)
+        for endpoint in sorted(endpoints, key=lambda item: item.provider != 'gitea'):
+            asset = endpoint.assets().get('frontend.zip')
+            if asset:
+                (OUT / 'frontend.zip').write_bytes(endpoint.content(asset))
+                extract_zip(OUT / 'frontend.zip', OUT)
+                check = read_json(OUT / 'dist-web/release.json')
+                require(check == {k: context[k] for k in ('version', 'source_sha')}, 'Cached frontend source mismatch')
+                for destination in endpoints:
+                    destination.put(OUT / 'frontend.zip')
+                print('Reused the verified frontend archive', flush=True)
+                return
         dist = builds.frontend(context)
         pack_directory(dist, OUT / 'frontend.zip', 'dist-web')
-        for endpoint in publish.releases(context):
+        for endpoint in endpoints:
             endpoint.put(OUT / 'frontend.zip')
 
 
@@ -50,14 +66,14 @@ def reserve(context):
     publish.releases(context)
 
 
-def consume_worker(context, task, targets, **extra):
+def consume_worker(context, task, targets, cancel_event=None, **extra):
     if task == 'native-arm' and (OUT / 'frontend.zip').exists():
         extra['frontend_sha256'] = sha256(OUT / 'frontend.zip')
         endpoint = publish.Release('github', context)
         asset = endpoint.assets().get('frontend.zip')
         require(asset, 'Shared frontend release asset is missing')
         extra['frontend_asset_id'] = asset['id']
-    result, directory, record = workers.dispatch(context, task, targets, **extra)
+    result, directory, record = workers.dispatch(context, task, targets, cancel_event=cancel_event, **extra)
     files = []
     for item in result.get('files', []):
         require(item['target'] in targets and item['name'] == Path(item['path']).name, 'Invalid worker file name')
@@ -76,34 +92,47 @@ def domain(context, name):
     result = {'schema': 1, **identity(context), 'targets': [], 'files': [], 'images': [], 'worker_runs': [],
               'status': 'running', 'domain': name}
     path = OUT / ('result-' + name + '.json')
+    started = time.monotonic()
+    stop = threading.Event()
+    pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix='release-worker')
     try:
-        cached = {target: publish.restore_target(context, target, OUT / 'files') for target in targets}
+        endpoints = publish.releases(context)
+        cached = {target: publish.restore_target(context, target, OUT / 'files', endpoints) for target in targets}
+        arm = None
+        if name == 'service' and 'service-arm' in targets and not cached['service-arm']:
+            arm = pool.submit(consume_worker, context, 'native-arm', ['service-arm'], cancel_event=stop)
         if name in ('desktop', 'android'):
             groups = ({'android': DOMAINS['android']} if name == 'android' else
                       {'desktop-linux': ['appimage', 'rpm', 'snap'], 'desktop-macos': ['dmg'], 'desktop-windows': ['exe']})
+            pending_workers = {}
             for task, group in groups.items():
                 pending = [target for target in targets if target in group and not cached[target]]
                 if not pending:
                     continue
-                _, _, record, built_files = consume_worker(context, task, pending)
+                future = pool.submit(consume_worker, context, task, pending, cancel_event=stop)
+                pending_workers[future] = pending
+            for future in as_completed(pending_workers):
+                pending = pending_workers[future]
+                _, _, record, built_files = future.result()
                 require(sorted(f['target'] for f in built_files) == sorted(pending), 'Worker file target coverage mismatch')
                 for target in pending:
                     files = [file for file in built_files if file['target'] == target]
-                    publish.save_checkpoint(context, target, files, [], [record])
+                    publish.save_checkpoint(context, target, files, [], [record], endpoints)
                     cached[target] = publish.target_receipt(context, target, files, [], [record])
         for target in targets:
+            print(f'{name}: verify and publish {target}', flush=True)
             receipt = cached[target]
             if receipt:
                 for image in receipt['images']:
                     registry.distribute(image, context)
                 # Also repairs a one-provider upload failure without rebuilding signed/randomized bytes.
-                publish.publish_target(context, target, receipt['files'], receipt['images'], receipt['worker_runs'])
+                publish.publish_target(context, target, receipt['files'], receipt['images'], receipt['worker_runs'], endpoints)
                 files, images, runs = receipt['files'], receipt['images'], receipt['worker_runs']
             else:
                 files, images, runs = [], [], []
                 if target in IMAGE_TARGETS:
                     if target == 'service-arm':
-                        worker, directory, record, _ = consume_worker(context, 'native-arm', [target])
+                        worker, directory, record, _ = arm.result()
                         require(len(worker['archives']) == 1, 'Native worker must return one image')
                         archive = worker['archives'][0]
                         image = registry.stage('docker-archive:' + str(directory / archive['path']), context, target)
@@ -119,10 +148,10 @@ def domain(context, name):
                     images.append(image)
                 else:
                     files.append(builds.build_local(context, target))
-                publish.save_checkpoint(context, target, files, images, runs)
+                publish.save_checkpoint(context, target, files, images, runs, endpoints)
                 for image in images:
                     registry.distribute(image, context)
-                publish.publish_target(context, target, files, images, runs)
+                publish.publish_target(context, target, files, images, runs, endpoints)
             result['targets'].append(target)
             result['files'].extend(files)
             result['images'].extend(images)
@@ -137,6 +166,10 @@ def domain(context, name):
         result['error_type'] = type(error).__name__
         raise
     finally:
+        if result['status'] != 'success':
+            stop.set()
+        pool.shutdown(wait=True, cancel_futures=True)
+        result['elapsed_seconds'] = round(time.monotonic() - started, 3)
         write_json(path, result)
 
 
@@ -194,7 +227,8 @@ def worker():
     require(read_json(ROOT / 'password-xl-web/package.json')['version'] == context['version'], 'Worker version mismatch')
     require(context['request_id'] == env('WORKER_REQUEST_ID'), 'Worker request mismatch')
     targets, task = context['targets'], context['task']
-    result = {'schema': 1, **identity(context), 'request_id': context['request_id'], 'targets': targets,
+    result = {'schema': 1, **identity(context), 'request_id': context['request_id'],
+              'workflow_sha': context.get('workflow_sha'), 'targets': targets,
               'files': [], 'archives': [], 'verified_images': [], 'status': 'running'}
     output = OUT / 'worker'
     output.mkdir(parents=True, exist_ok=True)
@@ -205,17 +239,13 @@ def worker():
             result['files'] = builds.desktop(context, targets)
         elif task == 'native-arm':
             require(targets == ['service-arm'], 'Invalid native worker request')
-            if context.get('validation_only'):
-                # Internal integration checks run before reserving an immutable release tag.
-                builds.frontend(context)
-            else:
-                from api import Api
-                api = Api('https://api.github.com', env('GH_WORKER_TOKEN'), True)
-                repo_path = '/repos/' + env('GITHUB_REPO')
-                api.download(repo_path + '/releases/assets/' + str(int(context['frontend_asset_id'])), OUT / 'frontend.zip',
-                             headers={'Accept': 'application/octet-stream'})
-                require(sha256(OUT / 'frontend.zip') == context['frontend_sha256'], 'Shared frontend checksum mismatch')
-                extract_zip(OUT / 'frontend.zip', OUT)
+            from api import Api
+            api = Api('https://api.github.com', env('GH_WORKER_TOKEN'), True)
+            repo_path = '/repos/' + env('GITHUB_REPO')
+            api.download(repo_path + '/releases/assets/' + str(int(context['frontend_asset_id'])), OUT / 'frontend.zip',
+                         headers={'Accept': 'application/octet-stream'})
+            require(sha256(OUT / 'frontend.zip') == context['frontend_sha256'], 'Shared frontend checksum mismatch')
+            extract_zip(OUT / 'frontend.zip', OUT)
             builds.gradle(context, ['build', 'nativeCompile'])
             reference = builds.dockerfile_image(context, targets[0], cloud=True)
             archive = Path(reference.removeprefix('docker-archive:'))
@@ -258,10 +288,11 @@ def worker():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['prepare', 'checkout', 'reserve', 'frontend', 'domain', 'draft', 'finalize', 'worker', 'cancel', 'rollback-oss'])
+    parser.add_argument('command', choices=['prepare', 'checkout', 'reserve', 'frontend', 'domain', 'finalize', 'worker', 'cancel', 'rollback-oss'])
     parser.add_argument('--domain', choices=['all', *DOMAINS], default='all')
     parser.add_argument('--deployment')
     args = parser.parse_args()
+    cache.prune()
     if args.command == 'worker':
         return worker()
     if args.command == 'cancel':
@@ -281,9 +312,6 @@ def main():
         return reserve(context)
     if args.command == 'frontend':
         return bundle_frontend(context)
-    if args.command == 'draft':
-        results = [read_json(path) for path in sorted(OUT.glob('result-*.json'))]
-        return publish.combined_manifest(context, merge_results(context, results))
     relevant = DOMAINS[args.domain] if args.command == 'domain' else context['targets']
     if any(t in IMAGE_TARGETS and t in relevant for t in context['targets']):
         auth()
