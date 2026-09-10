@@ -309,6 +309,9 @@ def write_version(context):
     state = read_json(OUT / 'publication.json')
     require(state['status'] == 'success', 'Version writeback requires a successful build/publication')
     check_identity(context, state)
+    state['steps']['source_version'] = 'pending'
+    if enabled(context, 'sync_repos'):
+        state['steps']['repository_sync'] = 'pending'
     try:
         report = versioning.writeback(context)
         state['steps']['source_version'] = report
@@ -317,13 +320,25 @@ def write_version(context):
             if before.exists():
                 shutil.copyfile(before, OUT / 'repository-sync-before.json')
             source.synchronize_repositories({**context, 'source_sha': report['master_sha']})
+            state['steps']['repository_sync'] = 'success'
     except BaseException:
         state['status'] = 'partial-failure'
-        state['steps']['source_version'] = 'failed'
+        if state['steps']['source_version'] == 'pending':
+            state['steps']['source_version'] = 'failed'
+            if enabled(context, 'sync_repos'):
+                state['steps']['repository_sync'] = 'not-run'
+        elif enabled(context, 'sync_repos'):
+            state['steps']['repository_sync'] = 'failed'
         raise
     finally:
         write_json(OUT / 'publication.json', state)
-        endpoints = publish.releases(context)
+        try:
+            endpoints = publish.releases(context)
+        except Exception as error:
+            state['status'] = 'partial-failure'
+            state['version_report_errors'] = [type(error).__name__]
+            write_json(OUT / 'publication.json', state)
+            raise
         errors = []
         for endpoint in endpoints:
             try:

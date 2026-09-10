@@ -120,7 +120,7 @@ class Release:
             reservations['android-source.json'] = {'android_sha': self.context['android_sha']}
         for name, value in reservations.items():
             existing = self.get_json(name)
-            require(existing is None or existing == value, 'Version already belongs to different source; bump package.json')
+            require(existing is None or existing == value, 'Version already belongs to different source; choose a new Jenkins VERSION')
             if existing is not None:
                 continue
             path = OUT / 'metadata' / name
