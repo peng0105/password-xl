@@ -131,10 +131,6 @@ def releaseBody(String domain, config, boolean managed) {
 
 def run(String domain, String podYaml) {
     configure(domain)
-    if (params.INITIALIZE_ONLY == true) {
-        echo '发布任务参数已初始化。'
-        return
-    }
     if (!env.CI_TOOLS_IMAGE) error('Set Jenkins CI_TOOLS_IMAGE to the image built from ci/jenkins/tools.Dockerfile')
     def resolvedYaml = podYaml.replace('${CI_TOOLS_IMAGE}', env.CI_TOOLS_IMAGE)
         .replace('${CI_AGENT_IMAGE}', env.CI_AGENT_IMAGE ?: 'jenkins/inbound-agent:jdk21')

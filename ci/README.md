@@ -23,7 +23,7 @@ Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式
 ## 首次接入
 
 1. 将主仓库的 CI 改动和安卓仓库改动分别审查、提交到 Gitea。需要发布的业务源文件也必须已提交；流水线只读取提交，不读取开发机未提交文件。新版本手工修改前端 package.json；不要复用已经绑定旧 SHA 的版本。
-2. 将 `build-workers.yml` 安装到 GitHub 默认分支，关闭旧 `Build Releases.yml` 的自动发布入口。首次注册 workflow 需要它存在于默认分支；之后 Jenkins 推送数字版本 Tag，worker 在该 Tag 对应的精确 SHA 上运行。可以通过正常 PR 合并安装 workflow，无须覆盖任一站点的 master。主仓库代码中已删除旧 push 工作流，并停用了旧 `JenkinsfileJib`，上线时还需在 Jenkins 停用对应旧任务和外部 Webhook 定时触发器。
+2. 将 `build-workers.yml` 安装到 GitHub 默认分支，关闭旧 `Build Releases.yml` 的自动发布入口。首次注册 workflow 需要它存在于默认分支；之后 Jenkins 推送数字版本 Tag，worker 在该 Tag 对应的精确 SHA 上运行。可以通过正常 PR 合并安装 workflow，无须覆盖任一站点的 master。此分支已移除旧 push 工作流和 `JenkinsfileJib`；验收通过后合并，并删除已备份的旧 Web、Service、Jib Jenkins 任务及其触发器。
 3. 构建一次 `ci/jenkins/tools.Dockerfile`，推到集群可拉取的内部工具镜像仓库，将固定镜像地址（建议 digest）设置为 Jenkins 全局变量 `CI_TOOLS_IMAGE`。此步骤只初始化 CI 工具镜像，日常产品构建与推送仍在同一个任务内。
 4. 安装/确认 Jenkins 插件：Pipeline、Kubernetes、Git、Credentials Binding、Pipeline Utility Steps、Copy Artifact、Lockable Resources、Active Choices。`ci/jenkins/jobs.groovy` 是可选 Job DSL seed；不用 seed 时手工创建上表五个 Pipeline from SCM 即可。seed 的 `SOURCE_URL`、`SCM_CREDENTIAL_ID` 由 Jenkins 参数提供。
 5. 将 `ci/jenkins/release-config.example.json` 填写后保存为 Jenkins **Secret file**，ID 固定为 `password-xl-release-config`。示例中的域名/命名空间只是占位值。三个 registry prefix 必须沿用现有任务的值，不带协议；GitHub/Gitea repo 使用 `owner/name`。`jobs` 要与实际任务全名一致。OSS 暂不开启时四个站点配置允许空值。
@@ -90,7 +90,7 @@ Skopeo 先将本地 Docker/OCI archive 规范为压缩的单架构 Docker v2 man
 
 原生 x86 在 k3s GraalVM 25 编译；原生 ARM 在 `ubuntu-24.04-arm` 编译，使用 `-march=compatibility`，运行时检查 ELF 架构和 ldd。Jib 在 x86 k3s 中直接生成 amd64/arm64 JVM 镜像，不需要模拟执行。Web 的 ARM 镜像只复制静态文件，也不需要执行 ARM 指令。
 
-桌面采用 x64 NSIS、AppImage/RPM/Snap 和 Universal DMG。Snap 使用 electron-builder 26 的 core22 模板；macOS ad-hoc 签名、无公证；Windows 无正式证书签名。检查包格式、架构、包内版本、打包页面启动和 IPC 存储。DMG 的应用通过 lipo 检查 x86_64+arm64，并执行 codesign/hdiutil 验证。
+桌面采用 x64 NSIS、AppImage/RPM/Snap 和 Universal DMG。Snap 使用 electron-builder 26 的 core22 模板；macOS ad-hoc 签名、无公证；Windows 无正式证书签名。检查包格式、架构、包内版本、打包页面启动、刷新和 IPC 存储。Electron 与本地 APK 使用 Hash 路由，刷新时保持内置 HTML 路径；线上站点继续使用 History 路由。DMG 的应用通过 lipo 检查 x86_64+arm64，并执行 codesign/hdiutil 验证。
 
 安卓改动位于独立 `password-xl-android` 仓库。两 flavor 都保留 `com.passwordxl`、getFilesDir 和 INTERNET。联网入口是官方站点；本地入口使用 WebViewAssetLoader 的虚拟 HTTPS origin，从 APK assets 读取相对路径 dist，无需访问该域名服务器，支持 Vite ES modules。原有本地 vault 文件目录保持不变；从旧 file: origin 升级时 WebView localStorage 的页面偏好不会自动迁移，升级测试重点验证原生文件目录数据。版本 code 为 major×1000000+minor×1000+patch，并校验 Android 上限及历史 APK 的升级顺序。
 

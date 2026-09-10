@@ -105,11 +105,13 @@ def build(context, targets):
         run(['adb', 'push', str(fixture), '/data/data/com.passwordxl/files/ci-upgrade.json'])
         run(['adb', 'shell', 'chmod', '666', '/data/data/com.passwordxl/files/ci-upgrade.json'])
         for flavor in ('online', 'local', 'online'):
+            print('Validating Android flavor: ' + flavor, flush=True)
             run(['adb', 'shell', 'cmd', 'connectivity', 'airplane-mode', 'enable' if flavor == 'local' else 'disable'])
             run(['adb', 'shell', 'svc', 'wifi', 'disable' if flavor == 'local' else 'enable'])
             run(['adb', 'shell', 'svc', 'data', 'disable' if flavor == 'local' else 'enable'])
             run(['adb', 'install', '-r', str(apks[flavor])])
             instrument(tests[flavor])
+            print('Android ' + flavor + ': startup, reload, bridge and upgrade data passed', flush=True)
         records = []
         for target in targets:
             flavor = target.removeprefix('apk-')

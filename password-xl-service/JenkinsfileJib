@@ -1,2 +1,0 @@
-// Legacy job path retained only to make migration explicit; all service targets now share one pipeline.
-error('此流水线已合并到 password-xl-service/Jenkinsfile。请停用旧 Jib 任务并使用 Service 参数化任务。')
