@@ -10,11 +10,12 @@ Gitea 是唯一源码主仓库。构建始终固定读取主仓库和安卓仓�
 |---|---|---|---|
 | `构建版本` | `VERSION` → `RELEASE_VERSION` | 上次版本补丁号 +1 | 本次所有产物的统一版本 |
 | `发布OSS` | `DEPLOY_OSS` | false | 全部构建验证通过后，部署 OSS 正式站点并刷新 CDN |
-| `发布Release` | `PUBLISH_RELEASE` | true | 创建版本 Tag、发布 GitHub/Gitea Release、上传附件与清单 |
+| `发布Kubernets` | `DEPLOY_KUBERNETES` | false | 全部构建成功后部署集群 Web，按 digest 更新并验证 |
+| `发布Release` | `PUBLISH_RELEASE` | true | 创建版本 Tag、发布 GitHub/Gitea/Gitee 发行版，上传产物与校验文件 |
 | `推送镜像` | `PUSH_IMAGES` | true | 推送私有仓库、Docker Hub、腾讯云的版本镜像与兼容名称，全部成功后更新 latest |
 | `同步仓库` | `SYNC_REPOS` | true | 将 Gitea 锁定提交同步到 Gitee/GitHub master |
 
-除构建版本外，总入口和 Web 展示四个开关；Service 展示 Release、镜像、同步三个；Desktop/Android 展示 Release、同步两个。总入口仍构建全部 16 项，各领域仍构建自身全部目标。子任务从总任务归档继承全部开关和源码，不使用自己的默认值覆盖父任务决定。
+除构建版本外，总入口和 Web 展示五个开关；Service 展示 Release、镜像、同步三个；Desktop/Android 展示 Release、同步两个。总入口仍构建全部 16 项，各领域仍构建自身全部目标。子任务从总任务归档继承全部开关和源码，不使用自己的默认值覆盖父任务决定。
 
 Jenkins 页面、API 调用和总任务触发子任务均使用上表中文参数名。流水线在更新任务参数之前读取并转换为英文内部变量，Python、Shell 和 GitHub worker 无需中文环境变量。迁移前已排队或重放的构建携带的英文参数仍能被流水线识别，显式关闭的开关不会被新默认值覆盖。下文英文开关名指内部变量，历史验收记录保留当时的参数名。
 
@@ -22,7 +23,7 @@ Jenkins 页面、API 调用和总任务触发子任务均使用上表中文参�
 
 关闭某个开关不会关闭构建、架构检查或启动验证，也不会由其他步骤自动重新开启。全关时执行构建和验证，文件、镜像归档与机器可读清单保存在 Jenkins。
 
-版本回写是成功构建的固定步骤，不由四个发布开关控制；全关构建成功也会更新 Gitea 的源码版本。`SYNC_REPOS` 只控制是否进一步同步两个镜像库。
+版本回写是成功构建的固定步骤，不由五个发布开关控制；全关构建成功也会更新 Gitea 的源码版本。`SYNC_REPOS` 只控制是否进一步同步两个镜像库。
 
 ## 构建版本与源码回写
 
@@ -43,9 +44,11 @@ Jenkins 页面、API 调用和总任务触发子任务均使用上表中文参�
 
 这里“仅”指发布动作；任务仍构建自身全部目标。代码同步在构建前完成，编译失败不会自动撤销已同步代码。Release、latest、OSS 的最终公开/更新仍要求本次全部目标验证成功；已上传的版本镜像和草稿保留用于重试。
 
+集群部署、OSS 独立校验、Gitee 大文件策略以及公开 JSON 迁移见 [集群部署与发行版](kubernetes-and-releases.md)。
+
 ## 仓库同步
 
-`SYNC_REPOS` 控制 master 分支同步，不控制 Release 的版本 Tag。发布 Release 必须使版本 Tag 指向实际源码，因此即使不更新 master，`PUBLISH_RELEASE=true` 也会同步该 Tag 及其所需提交到 GitHub/Gitea。
+`SYNC_REPOS` 控制 master 分支同步，不控制 Release 的版本 Tag。发布 Release 必须使版本 Tag 指向实际源码，因此即使不更新 master，`PUBLISH_RELEASE=true` 也会同步该 Tag 及其所需提交到 GitHub/Gitea/Gitee。
 
 同步顺序为 Gitea → GitHub、Gitee，不把同步库内容反向写入主仓库。以正常快进或合并保留目标库历史，不强推、不删除分支；目标存在冲突时失败并保存同步报告，不擅自丢弃改动。同步后确认镜像库包含锁定提交；若目标保留自身 README/合并历史，其 master SHA 可以不同。产物源码始终使用原 Gitea SHA。
 
@@ -65,11 +68,11 @@ GitHub worker 先检出固定版本的工作流工具，再直接从 Gitea 获�
 
 ## 配置与验证
 
-Jenkins 配置增加 `GITEE_URL`、`GITEE_USERNAME` 和凭据 `password-xl-gitee`。凭据可为用户名/密码；如果使用 Secret text，在 `credentials.giteeType` 指定 `secretText`。关闭 `SYNC_REPOS` 时不要求绑定该凭据。
+Jenkins 配置增加 `GITEE_URL`、`GITEE_USERNAME` 和凭据 `password-xl-gitee`。凭据可为用户名/密码；如果使用 Secret text，在 `credentials.giteeType` 指定 `secretText`。只有 `SYNC_REPOS` 与 `PUBLISH_RELEASE` 同时关闭时才不绑定该凭据。
 
 GitHub worker 配置 `GITEA_SOURCE_URL`、`GITEA_URL`、`GITEA_REPO`，并将能读取主仓库、安卓仓库和构建输入的现有 Gitea 凭据放入 environment secret `GITEA_BUILD_READ_TOKEN`。原生 ARM 不再需要读取草稿 Release，其 GitHub token 已降为 contents:read。
 
-控制测试覆盖四开关全部 16 种组合、关闭时无相应外部调用、版本冲突、临时输入校验和上传失败清理。实际运行结果另见 Jenkins 归档的 `publication.json`、`repository-sync.json` 和 worker 记录；关闭的动作明确记录为 skipped。
+控制测试覆盖五开关全部 32 种组合、关闭时无相应外部调用、版本冲突、临时输入校验和上传失败清理。实际运行结果另见 Jenkins 归档的 `publication.json`、`repository-sync.json` 和 worker 记录；关闭的动作明确记录为 skipped。
 
 ## 2026-09-10 实测
 

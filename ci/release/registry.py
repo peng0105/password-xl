@@ -98,6 +98,25 @@ def optional_tag(reference):
     raise RuntimeError('Registry inspection failed; verify connectivity, repository access and authentication')
 
 
+def deployment_image(record, context):
+    """Stage only the verified Web image, independently of public registry distribution."""
+    require(record['target'] == 'web-x86', 'Kubernetes requires the Web amd64 image')
+    repository = prefix('private') + '/password-xl-web-x86'
+    reference = repository + '@' + record['digest']
+    if record.get('source') == reference:
+        validate(inspect('docker://' + reference), context, 'web-x86')
+        return reference
+    candidate = repository + ':deploy-' + context['version'] + '-' + context['source_sha'][:12] + '-' + record['digest'].split(':')[1][:12]
+    existing = optional_tag(candidate)
+    if not existing:
+        source = 'docker://' + record['source'] if record.get('source') else 'dir:' + str(restore_archive(record))
+        copy(source, candidate)
+        existing = inspect('docker://' + candidate)
+    validate(existing, context, 'web-x86')
+    require(existing['Digest'] == record['digest'], 'Deployment staging changed the image digest')
+    return reference
+
+
 def distribute(record, context):
     if not enabled(context, 'push_images'):
         return record

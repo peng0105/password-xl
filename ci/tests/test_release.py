@@ -279,7 +279,7 @@ class Site(unittest.TestCase):
         contents = {'index.html': b'html', 'assets/app-12345678.js': b'js'}
         files = [{'name': key, 'sha256': hashlib.sha256(value).hexdigest()} for key, value in contents.items()]
         storage = Mock()
-        storage.get.side_effect = lambda name: contents[name.split('/files/')[1]]
+        storage.get.side_effect = lambda name: contents[name.split('/files/')[-1]]
         storage.put.side_effect = lambda name, *args: calls.append(name)
         with patch.object(oss, 'cdn_refresh', side_effect=lambda config: calls.append('refresh') or ['1']), \
                 patch.object(oss, 'public_verify', side_effect=lambda *args: calls.append('verify')):

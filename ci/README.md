@@ -16,7 +16,7 @@ Jenkins 负责版本、源码、发布和重试；GitHub Actions 只作为显式
 
 日常构建无需选择源码或目标。主仓库和安卓仓库固定读取 `master`，运行时解析并锁定实际 SHA；任务始终构建自身全部目标，总入口为全部 16 项。所有任务提供可修改的 `构建版本`，默认是该任务上次使用版本的补丁号 +1；总入口统一传给子任务。成功后回写 Gitea 的前端 package.json，开启同步时也更新两个镜像库。启用镜像推送时，成功后更新相关 `latest`，已有更高版本不会被回退。Release 说明自动生成。
 
-总入口和 Web 提供 **`发布OSS`**（默认 false）、**`发布Release`**、**`推送镜像`**、**`同步仓库`**（后三项默认 true）。Service 不展示 OSS；Desktop/Android 只展示 Release 和同步。四种发布动作独立控制，全关时仍构建验证并在 Jenkins 归档。构建脚本内部仍使用英文变量。演练、目标多选、手动源码和父任务参数仍不提供。详见 [发布开关与组合](publishing-controls.md)。
+总入口和 Web 提供 **`发布OSS`**、**`发布Kubernets`**（前两项默认 false）、**`发布Release`**、**`推送镜像`**、**`同步仓库`**（后三项默认 true）。Service 不展示部署开关；Desktop/Android 只展示 Release 和同步。五种发布动作独立控制，全关时仍构建验证并在 Jenkins 归档。构建脚本内部仍使用英文变量。演练、目标多选、手动源码和父任务参数仍不提供。详见 [发布开关与组合](publishing-controls.md) 和 [集群部署与发行版](kubernetes-and-releases.md)。
 
 子任务读取 Jenkins 自带的 UpstreamCause，确认来源为配置的 `jobs.coordinator`，再取该次总任务归档的上下文。没有上游时按独立完整发布执行。大文件只在领域任务归档一次，总入口只收集结果和 worker 记录，不再次搬运全部安装包。
 
@@ -105,9 +105,9 @@ Skopeo 先将本地 Docker/OCI archive 规范为压缩的单架构 Docker v2 man
 
 每个目标在验证成功后先保存 `validated-TARGET.json`，完成分发和附件上传后保存不可变 `receipt-TARGET.json`。重试优先读取已有 receipt/checkpoint，验证文件实际 SHA256，修复另一站缺失附件；原始 worker 的附件仅按保存的 Run ID、request ID 恢复。签名文件不会靠重新签名覆盖同名附件。若原 worker 已过期且双站都没有原始字节，需要从 Jenkins 归档恢复原文件；流水线会失败而不会静默替换。
 
-总清单 `release-manifest.json` 汇总同版本之前和本次已完成的目标，含主/安卓 SHA、Jenkins 构建、GitHub Run ID、文件 SHA256、镜像 digest/目的地址；`SHA256SUMS` 包含下载文件和清单摘要。`publication.json` 另行记录公开 Release、latest、OSS 等非原子操作的实际结果。GitHub/Gitea 附件同名不同内容会失败，只有聚合清单、校验文件和发布状态允许更新。
+总清单 `release-manifest.json` 汇总同版本之前和本次已完成的目标，含主/安卓 SHA、Jenkins 构建、GitHub Run ID、文件 SHA256、镜像 digest/目的地址；公开 `SHA256SUMS` 只包含下载产物摘要。`publication.json` 另行记录 Release、latest、OSS、Kubernetes 等非原子操作的实际结果。所有 JSON 记录存储于内部 Gitea Generic Package 和 Jenkins 归档，不再作为公开发行版附件。下载附件同名不同内容会失败，只有校验文件允许按聚合产物更新。
 
-新版本初建为草稿。所选任一领域失败时不执行完成发布阶段，保留已成功上传的版本镜像/草稿附件。全部成功才允许更新所选镜像 latest、可选部署 OSS、公开两个 Release。外部系统没有共同事务；例如第二个 Release 公开失败时第一个可能已公开，任务和 publication.json 会标为失败，重试修复剩余步骤。同版本锁覆盖整个发布，跨版本的 promotion 锁防止 latest 竞争，站点另有 OSS 锁。
+GitHub/Gitea 新版本初建为草稿。所选任一领域失败时不执行完成发布阶段，保留已成功上传的版本镜像/草稿附件。全部成功才允许可选部署 Kubernetes、更新所选镜像 latest、可选部署 OSS、公开 GitHub/Gitea Release；版本回写后同步 Gitee 发行版。外部系统没有共同事务；部分站点发布失败时其他站点可能已公开，任务和 publication.json 会标为失败，重试修复剩余步骤。同版本锁覆盖整个发布，跨版本的 promotion 锁防止 latest 竞争，Kubernetes、OSS 另有独立部署锁。
 
 Jenkins 在 dispatch 前就记录 request ID，获得 Run ID 后立即落盘；只等待该次运行，核对 workflow SHA、结果身份和文件摘要。取消/超时会请求取消已知 worker；若 dispatch 网络中断导致 Run ID 尚未返回，会按唯一 request ID 查找并取消。Jenkins 基础设施硬故障导致清理无法运行时，需要用归档 request/Run ID 在 GitHub 取消；不能把此类跨系统中断当成已成功取消。
 

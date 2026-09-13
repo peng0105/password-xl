@@ -76,7 +76,7 @@ def env(name, default=None):
 
 def enabled(context, action):
     """Missing fields keep archived contexts compatible with the previous publisher."""
-    value = context.get(action, action != 'deploy_oss')
+    value = context.get(action, action not in ('deploy_oss', 'deploy_kubernetes'))
     require(isinstance(value, bool), 'Invalid publication switch: ' + action)
     return value
 

@@ -1,6 +1,6 @@
 // Loaded by the five thin Jenkinsfiles. Business commands live in ci/release/*.py.
 def parameterNames() {
-    [VERSION: '构建版本', DEPLOY_OSS: '发布OSS', PUBLISH_RELEASE: '发布Release',
+    [VERSION: '构建版本', DEPLOY_OSS: '发布OSS', DEPLOY_KUBERNETES: '发布Kubernets', PUBLISH_RELEASE: '发布Release',
      PUSH_IMAGES: '推送镜像', SYNC_REPOS: '同步仓库']
 }
 
@@ -13,7 +13,7 @@ def selectedParameters(selected) {
         if (key == 'VERSION') {
             normalized[key] = value ?: ''
         } else {
-            if (value == null) value = key != 'DEPLOY_OSS'
+            if (value == null) value = !(key in ['DEPLOY_OSS', 'DEPLOY_KUBERNETES'])
             if (!(value instanceof Boolean)) error("${label} 必须是布尔值")
             normalized[key] = value
         }
@@ -49,8 +49,9 @@ def configure(String domain, String next = '') {
         description: '本次构建版本，可修改；默认是上次构建版本的补丁号 +1，成功后回写 Gitea 源码')]
     if (domain in ['all', 'web']) {
         definitions.add(booleanParam(name: names.DEPLOY_OSS, defaultValue: false, description: '全部成功后用本次 dist 发布 OSS/CDN'))
+        definitions.add(booleanParam(name: names.DEPLOY_KUBERNETES, defaultValue: false, description: '全部成功后部署集群 Web；关闭推送镜像时仅上传内网部署所需镜像'))
     }
-    definitions.add(booleanParam(name: names.PUBLISH_RELEASE, defaultValue: true, description: '发布 GitHub / Gitea Release；关闭时产物只归档到 Jenkins'))
+    definitions.add(booleanParam(name: names.PUBLISH_RELEASE, defaultValue: true, description: '发布 GitHub / Gitea / Gitee 发行版；关闭时产物只归档到 Jenkins'))
     if (domain in ['all', 'web', 'service']) {
         definitions.add(booleanParam(name: names.PUSH_IMAGES, defaultValue: true, description: '推送三个镜像仓库及兼容名称，全部成功后更新 latest'))
     }
@@ -60,7 +61,7 @@ def configure(String domain, String next = '') {
     properties(settings)
 }
 
-def credentialsFor(config, boolean images, boolean oss, boolean sync = false) {
+def credentialsFor(config, boolean images, boolean oss, boolean sync = false, boolean privateImage = false) {
     def credentials = [string(credentialsId: config.credentials.github, variable: 'GH_TOKEN'),
                        string(credentialsId: config.credentials.gitea, variable: 'GITEA_TOKEN')]
     if (sync) {
@@ -71,8 +72,8 @@ def credentialsFor(config, boolean images, boolean oss, boolean sync = false) {
                 usernameVariable: 'GITEE_USERNAME', passwordVariable: 'GITEE_TOKEN'))
         }
     }
-    if (images) {
-        ['private', 'dockerhub', 'tencent'].each { registry ->
+    if (images || privateImage) {
+        (images ? ['private', 'dockerhub', 'tencent'] : ['private']).each { registry ->
             if (registry != 'private' || config.environment.REGISTRY_PRIVATE_ANONYMOUS != 'true') {
                 credentials.add(usernamePassword(credentialsId: config.credentials[registry],
                 usernameVariable: "REGISTRY_${registry.toUpperCase()}_USERNAME",
@@ -126,15 +127,22 @@ def archiveReports(boolean allFiles = true) {
     archiveArtifacts artifacts: allFiles ? '.release/result-*.json,.release/files/*,.release/metadata/*,.release/publication.json,.release/oss-*.json,.release/workers/*.json' : '.release/context.json,.release/frontend.zip',
         allowEmptyArchive: true, fingerprint: true
     if (allFiles) archiveArtifacts artifacts: '.release/repository-sync*.json,.release/version-*.json', allowEmptyArchive: true
+    if (allFiles) archiveArtifacts artifacts: '.release/kubernetes-*.json,.release/gitee-*.json', allowEmptyArchive: true
 }
 
 def completeRelease(context) {
     // Global promotion lock also serializes *different* versions, preventing latest races.
     lock(resource: 'password-xl-promotion') {
+        if (context.deploy_kubernetes) {
+            lock(resource: 'password-xl-kubernetes-web') { completeSites(context) }
+        } else { completeSites(context) }
+    }
+}
+
+def completeSites(context) {
         if (context.deploy_oss) {
             lock(resource: 'password-xl-oss-site') { cli('finalize') }
         } else { cli('finalize') }
-    }
 }
 
 def releaseBody(String domain, config, parent) {
@@ -180,6 +188,9 @@ def releaseBody(String domain, config, parent) {
         stage('回写源码版本') {
             lock(resource: 'password-xl-source-sync') { cli('write-version') }
         }
+        if (context.publish_release) {
+            stage('同步 Gitee 发行版') { cli('sync-release') }
+        }
     }
 }
 
@@ -187,6 +198,7 @@ def run(String domain, String podYaml, String initialVersion) {
     def selected = selectedParameters(params)
     def selectedVersion = checkedVersion(selected.VERSION ?: initialVersion)
     configure(domain, nextVersion(selectedVersion))
+    def deployKubernetes = domain in ['all', 'web'] && selected.DEPLOY_KUBERNETES
     if (!env.CI_TOOLS_IMAGE) error('Set Jenkins CI_TOOLS_IMAGE to the image built from ci/jenkins/tools.Dockerfile')
     def resolvedYaml = podYaml.replace('${CI_TOOLS_IMAGE}', env.CI_TOOLS_IMAGE)
         .replace('${CI_AGENT_IMAGE}', env.CI_AGENT_IMAGE ?: 'jenkins/inbound-agent:jdk21')
@@ -200,6 +212,10 @@ def run(String domain, String podYaml, String initialVersion) {
         if (!(env.CI_GITEA_HOST ==~ /[A-Za-z0-9][A-Za-z0-9.-]*/)) error('Set CI_GITEA_HOST to the HTTPS repository hostname')
         // Keep the public URL, certificate verification and ingress policy, while avoiding WAN hairpin upload limits.
         resolvedYaml = resolvedYaml.replace('\nspec:\n', "\nspec:\n  hostAliases:\n    - ip: '${env.CI_GITEA_INTERNAL_IP}'\n      hostnames: ['${env.CI_GITEA_HOST}']\n")
+    }
+    if (deployKubernetes) {
+        // Only tools receives the short-lived deployment token; jnlp/buildkit do not.
+        resolvedYaml = deploymentPod(resolvedYaml)
     }
     podTemplate(yaml: resolvedYaml) {
         node(POD_LABEL) {
@@ -221,10 +237,13 @@ def run(String domain, String podYaml, String initialVersion) {
                     def images = domain in ['all', 'web', 'service'] && actions.PUSH_IMAGES
                     def deploy = !parent && domain in ['all', 'web'] && selected.DEPLOY_OSS
                     variables.addAll(["DEPLOY_OSS=${deploy}"])
+                    variables.add("DEPLOY_KUBERNETES=${!parent && deployKubernetes}")
                     variables.add("RELEASE_VERSION=${parent ? checkedVersion(inherited.version) : selectedVersion}")
                     variables.addAll(actions.collect { key, value -> "${key}=${value}" })
                     withEnv(variables) {
-                        withCredentials(credentialsFor(config, images, deploy, !parent && actions.SYNC_REPOS)) {
+                        withCredentials(credentialsFor(config, images, deploy,
+                            !parent && (actions.SYNC_REPOS || actions.PUBLISH_RELEASE),
+                            domain in ['all', 'web'] && (parent ? inherited.deploy_kubernetes == true : deployKubernetes))) {
                             try {
                                 timeout(time: 12, unit: 'HOURS') { releaseBody(domain, config, parent) }
                             } finally {
@@ -239,6 +258,28 @@ def run(String domain, String podYaml, String initialVersion) {
             }
         }
     }
+}
+
+def deploymentPod(String yaml) {
+    if (!yaml.contains('  volumes:\n') || !yaml.contains('      volumeMounts:\n')) error('Invalid release agent template')
+    return yaml.replace('serviceAccountName: jenkins-build', 'serviceAccountName: password-xl-web-deployer')
+        .replaceFirst('      volumeMounts:\n', '''      volumeMounts:
+        - name: deployment-api
+          mountPath: /var/run/secrets/password-xl
+          readOnly: true
+''').replace('  volumes:\n', '''  volumes:
+    - name: deployment-api
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: token
+              expirationSeconds: 3600
+          - configMap:
+              name: kube-root-ca.crt
+              items:
+                - key: ca.crt
+                  path: ca.crt
+''')
 }
 
 return this

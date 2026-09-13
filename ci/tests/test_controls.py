@@ -162,6 +162,7 @@ class ImageReceipts(unittest.TestCase):
         image={'target':'web-x86','source':'','digest':'sha256:abc','destinations':[]}
         endpoint=Mock()
         endpoint.assets.return_value={}
+        endpoint.get_json.return_value=None
         with tempfile.TemporaryDirectory() as tmp, patch.object(publish,'OUT',Path(tmp)), patch.object(image_state,'put') as journal:
             publish.publish_target(c,'web-x86',[],[image],[],[endpoint])
             names=[call.args[0].name for call in endpoint.put.call_args_list]
