@@ -5,6 +5,28 @@ metadata:
   namespace: jenkins-agent
 automountServiceAccountToken: false
 ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-jenkins-web-deployer
+  namespace: password-xl
+spec:
+  podSelector:
+    matchLabels:
+      app: password-xl-web
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: jenkins-agent
+          podSelector:
+            matchLabels:
+              password-xl.cn/web-deployer: 'true'
+      ports:
+        - protocol: TCP
+          port: 80
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:

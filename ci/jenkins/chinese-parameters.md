@@ -23,4 +23,4 @@ python3 ci/jenkins/migrate_chinese_parameters.py --folder 密码管理 --apply
 
 先检查 `.release/jenkins-encoding/migration/report.json`，再执行安装。工具要求五个正式任务都空闲；更新前保存配置备份，修改后读取配置核对文本。默认输出目录被 Git 忽略。不要复用旧参数安装脚本，以免恢复已弃用的英文参数名。
 
-后续 API 请求使用“构建版本、发布OSS、发布Release、推送镜像、同步仓库”作为参数键；布尔值使用真正的 `true` / `false`。现有构建记录保留历史参数，不改写历史记录。
+后续 API 请求使用“构建版本、发布OSS、发布Kubernets、发布Release、推送镜像、同步仓库”作为参数键；两个部署参数仅总入口和 Web 提供，布尔值使用真正的 `true` / `false`。现有构建记录保留历史参数，不改写历史记录。
