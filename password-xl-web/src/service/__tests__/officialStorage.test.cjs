@@ -76,3 +76,32 @@ test('official logout revokes its session while preserving other storage login c
   assert.equal(h.localStorage.getItem('loginInfo'), 'other-storage-login');
   assert.equal(h.localStorage.getItem('mainPassword'), 'other-storage-key');
 });
+
+test('switching to official storage drains old saves and clears plaintext without deleting old login keys', async t => {
+  const h = harness(t), save = deferred();
+  h.localStorage.setItem('loginInfo', 'old-oss-login');
+  h.localStorage.setItem('mainPassword', 'old-oss-unlock');
+  h.ss.$resetFields = () => { h.ss.setting = {autoUnlock: false}; };
+  h.addTree();
+  h.database.setStoreData = async text => { await save.promise; h.files.store = text; return {status: true}; };
+  const writing = h.manager.addPassword(h.password(2));
+  await new Promise(setImmediate);
+  let switched = false;
+  const switching = h.manager.prepareForAccountSwitch().then(() => {switched = true;});
+  await new Promise(setImmediate);
+  assert.equal(switched, false);
+  assert.throws(() => h.manager.addPassword(h.password(3)), /切换/);
+  save.resolve();
+  await writing; await switching;
+  assert.equal(h.ps.serviceStatus, h.types.ServiceStatus.NO_LOGIN);
+  assert.equal(h.ps.mainPassword, '');
+  assert.equal(h.ps.allPasswordArray.length, 0);
+  assert.equal(h.ns.noteData.noteTree.length, 0);
+  assert.equal(h.manager.databaseClient, null);
+  assert.equal(h.manager.storeData, null);
+  assert.equal(h.ss.setting.autoUnlock, false);
+  assert.equal(h.localStorage.getItem('loginInfo'), 'old-oss-login');
+  assert.equal(h.localStorage.getItem('mainPassword'), 'old-oss-unlock');
+  const saved = JSON.parse(h.files.store);
+  assert.equal(h.decode(saved, 'synthetic-old-key').length, 2);
+});

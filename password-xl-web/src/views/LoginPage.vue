@@ -42,6 +42,8 @@ const backToLoginTypes = () => {
 </script>
 
 <template>
+  <OfficialLoginForm v-if="loginType === 'official'" />
+  <template v-else>
 
   <!-- 电脑版-->
   <div class="hidden-xs-only">
@@ -76,7 +78,6 @@ const backToLoginTypes = () => {
                     <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                     <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                     <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>
-                    <OfficialLoginForm v-if="loginStore.loginType === 'official'"></OfficialLoginForm>
                   </div>
                 </transition>
               </div>
@@ -118,7 +119,6 @@ const backToLoginTypes = () => {
                 <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                 <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                 <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>
-                    <OfficialLoginForm v-if="loginStore.loginType === 'official'"></OfficialLoginForm>
               </el-col>
             </el-row>
           </div>
@@ -129,6 +129,7 @@ const backToLoginTypes = () => {
 
   <!-- ICP备案 -->
   <ICPRecord></ICPRecord>
+  </template>
 </template>
 
 <style scoped>
