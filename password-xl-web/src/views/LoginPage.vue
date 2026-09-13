@@ -1,10 +1,16 @@
 <script lang="ts" setup>
 import {useLoginStore} from "@/stores/LoginStore.ts";
 import {useRoute, useRouter} from "vue-router";
-import {clearOfficial} from '@/service/OfficialSession'
+import {beginOfficialLogin, clearOfficial} from '@/service/OfficialSession'
 
 const OSSLoginForm = defineAsyncComponent(() => import('@/components/login/OSSLoginForm.vue'))
 const COSLoginForm = defineAsyncComponent(() => import('@/components/login/COSLoginForm.vue'))
+
+const mobileQuery = window.matchMedia('(max-width: 767px)')
+const isMobile = ref(mobileQuery.matches)
+const updateMobile = () => { isMobile.value = mobileQuery.matches }
+onMounted(() => mobileQuery.addEventListener('change', updateMobile))
+onUnmounted(() => mobileQuery.removeEventListener('change', updateMobile))
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +30,7 @@ watch(loginType, (type) => {
 
 // 选择了登录方式
 const loginTypeChange = (type: string) => {
+  if (type === 'official') { beginOfficialLogin(); return }
   if (type !== 'official' && localStorage.getItem('official-selected')) clearOfficial()
   console.log('登录，选择了登录方式：', type)
   loginStore.loginType = type;
@@ -42,8 +49,6 @@ const backToLoginTypes = () => {
 </script>
 
 <template>
-  <OfficialLoginForm v-if="loginType === 'official'" />
-  <template v-else>
 
   <!-- 电脑版-->
   <div class="hidden-xs-only">
@@ -78,6 +83,7 @@ const backToLoginTypes = () => {
                     <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                     <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                     <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>
+                    <OfficialLoginForm v-if="loginType === 'official' && !isMobile" />
                   </div>
                 </transition>
               </div>
@@ -119,6 +125,7 @@ const backToLoginTypes = () => {
                 <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                 <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                 <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>
+                <OfficialLoginForm v-if="loginType === 'official' && isMobile" />
               </el-col>
             </el-row>
           </div>
@@ -129,7 +136,6 @@ const backToLoginTypes = () => {
 
   <!-- ICP备案 -->
   <ICPRecord></ICPRecord>
-  </template>
 </template>
 
 <style scoped>

@@ -9,12 +9,12 @@ export const officialState = reactive<{ info: OfficialInfo | null; epoch: number
 let refresh: Promise<OfficialInfo> | null = null
 const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('password-xl-official') : null
 
-export async function officialApi(path: string, data: unknown = {}): Promise<any> {
+export async function officialApi(path: string, data: unknown = {}, method: 'POST' | 'GET' = 'POST'): Promise<any> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 45000)
   try {
-    const response = await fetch(officialOrigin + '/api/v1' + path, { method: 'POST', credentials: 'include', signal: controller.signal,
-      headers: { 'Content-Type': 'application/json', 'X-PXL-CSRF': 'password-xl' }, body: JSON.stringify(data) })
+    const response = await fetch(officialOrigin + '/api/v1' + path, { method, credentials: 'include', signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', 'X-PXL-CSRF': 'password-xl' }, body: method === 'GET' ? undefined : JSON.stringify(data) })
     const body = await response.json().catch(() => null)
     if (!body || typeof body.code !== 'number') throw Object.assign(new Error('账号服务暂时无法连接，请稍后重试'), {status: response.status, code: 'SERVICE_UNAVAILABLE'})
     if (!response.ok || body.code !== 0) throw Object.assign(new Error(body.message || '官方存储服务不可用'), { status: response.status, code: body.data?.error })
@@ -23,6 +23,12 @@ export async function officialApi(path: string, data: unknown = {}): Promise<any
     if (error?.code || error?.status) throw error
     throw Object.assign(new Error(error?.name === 'AbortError' ? '连接超时，请检查网络后重试' : '无法连接账号服务，请检查网络后重试'), {code: 'NETWORK_ERROR'})
   } finally { clearTimeout(timer) }
+}
+
+// Remember a recent account handoff to avoid a redirect loop when cookies are blocked.
+export function beginOfficialLogin(): void {
+  sessionStorage.setItem('official-login-redirect', String(Date.now()))
+  window.location.assign(officialOrigin + '/?from=vault')
 }
 
 export function officialStorageKey(key: string): string {
