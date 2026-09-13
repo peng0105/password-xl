@@ -8,6 +8,7 @@ import {DatabaseForPrivate} from "@/database/DatabaseForPrivate.ts";
 import {DatabaseForElectron} from "@/database/DatabaseForElectron.ts";
 import {DatabaseForAndroid} from "@/database/DatabaseForAndroid.ts";
 import {officialStorageKey, officialState} from '@/service/OfficialSession';
+let officialLoginPending: Promise<boolean> | null = null
 
 
 export const useLoginStore = defineStore('loginStore', {
@@ -21,8 +22,15 @@ export const useLoginStore = defineStore('loginStore', {
     },
     actions: {
         async loginOfficial(): Promise<boolean> {
+            if (officialLoginPending) return officialLoginPending
+            const pending = this.connectOfficial().finally(() => { if (officialLoginPending === pending) officialLoginPending = null })
+            officialLoginPending = pending
+            return pending
+        },
+        async connectOfficial(): Promise<boolean> {
             const {DatabaseForOfficial} = await import('@/database/DatabaseForOfficial')
             const passwordStore = usePasswordStore()
+            await passwordStore.passwordManager.prepareForAccountSwitch?.()
             this.loginType = 'official'
             const database = new DatabaseForOfficial()
             await database.login()

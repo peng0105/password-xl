@@ -3,7 +3,7 @@ import { reactive } from 'vue'
 export interface OfficialQuota { quotaBytes: number; usedBytes: number; storeBytes: number; settingBytes: number; status: string; checkedAt: string | null }
 export interface OfficialFileGrant { uploadUrl: string; fields: Record<string, string>; getUrl: string; headUrl: string; maxBytes: number }
 export interface OfficialGrant { userId: string; vaultId: string; quotaBytes: number; expiresAt: string; files: Record<string, OfficialFileGrant> }
-export interface OfficialInfo { user: { id: string }; quota: OfficialQuota; grant?: OfficialGrant; error?: string; contact: string; storageDisabled: boolean }
+export interface OfficialInfo { user: { id: string; displayName?: string; email?: string }; quota: OfficialQuota; grant?: OfficialGrant; error?: string; contact: string; storageDisabled: boolean; storageStatus?: string; storageMessage?: string; usageKnown?: boolean }
 export const officialOrigin = (import.meta.env.VITE_OFFICIAL_ACCOUNT_ORIGIN || 'https://account.password-xl.cn').replace(/\/$/, '')
 export const officialState = reactive<{ info: OfficialInfo | null; epoch: number }>({ info: null, epoch: 0 })
 let refresh: Promise<OfficialInfo> | null = null
@@ -15,9 +15,13 @@ export async function officialApi(path: string, data: unknown = {}): Promise<any
   try {
     const response = await fetch(officialOrigin + '/api/v1' + path, { method: 'POST', credentials: 'include', signal: controller.signal,
       headers: { 'Content-Type': 'application/json', 'X-PXL-CSRF': 'password-xl' }, body: JSON.stringify(data) })
-    const body = await response.json()
+    const body = await response.json().catch(() => null)
+    if (!body || typeof body.code !== 'number') throw Object.assign(new Error('账号服务暂时无法连接，请稍后重试'), {status: response.status, code: 'SERVICE_UNAVAILABLE'})
     if (!response.ok || body.code !== 0) throw Object.assign(new Error(body.message || '官方存储服务不可用'), { status: response.status, code: body.data?.error })
     return body.data
+  } catch (error: any) {
+    if (error?.code || error?.status) throw error
+    throw Object.assign(new Error(error?.name === 'AbortError' ? '连接超时，请检查网络后重试' : '无法连接账号服务，请检查网络后重试'), {code: 'NETWORK_ERROR'})
   } finally { clearTimeout(timer) }
 }
 
@@ -42,9 +46,12 @@ export async function restoreOfficial(initial = false): Promise<OfficialInfo> {
     localStorage.setItem('official-user', info.user.id)
     localStorage.setItem('official-selected', 'true')
     channel?.postMessage({ type: 'identity', id: info.user.id })
-    if (info.error || !info.grant) throw Object.assign(new Error(info.error === 'QUOTA_BLOCKED' ? '存储空间异常，请联系作者恢复' : '官方存储已停用，请联系作者恢复'), { code: info.error })
+    if (info.error || !info.grant) throw Object.assign(new Error(info.storageMessage || (info.error === 'QUOTA_BLOCKED' ? '存储空间异常，请联系作者恢复' : '暂时无法连接官方存储，请稍后重试')), { code: info.error || 'STORAGE_UNAVAILABLE' })
     return info
-  })().finally(() => { if (refresh === pending) refresh = null })
+  })().catch(error => {
+    if (initial && error.status === 401 && epoch === officialState.epoch) officialState.info = null
+    throw error
+  }).finally(() => { if (refresh === pending) refresh = null })
   refresh = pending
   return pending
 }

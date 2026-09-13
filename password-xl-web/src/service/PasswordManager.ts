@@ -87,6 +87,33 @@ export class PasswordManagerImpl implements PasswordManager {
         this.passwordStore.labelArray = JSON.parse(decryptAES(this.passwordStore.mainPassword, this.storeData.labelData))
     }
 
+    // Leave the active vault without deleting its saved login configuration or files.
+    async prepareForAccountSwitch(): Promise<void> {
+        if (this.changingMainPassword || this.logging) throw new Error('正在完成存储操作，请稍后重试')
+        this.refStore.showPasswordRef?.closePassword?.()
+        this.refStore.passwordFormRef?.closePasswordForm?.()
+        this.refStore.settingRef?.closeSetting?.()
+        this.logging = true
+        try {
+            await this.writeQueue
+            if (!this.isCurrentSession()) throw new Error('当前账号已变化，请重新连接')
+            this.storeRevision++
+            this.noteRevision++
+            this.dataRevision++
+            this.nodeCacheMap.clear()
+            this.storeData = null
+            this.treeNoteData = null
+            this.databaseClient = null
+            this.passwordStore.resetPrivacyMode()
+            this.passwordStore.mainPassword = ''
+            this.passwordStore.allPasswordArray = []
+            this.passwordStore.labelArray = []
+            this.noteStore.noteData = {noteTree: [], currentNote: ''}
+            this.passwordStore.setServiceStatus(ServiceStatus.NO_LOGIN)
+            this.settingStore.$resetFields()
+        } finally { this.logging = false }
+    }
+
     // 登录
     async login(database: Database): Promise<RespData> {
         if (this.changingMainPassword || this.logging) throw new Error('正在处理存储操作，请稍后再登录')

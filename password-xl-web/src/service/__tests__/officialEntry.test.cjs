@@ -5,11 +5,11 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
 
-async function navigate({referrer = '', cached = false, selected = false, autoLogin = false, failure, mode = 'production'} = {}) {
+async function navigate({referrer = '', hash = '', status = 'SIGNED_OUT', cached = false, selected = false, autoLogin = false, failure, mode = 'production'} = {}) {
   let guard, officialCalls = 0, legacyCalls = 0;
   const decisions = [];
   const router = {beforeEach: fn => { guard = fn; }};
-  const store = {serviceStatus: 'SIGNED_OUT'};
+  const store = {serviceStatus: status};
   const login = {
     async loginOfficial() { officialCalls++; if (failure) throw failure; store.serviceStatus = 'LOGGED'; return true; },
     async autoLogin() { legacyCalls++; return cached; },
@@ -29,7 +29,7 @@ async function navigate({referrer = '', cached = false, selected = false, autoLo
   const compiled = ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022}}).outputText;
   vm.runInNewContext(compiled, {
     exports: {}, require: id => { assert.ok(id in imports, id); return imports[id]; }, URL,
-    document: {referrer}, location: {hash: '', protocol: 'https:'},
+    document: {referrer}, location: {hash, protocol: 'https:', pathname: '/', search: ''},
     localStorage: {getItem: key => storage.get(key) || null},
     console: {log() {}, error() {}}, window: {history: {replaceState() {}}},
   });
@@ -38,9 +38,14 @@ async function navigate({referrer = '', cached = false, selected = false, autoLo
   return {officialCalls, legacyCalls, decisions};
 }
 
-test('account return to root restores the official session despite remembered alternative storage', async () => {
-  assert.deepEqual(await navigate({referrer: 'https://account.password-xl.cn/', cached: true}),
-    {officialCalls: 1, legacyCalls: 0, decisions: [undefined]});
+test('explicit account return selects official storage despite no referrer and remembered OSS', async () => {
+  assert.deepEqual(await navigate({hash: '#official', cached: true, autoLogin: true}),
+    {officialCalls: 0, legacyCalls: 0, decisions: ['/login/official']});
+});
+
+test('explicit official return takes priority over an already unlocked alternative vault', async () => {
+  assert.deepEqual(await navigate({hash: '#official', status: 'UNLOCKED', cached: true}),
+    {officialCalls: 0, legacyCalls: 0, decisions: ['/login/official']});
 });
 test('official session restore is independent of the legacy auto-login setting', async () => {
   assert.deepEqual(await navigate({selected: true}), {officialCalls: 1, legacyCalls: 0, decisions: [undefined]});
@@ -53,7 +58,7 @@ test('existing alternative storage still auto logs in on ordinary visits', async
     {officialCalls: 0, legacyCalls: 1, decisions: [undefined]});
 });
 test('account service failures go to the official connection screen without selecting another vault', async () => {
-  assert.deepEqual(await navigate({referrer: 'https://account.password-xl.cn/', failure: {status: 503}, cached: true}),
+  assert.deepEqual(await navigate({selected: true, failure: {status: 503}, cached: true}),
     {officialCalls: 1, legacyCalls: 0, decisions: ['/login/official']});
 });
 test('bundled clients do not probe the official website session', async () => {

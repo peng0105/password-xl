@@ -147,6 +147,7 @@ export interface Setting {
 
 // 密码管理器
 export interface PasswordManager {
+    prepareForAccountSwitch?(): Promise<void>,
 
     // 初始化
     login(database: Database): Promise<RespData>,
