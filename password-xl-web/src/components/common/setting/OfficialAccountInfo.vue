@@ -6,7 +6,6 @@ import { usePasswordStore } from '@/stores/PasswordStore'
 import { useRefStore } from '@/stores/RefStore'
 import { ServiceStatus } from '@/types'
 import logo from '@/assets/images/logo.svg'
-import OfficialAccountDeletion from './OfficialAccountDeletion.vue'
 const store = usePasswordStore()
 const refs = useRefStore()
 const info = computed(() => officialState.info),
@@ -46,14 +45,11 @@ const state = computed(() =>
         ? '空间已满'
         : '已连接',
 )
-const deletion = ref()
+const userId = computed(() => info.value?.user.publicId || info.value?.user.id || '')
 const accountCenter = () => window.open(officialOrigin, '_blank', 'noopener')
 function initialize() {
   refs.settingRef.closeSetting()
   refs.setPasswordRef.setMainPassword()
-}
-async function logout() {
-  await store.passwordManager.withPausedWrites(() => store.logout())
 }
 </script>
 <template>
@@ -86,25 +82,18 @@ async function logout() {
         <strong>{{ known ? officialBytes(q.usedBytes) : '用量未知' }}</strong
         ><span>/ {{ officialBytes(q.quotaBytes) }}</span>
       </div>
-      <p v-if="officialState.usageDirty">
-        已按本页保存更新，下次连接时核对云端用量
-      </p>
-      <p v-else>
-        最近核对：{{ officialDate(q.checkedAt)
-        }}{{ q.checkFailed ? '（暂未核对成功）' : '' }}
-      </p>
       <p v-if="q.quotaUntil">临时额度至 {{ officialDate(q.quotaUntil) }}</p>
     </div>
     <dl class="account-fields">
       <div>
         <dt>用户 ID</dt>
         <dd>
-          <span class="user-id">{{ info.user.id }}</span
+          <span class="user-id">{{ userId }}</span
           ><el-button
             link
             type="primary"
             aria-label="复制用户 ID"
-            @click="copyText(info.user.id)"
+            @click="copyText(userId)"
             >复制</el-button
           >
         </dd>
@@ -130,18 +119,8 @@ async function logout() {
         >设置主密码</el-button
       ><el-button type="primary" plain @click="accountCenter"
         >账号中心</el-button
-      ><el-button @click="logout">退出登录</el-button>
-    </div>
-    <div class="account-danger">
-      <div>
-        <strong>注销官方账号</strong>
-        <p>删除账号与官方密码库，此操作不可撤销。</p>
-      </div>
-      <el-button text type="danger" @click="deletion.open()"
-        >注销账号</el-button
       >
     </div>
-    <OfficialAccountDeletion ref="deletion" />
   </section>
   <el-empty v-else description="账号信息暂不可用，请重新连接官方存储" />
 </template>
@@ -237,22 +216,6 @@ async function logout() {
   display: flex;
   gap: 8px;
 }
-.account-danger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  margin-top: 27px;
-  padding-top: 20px;
-  font-size: 13px;
-}
-.account-danger p {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  line-height: 1.7;
-  margin: 7px 0 0;
-}
 @media (max-width: 600px) {
   .official-info {
     padding: 4px 4px 20px;
@@ -268,9 +231,6 @@ async function logout() {
   }
   .account-fields dd {
     flex-wrap: wrap;
-  }
-  .account-danger {
-    align-items: flex-start;
   }
 }
 </style>

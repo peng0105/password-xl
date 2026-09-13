@@ -56,7 +56,7 @@ const backToLoginTypes = () => {
               <img alt="" src="~@/assets/images/login/login.png">
             </el-col>
             <el-col :md="{span: 12}" :sm="{span: 24}">
-              <div style="position: sticky">
+              <div class="login-panel">
                 <transition name="slide">
                   <div v-if="loginStep === 1" class="sliding-element">
                     <div class="login-title">
@@ -137,7 +137,7 @@ const backToLoginTypes = () => {
   margin-top: 15vh;
   border-radius: 5px;
   overflow: hidden;
-  height: 520px;
+  min-height: 550px;
   box-shadow: rgba(0, 0, 0, 0.12) 0 0 12px 0;
   backdrop-filter: blur(50px);
 }
@@ -153,15 +153,22 @@ const backToLoginTypes = () => {
 }
 
 .login-card-pc img {
+  display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+}
+
+.login-panel {
+  position: relative;
+  min-height: 550px;
 }
 
 .sliding-element {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
   width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 26px;
 }
 
 .login-back {
@@ -185,7 +192,7 @@ const backToLoginTypes = () => {
   border: 1px solid #eee;
   margin: 60px 15px;
   border-radius: 8px;
-  padding-bottom: 10px;
+  padding-bottom: 26px;
   box-shadow: rgba(0, 0, 0, 0.12) 0 0 12px 0;
   backdrop-filter: blur(50px);
   position: absolute;
