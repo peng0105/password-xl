@@ -30,7 +30,8 @@ class Records:
         # List before reading: dozens of expected per-file 404s look like URL probing
         # to the ingress protection when a new version is initialized.
         try:
-            files = self.api.pages(self.files)
+            # Gitea's package-files endpoint returns the full list and ignores pagination.
+            files = self.api.request('GET', self.files)
         except ApiError as error:
             if error.status != 404:
                 raise

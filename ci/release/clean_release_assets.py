@@ -19,10 +19,10 @@ def migrate_json(store, name, content, remove):
     return {'name': name, 'sha256': hashlib.sha256(content).hexdigest(), 'status': 'migrated'}
 
 
-def clean():
+def clean(providers=('github', 'gitea', 'gitee')):
     audit = OUT / 'public-json-cleanup.json'
     report = read_json(audit) if audit.exists() else []
-    for provider in ('github', 'gitea', 'gitee'):
+    for provider in providers:
         github = provider == 'github'
         api = Gitee() if provider == 'gitee' else Api(
             'https://api.github.com' if github else env('GITEA_URL') + '/api/v1',

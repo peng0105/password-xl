@@ -20,7 +20,9 @@ class Storage:
         return self.objects.get(path)
     def pages(self, path):
         return [{'id': i, 'name': name.rsplit('/', 1)[-1]} for i, name in enumerate(self.objects)]
-    def request(self, method, path, data, headers, binary):
+    def request(self, method, path, data=None, headers=None, binary=False):
+        if method == 'GET':
+            return self.pages(path)
         if path in self.objects:
             raise ApiError(409, method, path)
         self.objects[path] = json.loads(data)
@@ -56,6 +58,12 @@ class InternalRecords(unittest.TestCase):
         with patch.object(self.api, 'maybe', wraps=self.api.maybe) as read:
             self.assertIsNone(self.records.get('release-source.json'))
             read.assert_not_called()
+
+    def test_large_package_is_read_once_without_fake_pagination(self):
+        values = [{'id':i, 'name':'unrelated-' + str(i) + '.json'} for i in range(150)]
+        with patch.object(self.api, 'request', return_value=values) as listing:
+            self.assertIsNone(self.records.get('release-source.json'))
+            listing.assert_called_once_with('GET', self.records.files)
 
     def test_failed_backup_never_deletes_public_attachment(self):
         store, remove = Mock(), Mock()
