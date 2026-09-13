@@ -64,7 +64,10 @@ def clean(providers=('github', 'gitea', 'gitee')):
             updated = body.replace('See release-manifest.json and SHA256SUMS for provenance and checksums.',
                                    'See SHA256SUMS for download checksums. Build provenance is retained in Jenkins and the internal records store.')
             if body != updated:
-                api.request('PATCH', path + '/releases/' + str(release['id']), {'body': updated})
+                data = {'body': updated}
+                if provider == 'gitee':
+                    data.update(tag_name=release['tag_name'], name=release['name'], prerelease=release['prerelease'])
+                api.request('PATCH', path + '/releases/' + str(release['id']), data)
             require(not any(a['name'].lower().endswith('.json') for a in api.pages(assets_path)),
                     'Public JSON attachments remain after migration')
             print(provider + ' ' + release['tag_name'] + ': removed ' + str(len(record['files'])) + ' JSON attachments', flush=True)
