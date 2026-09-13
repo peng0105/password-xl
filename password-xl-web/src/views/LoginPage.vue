@@ -57,7 +57,7 @@ const backToLoginTypes = () => {
               :xl="{span: 10, offset: 7}">
         <div class="login-card-pc">
           <el-row>
-            <el-col :span="12" class="hidden-sm-and-down">
+            <el-col :span="12" class="hidden-sm-and-down login-photo">
               <img alt="" src="~@/assets/images/login/login.png">
             </el-col>
             <el-col :md="{span: 12}" :sm="{span: 24}">
@@ -143,7 +143,7 @@ const backToLoginTypes = () => {
   margin-top: 15vh;
   border-radius: 5px;
   overflow: hidden;
-  min-height: 550px;
+
   box-shadow: rgba(0, 0, 0, 0.12) 0 0 12px 0;
   backdrop-filter: blur(50px);
 }
@@ -154,11 +154,15 @@ const backToLoginTypes = () => {
   text-align: center;
   font-size: 24px;
   width: auto;
-  color: #444;
+  color: var(--el-text-color-primary);
   backdrop-filter: blur(50px);
 }
 
+.login-photo { position: relative; }
+
 .login-card-pc img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -167,7 +171,7 @@ const backToLoginTypes = () => {
 
 .login-panel {
   position: relative;
-  min-height: 550px;
+
 }
 
 .sliding-element {
