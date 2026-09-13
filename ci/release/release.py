@@ -63,6 +63,7 @@ def bundle_frontend(context):
 def reserve(context):
     if enabled(context, 'deploy_kubernetes'):
         from kubernetes_deploy import preflight
+        auth(False, True)  # Validate the private registry prefix/credentials before compilation.
         preflight()
     if context['deploy_oss']:
         from oss import preflight
