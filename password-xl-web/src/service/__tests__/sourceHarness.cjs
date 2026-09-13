@@ -28,6 +28,7 @@ function harness(t) {
       '@/stores/NoteStore.ts': () => ({useNoteStore: () => environment.ns}),
       '@/stores/LoginStore.ts': () => ({useLoginStore: () => environment.ls}),
       '@/stores/RefStore.ts': () => ({useRefStore: () => environment.refs}),
+      '@/service/OfficialSession': () => ({officialStorageKey: key => key, officialState: {info: null}}),
       '@/utils/pinyin.ts': () => ({matchPinyin: () => false}),
       'element-plus': () => ({ElMessage: ui}),
       'vue-router': () => ({onBeforeRouteLeave: fn => routeGuards.push(fn)}),
@@ -52,6 +53,7 @@ function harness(t) {
     window, document: {addEventListener() {}, removeEventListener() {}}, location: {reload() {}},
     localStorage: environment.localStorage, sessionStorage: storage(),
     crypto: globalThis.crypto, setTimeout, clearTimeout, setInterval, clearInterval, Buffer, Uint32Array,
+    Blob, FormData, fetch: (...args) => window.fetch(...args),
     }, {filename: file});
     if (!extra && !Object.keys(overrides).length) cache.set(file, exports);
     return exports;

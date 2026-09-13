@@ -7,6 +7,7 @@ import {useRefStore} from "@/stores/RefStore.ts";
 import {DatabaseForPrivate} from "@/database/DatabaseForPrivate.ts";
 import {DatabaseForElectron} from "@/database/DatabaseForElectron.ts";
 import {DatabaseForAndroid} from "@/database/DatabaseForAndroid.ts";
+import {officialStorageKey, officialState} from '@/service/OfficialSession';
 
 
 export const useLoginStore = defineStore('loginStore', {
@@ -19,6 +20,23 @@ export const useLoginStore = defineStore('loginStore', {
         }
     },
     actions: {
+        async loginOfficial(): Promise<boolean> {
+            const {DatabaseForOfficial} = await import('@/database/DatabaseForOfficial')
+            const passwordStore = usePasswordStore()
+            this.loginType = 'official'
+            const database = new DatabaseForOfficial()
+            await database.login()
+            const form = {loginType: 'official', userId: officialState.info!.user.id}
+            this.loginForm = form
+            const result = await passwordStore.passwordManager.login(database)
+            if (!result.status) return false
+            sessionStorage.setItem('loginForm', encryptAES(browserFingerprint(), JSON.stringify(form)))
+            const remembered = localStorage.getItem(officialStorageKey('mainPassword'))
+            if (useSettingStore().setting.autoUnlock && remembered && passwordStore.serviceStatus === ServiceStatus.LOGGED) {
+                try { passwordStore.passwordManager.unlock(decryptAES(browserFingerprint(), remembered)) } catch { localStorage.removeItem(officialStorageKey('mainPassword')) }
+            }
+            return true
+        },
         startLogin: async function (loginForm: any, mainPassword: string): Promise<boolean> {
             const passwordStore = usePasswordStore()
             passwordStore.loading('自动登录中...')
@@ -56,6 +74,7 @@ export const useLoginStore = defineStore('loginStore', {
         },
         // 自动登录入口
         autoLogin(): Promise<boolean> {
+            if (localStorage.getItem('official-selected') === 'true') return this.loginOfficial()
             return new Promise(async (resolve) => {
                 try {
                     // 获取local中的登录信息
@@ -91,7 +110,7 @@ export const useLoginStore = defineStore('loginStore', {
         // 获取主密码
         async getMainPassword(loginInfo: LoginInfo) {
             // 获取自动解锁保存的主密码信息
-            let mainPasswordCiphertext = localStorage.getItem('mainPassword')
+            let mainPasswordCiphertext = localStorage.getItem(this.loginType === 'official' ? officialStorageKey('mainPassword') : 'mainPassword')
             if (mainPasswordCiphertext) {
                 console.log('自动登录获取主密码 使用自动解锁的主密码')
                 let mainPassword = decryptAES(browserFingerprint(), mainPasswordCiphertext)
@@ -119,7 +138,7 @@ export const useLoginStore = defineStore('loginStore', {
                 }
                 console.log('使用主密码加密登录信息loginInfo')
                 // 将登录信息保存在localStorage中
-                localStorage.setItem('loginInfo', encryptAES(browserFingerprint(), JSON.stringify(loginInfo)))
+                localStorage.setItem(this.loginType === 'official' ? officialStorageKey('loginInfo') : 'loginInfo', encryptAES(browserFingerprint(), JSON.stringify(loginInfo)))
                 // 删除session中的登录信息
                 // 此刻想法：session中的登录信息是用浏览器指纹加密的，安全性低于主密码加密
                 sessionStorage.removeItem('loginForm')
@@ -128,7 +147,7 @@ export const useLoginStore = defineStore('loginStore', {
             // 自动解锁
             if (settingStore.setting.autoUnlock) {
                 let fingerprint = browserFingerprint()
-                localStorage.setItem('mainPassword', encryptAES(fingerprint, mainPassword))
+                localStorage.setItem(this.loginType === 'official' ? officialStorageKey('mainPassword') : 'mainPassword', encryptAES(fingerprint, mainPassword))
             }
         },
         // 修改记住的密码
@@ -136,7 +155,7 @@ export const useLoginStore = defineStore('loginStore', {
             console.log('修改密码，处理自动登录信息')
             try {
                 // 从Storage获取登录信息
-                let ciphertext = localStorage.getItem('loginInfo');
+                let ciphertext = localStorage.getItem(this.loginType === 'official' ? officialStorageKey('loginInfo') : 'loginInfo');
                 if (!ciphertext) {
                     console.log('修改记住的密码ciphertext不存在')
                     return false
@@ -161,7 +180,7 @@ export const useLoginStore = defineStore('loginStore', {
 
                 // 存储到Storage
                 console.log('修改密码，存储登录信息')
-                localStorage.setItem('loginInfo', encryptAES(fingerprint, JSON.stringify(loginInfo)));
+                localStorage.setItem(this.loginType === 'official' ? officialStorageKey('loginInfo') : 'loginInfo', encryptAES(fingerprint, JSON.stringify(loginInfo)));
                 return true
             } catch (err) {
                 console.error('修改密码处理自动登录信息异常', err)

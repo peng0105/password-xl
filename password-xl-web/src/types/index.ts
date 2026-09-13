@@ -225,6 +225,9 @@ export interface PasswordManager {
 
 // 数据库
 export interface Database {
+    // Official storage enforces logical quota rules before encrypting and writing.
+    assertCanModify?(): void,
+    validateStoreChange?(previous: Password[], next: Password[], labelsChanged: boolean): void,
     // 单文件存储可在一次提交中同时更新密码与设置；不改变持久化格式。
     setMainPasswordData?(storeData: string, settingData: string): Promise<RespData>,
 

@@ -247,12 +247,22 @@ export const usePasswordStore = defineStore('passwordStore', {
             this.privacyModeRevealed = false
         },
         // 退出登录
-        logout() {
+        async logout(remote = true) {
+            const official = useLoginStore().loginType === 'official'
+            if (official) {
+                const {officialApi, clearOfficial} = await import('@/service/OfficialSession')
+                if (remote) try { await officialApi('/session/logout') } catch (e: any) {
+                    if (e.status !== 401) { ElNotification.error({title: '退出失败', message: '无法撤销官方会话，请检查网络后重试'}); return }
+                }
+                clearOfficial(remote)
+            }
             console.log('退出登录')
             this.resetPrivacyMode()
             sessionStorage.removeItem('loginForm')
-            localStorage.removeItem('loginInfo')
-            localStorage.removeItem('mainPassword')
+            if (!official) {
+                localStorage.removeItem('loginInfo')
+                localStorage.removeItem('mainPassword')
+            }
             localStorage.removeItem('topicMode')
 
             this.passwordManager = new PasswordManagerImpl()

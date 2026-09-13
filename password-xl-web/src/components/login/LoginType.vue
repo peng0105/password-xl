@@ -47,7 +47,7 @@ const androidStore = () => {
           </div>
         </div>
       </el-col>
-      <el-col v-if="false" :span="12">
+      <el-col v-if="!isElectron() && !isAndroid()" :span="12">
         <div class="login-type-item official" @click="emits('loginTypeChange','official')">
           <img alt="" src="../../assets/images/login/official.png">
           <div>

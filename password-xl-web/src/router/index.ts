@@ -5,6 +5,7 @@ import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {ServiceStatus} from "@/types";
 import {useLoginStore} from "@/stores/LoginStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
+import {officialOrigin} from '@/service/OfficialSession'
 
 // 内置页面没有服务端路由回退，保留文件路径以支持刷新和离线打开。
 const bundledPage = ['electron', 'android-local'].includes(import.meta.env.MODE)
@@ -15,6 +16,12 @@ if (!bundledPage && location.hash.startsWith('#/')) {
 }
 
 const loginStatus = [ServiceStatus.LOGGED, ServiceStatus.WAIT_INIT, ServiceStatus.UNLOCKED]
+let firstProtectedNavigation = true
+// Referrer only selects the storage provider; the account API still authenticates the session.
+const returnedFromAccount = (() => {
+    try { return new URL(document.referrer).origin === new URL(officialOrigin).origin }
+    catch { return false }
+})()
 
 // 路由参数配置
 const router = createRouter({
@@ -23,7 +30,11 @@ const router = createRouter({
 })
 
 // 全局前置守卫，用户登录判断
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+    if (to.path === '/note' && (useLoginStore().loginType === 'official' || localStorage.getItem('official-selected') === 'true')) {
+        next('/')
+        return
+    }
     console.log('路由变化：', from.path, to.path)
     if (to.path.startsWith('/login')) {
         useLoginStore().logging = false
@@ -36,6 +47,23 @@ router.beforeEach((to, from, next) => {
     if (loginStatus.includes(passwordStore.serviceStatus)) {
         next();
         return;
+    }
+    const selectedOfficial = localStorage.getItem('official-selected') === 'true'
+    const accountEntry = firstProtectedNavigation && to.path === '/' && returnedFromAccount
+    const freshHttpsEntry = firstProtectedNavigation && to.path === '/' && location.protocol === 'https:' && !localStorage.getItem('loginInfo')
+    firstProtectedNavigation = false
+    if (!bundledPage && (selectedOfficial || accountEntry || freshHttpsEntry)) {
+        try {
+            if (await useLoginStore().loginOfficial()) { next(); return }
+            next('/login/official')
+            return
+        } catch (error: any) {
+            // A new anonymous visitor can still select local/OSS/private storage normally.
+            if (error.status !== 401 || selectedOfficial || accountEntry) {
+                next('/login/official')
+                return
+            }
+        }
     }
     if (!settingStore.setting.autoLogin) {
         next('/login')
@@ -53,7 +81,7 @@ router.beforeEach((to, from, next) => {
                 console.log('autoLoginFail')
                 next('/login')
             }
-        })
+        }).catch(() => next(localStorage.getItem('official-selected') === 'true' ? '/login/official' : '/login'))
     } catch (err) {
         console.error('router 自动登录异常', err)
         next('/login');

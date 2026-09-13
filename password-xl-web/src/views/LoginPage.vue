@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {useLoginStore} from "@/stores/LoginStore.ts";
 import {useRoute, useRouter} from "vue-router";
+import {clearOfficial} from '@/service/OfficialSession'
 
 const OSSLoginForm = defineAsyncComponent(() => import('@/components/login/OSSLoginForm.vue'))
 const COSLoginForm = defineAsyncComponent(() => import('@/components/login/COSLoginForm.vue'))
@@ -8,7 +9,7 @@ const COSLoginForm = defineAsyncComponent(() => import('@/components/login/COSLo
 const route = useRoute()
 const router = useRouter()
 const loginStore = useLoginStore()
-const loginTypes = ['oss', 'cos', 'private', 'local']
+const loginTypes = ['oss', 'cos', 'private', 'local', 'official']
 
 // 登录进度 1.选择登录方式 2.录入登录表单
 const loginType = computed(() => {
@@ -23,6 +24,7 @@ watch(loginType, (type) => {
 
 // 选择了登录方式
 const loginTypeChange = (type: string) => {
+  if (type !== 'official' && localStorage.getItem('official-selected')) clearOfficial()
   console.log('登录，选择了登录方式：', type)
   loginStore.loginType = type;
   if (type === 'electron' || type === 'android') {
@@ -74,6 +76,7 @@ const backToLoginTypes = () => {
                     <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                     <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                     <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>
+                    <OfficialLoginForm v-if="loginStore.loginType === 'official'"></OfficialLoginForm>
                   </div>
                 </transition>
               </div>
@@ -115,6 +118,7 @@ const backToLoginTypes = () => {
                 <COSLoginForm v-if="loginStore.loginType === 'cos'"></COSLoginForm>
                 <LocalLoginForm v-if="loginStore.loginType === 'local'"></LocalLoginForm>
                 <PrivateLoginForm v-if="loginStore.loginType === 'private'"></PrivateLoginForm>
+                    <OfficialLoginForm v-if="loginStore.loginType === 'official'"></OfficialLoginForm>
               </el-col>
             </el-row>
           </div>

@@ -89,6 +89,8 @@ declare module 'vue' {
     NoteEditor: typeof import('./components/note/NoteEditor.vue')['default']
     NoteTree: typeof import('./components/note/NoteTree.vue')['default']
     NoviceGuide: typeof import('./components/common/NoviceGuide.vue')['default']
+    OfficialLoginForm: typeof import('./components/login/OfficialLoginForm.vue')['default']
+    OfficialQuota: typeof import('./components/common/OfficialQuota.vue')['default']
     OSSLoginForm: typeof import('./components/login/OSSLoginForm.vue')['default']
     PasswordCards: typeof import('./components/index/PasswordCards.vue')['default']
     PasswordForm: typeof import('./components/index/PasswordForm.vue')['default']

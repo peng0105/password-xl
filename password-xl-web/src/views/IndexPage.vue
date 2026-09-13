@@ -6,6 +6,7 @@ import {displaySize} from "@/utils/global.ts";
 import {useRefStore} from "@/stores/RefStore.ts";
 import {useSettingStore} from "@/stores/SettingStore.ts";
 import Contextmenu from "@/components/index/Contextmenu.vue";
+import { officialState, officialStorageKey } from '@/service/OfficialSession'
 
 const ExportExcel = defineAsyncComponent(() => import('@/components/common/setting/ExportExcel.vue'))
 const ImportExcel = defineAsyncComponent(() => import('@/components/common/setting/ImportExcel.vue'))
@@ -20,7 +21,7 @@ onMounted(() => {
     refStore.verifyPasswordRef.verifyAndUnlock()
     if (!settingStore.setting.autoUnlock) {
       // 若未开启自动记住主密码，则删除主密码（解决多账号切换问题）
-      localStorage.removeItem('mainPassword')
+      localStorage.removeItem(officialState.info ? officialStorageKey('mainPassword') : 'mainPassword')
     }
   } else if (passwordStore.serviceStatus === ServiceStatus.WAIT_INIT) {
     console.log('页面加载完成，初始化主密码')
@@ -75,6 +76,7 @@ watch(() => settingStore.setting.passwordDisplayMode, () => {
             class="password-card"
         >
           <!-- 密码表头 -->
+          <OfficialQuota v-if="officialState.info" />
           <PasswordHeader></PasswordHeader>
           <!-- 正在过滤密码提示语 -->
           <FilteringTip></FilteringTip>
@@ -107,6 +109,7 @@ watch(() => settingStore.setting.passwordDisplayMode, () => {
   <div v-else :style="{'background-color': passwordStore.isDark?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'}"
        style="backdrop-filter: blur(50px);height: 100vh">
     <!-- 密码表头 -->
+    <OfficialQuota v-if="officialState.info" />
     <PasswordHeader></PasswordHeader>
     <!-- 正在过滤密码提示语 -->
     <FilteringTip></FilteringTip>
