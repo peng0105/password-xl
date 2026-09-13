@@ -63,9 +63,19 @@ class Kubernetes:
 
     def fetch(self, path):
         url = f'http://{self.name}.{self.namespace}.svc.cluster.local/' + urllib.parse.quote(path, safe='/')
-        with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(url, timeout=20) as response:
-            require(response.status == 200, 'Web Service returned an error')
-            return response.read()
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        deadline = time.monotonic() + 30
+        while True:
+            try:
+                with opener.open(url, timeout=10) as response:
+                    require(response.status == 200, 'Web Service returned an error')
+                    return response.read()
+            except (urllib.error.URLError, OSError) as error:
+                if isinstance(error, urllib.error.HTTPError) and error.code not in (502, 503, 504):
+                    raise
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(2)  # EndpointSlice/kube-proxy may briefly lag Deployment readiness.
 
 
 def container_index(deployment, name):
@@ -82,6 +92,7 @@ def preflight(client=None):
     require(not value['spec'].get('paused'), 'Web deployment is paused')
     client.pods()
     client.access()
+    client.fetch('healthz')  # Detect namespace network policy restrictions before changing an image.
     return client
 
 

@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'release'))
 import kubernetes_deploy as kube
@@ -104,6 +104,25 @@ class Deployment(unittest.TestCase):
         self.cluster.patch = patch_then_disconnect
         with self.assertRaises(ConnectionError): kube.deploy(C, IMAGE, self.path, self.cluster)
         self.assertEqual(model.read_json(self.path / 'kubernetes-deployment.json')['rollback'], 'success')
+
+    def test_unreachable_service_fails_before_changing_the_image(self):
+        self.cluster.fetch = Mock(side_effect=ConnectionRefusedError())
+        with self.assertRaises(ConnectionRefusedError):
+            kube.deploy(C, IMAGE, self.path, self.cluster)
+        self.assertEqual(self.cluster.writes, [])
+
+    def test_service_read_retries_transient_endpoint_failure(self):
+        client = kube.Kubernetes.__new__(kube.Kubernetes)
+        client.name, client.namespace = 'web', 'test'
+        response = Mock(status=200)
+        response.read.return_value = b'ok'
+        opened = MagicMock()
+        opened.__enter__.return_value = response
+        opener = Mock()
+        opener.open.side_effect = [ConnectionRefusedError(), opened]
+        with patch.object(kube.urllib.request, 'build_opener', return_value=opener), patch.object(kube.time, 'sleep'):
+            self.assertEqual(client.fetch('healthz'), b'ok')
+        self.assertEqual(opener.open.call_count, 2)
 
 
 class Controls(unittest.TestCase):

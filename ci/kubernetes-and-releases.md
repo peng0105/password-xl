@@ -14,6 +14,8 @@
 
 首次安装执行 `kubectl apply -f k8s/ci/web-deployer.yaml`。专用 SA 只能读取/更新指定 Deployment 和读取本命名空间 Pod；无 Secret、其他 Deployment 或集群级写权限。只有开启部署的总入口/Web Pod 切换 SA，短期 projected token 仅挂载 tools 容器，不挂载 jnlp。Python 使用 Kubernetes HTTPS API，无需 kubectl 或重建工具镜像。
 
+生产命名空间有默认拒绝入站策略，因此清单同时增加受限 NetworkPolicy：仅允许 `jenkins-agent` 命名空间中带 `password-xl.cn/web-deployer=true` 标签的专用部署 Pod 访问 Web TCP 80。其他 Jenkins Pod 不获得此入口，现有 Traefik 规则保持不变。构建前先验证 Service 可达；滚动后的短暂服务路由切换允许最多 30 秒连接重试。
+
 构建前校验权限、Deployment、内网仓库配置。部署锁 `password-xl-kubernetes-web` 内保存旧镜像、实际 Pod digest、Deployment 状态；最多等待 300 秒滚动完成，再校验实际 digest、Service `/healthz`、`/release.json`、HTML 和入口引用资源的字节摘要。失败时使用 resourceVersion 条件更新恢复旧模板；若部署模板已被其他人修改，不覆盖其改动。失败和回滚状态写入 `kubernetes-deployment.json` 并让 Jenkins 失败。
 
 OSS 使用 Bucket 对象回读及摘要核验部署内容，保持 CDN 刷新和等待。Kubernetes 使用集群内 Service 验证。公网域名 `/release.json` 只作为附加诊断记录，DNS 指向另一环境不会误判部署结果。

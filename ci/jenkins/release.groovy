@@ -262,6 +262,9 @@ def run(String domain, String podYaml, String initialVersion) {
 
 def deploymentPod(String yaml) {
     if (!yaml.contains('  volumes:\n') || !yaml.contains('      volumeMounts:\n')) error('Invalid release agent template')
+    def metadata = "\nmetadata:\n  labels:\n    password-xl.cn/web-deployer: 'true'\n"
+    yaml = yaml.contains('\nmetadata:\n') ? yaml.replace('\nmetadata:\n', metadata) :
+        yaml.replace('\nkind: Pod\n', '\nkind: Pod' + metadata)
     return yaml.replace('serviceAccountName: jenkins-build', 'serviceAccountName: password-xl-web-deployer')
         .replaceFirst('      volumeMounts:\n', '''      volumeMounts:
         - name: deployment-api
