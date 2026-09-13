@@ -24,9 +24,9 @@ from model import (DOMAINS, IMAGE_TARGETS, OUT, ROOT, check_identity, checked_re
                    sha256, write_json)
 
 
-def auth(push=True):
+def auth(push=True, private=False):
     auths = {}
-    for name in registry.REGISTRIES if push else []:
+    for name in registry.REGISTRIES if push else (['private'] if private else []):
         prefix = registry.prefix(name)
         if name == 'private' and env('REGISTRY_PRIVATE_ANONYMOUS', 'false') == 'true':
             continue
@@ -61,6 +61,10 @@ def bundle_frontend(context):
 
 
 def reserve(context):
+    if enabled(context, 'deploy_kubernetes'):
+        from kubernetes_deploy import preflight
+        auth(False, True)  # Validate the private registry prefix/credentials before compilation.
+        preflight()
     if context['deploy_oss']:
         from oss import preflight
         preflight()  # Reject missing settings or access before any publication.
@@ -156,6 +160,8 @@ def domain(context, name):
                 for image in images:
                     registry.distribute(image, context)
                 publish.publish_target(context, target, files, images, runs, endpoints)
+            if target == 'web-x86' and enabled(context, 'deploy_kubernetes'):
+                result['deployment_image'] = registry.deployment_image(images[0], context)
             result['targets'].append(target)
             result['files'].extend(files)
             result['images'].extend(images)
@@ -182,12 +188,19 @@ def finalize(context):
     merged = merge_results(context, results)
     endpoints, manifest = publish.combined_manifest(context, merged)
     state = {'schema': 1, **identity(context), 'status': 'finalizing',
-             'actions': {key: enabled(context, key) for key in ('deploy_oss', 'publish_release', 'push_images', 'sync_repos')},
+             'actions': {key: enabled(context, key) for key in ('deploy_oss', 'deploy_kubernetes', 'publish_release', 'push_images', 'sync_repos')},
              'steps': {'release': 'pending' if endpoints else 'skipped',
                        'images': 'pending' if enabled(context, 'push_images') else 'skipped',
-                       'oss': 'pending' if context['deploy_oss'] else 'skipped'}}
+                       'oss': 'pending' if context['deploy_oss'] else 'skipped',
+                       'kubernetes': 'pending' if enabled(context, 'deploy_kubernetes') else 'skipped'}}
     path = OUT / 'publication.json'
     try:
+        if enabled(context, 'deploy_kubernetes'):
+            from kubernetes_deploy import deploy
+            web = [r for r in results if r.get('domain') == 'web']
+            require(len(web) == 1 and web[0].get('deployment_image'), 'Missing verified Kubernetes image')
+            state['steps']['kubernetes'] = deploy(context, web[0]['deployment_image'], OUT / 'dist-web')
+            write_json(path, state)
         if enabled(context, 'push_images') and context['update_latest']:
             state['steps']['latest'] = []
             for image in merged['images']:
@@ -359,7 +372,7 @@ def write_version(context):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['prepare', 'checkout', 'sync', 'reserve', 'frontend', 'domain', 'finalize', 'write-version', 'worker', 'cancel', 'rollback-oss'])
+    parser.add_argument('command', choices=['prepare', 'checkout', 'sync', 'reserve', 'frontend', 'domain', 'finalize', 'write-version', 'sync-release', 'worker', 'cancel', 'rollback-oss'])
     parser.add_argument('--domain', choices=['all', *DOMAINS], default='all')
     parser.add_argument('--deployment')
     args = parser.parse_args()
@@ -387,13 +400,29 @@ def main():
         return source.synchronize_repositories({**context, 'source_sha': context.get('base_source_sha', context['source_sha'])})
     if args.command == 'write-version':
         return write_version(context)
+    if args.command == 'sync-release':
+        if enabled(context, 'publish_release'):
+            import gitee_release
+            state = read_json(OUT / 'publication.json')
+            require(state['status'] == 'success', 'Cannot synchronize an incomplete release')
+            try:
+                state['steps']['gitee'] = gitee_release.synchronize(context['version'], context['source_sha'])
+            except BaseException:
+                state['status'] = 'partial-failure'
+                state['steps']['gitee'] = 'failed'
+                raise
+            finally:
+                write_json(OUT / 'publication.json', state)
+                for endpoint in publish.releases(context):
+                    endpoint.put(OUT / 'publication.json', mutable=True)
+        return
     if args.command == 'reserve':
         return reserve(context)
     if args.command == 'frontend':
         return bundle_frontend(context)
     relevant = DOMAINS[args.domain] if args.command == 'domain' else context['targets']
     if any(t in IMAGE_TARGETS and t in relevant for t in context['targets']):
-        auth(enabled(context, 'push_images'))
+        auth(enabled(context, 'push_images'), enabled(context, 'deploy_kubernetes') and args.domain in ('all', 'web'))
     if args.command == 'domain':
         return domain(context, args.domain)
     return finalize(context)

@@ -548,7 +548,7 @@ const testAiModel = async () => {
                 显示标签卡片后，您可以在首页方便地管理所有标签，并使用标签功能筛选密码列表。
               </el-text>
             </div>
-            <div class="function-div">
+            <div v-if="loginStore.loginType !== 'official'" class="function-div">
               <div class="function-header">
                 <el-text tag="b">在标题栏显示笔记功能入口</el-text>
                 <el-switch v-model="settingStore.setting.showNote"></el-switch>

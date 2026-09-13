@@ -1,5 +1,6 @@
 <!--密码列表头组件-->
 <script lang="ts" setup>
+import { useLoginStore } from '@/stores/LoginStore'
 import {PasswordDisplayMode, ServiceStatus, Setting, Sort, TopicMode} from "@/types";
 import {usePasswordStore} from "@/stores/PasswordStore.ts";
 import {displaySize, supportAI} from "@/utils/global.ts";
@@ -217,6 +218,7 @@ const openRecycleBin = () => {
 
 // 跳转笔记
 const toNote = () => {
+  if (useLoginStore().loginType === 'official') return
   router.push('/note')
 }
 
@@ -322,7 +324,7 @@ const aiAddPassword = () => {
       </el-button>
 
       <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED
-      && !['xs','sm'].includes(displaySize().value) && settingStore.setting.showNote" content="打开笔记">
+      && useLoginStore().loginType !== 'official' && !['xs','sm'].includes(displaySize().value) && settingStore.setting.showNote" content="打开笔记">
         <el-button class="to-note-btn" plain @click="toNote">
           <span class="iconfont icon-note" style="font-size: 125%;transform: scaleX(1.1);color: #67C23A"/>
         </el-button>
@@ -434,6 +436,7 @@ const aiAddPassword = () => {
             <el-dropdown-item
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
                 divided
+                v-if="useLoginStore().loginType !== 'official'"
                 @click="toNote">
               <span class="iconfont icon-note menu-item" style="color: #67C23A;transform: scaleX(1.1);"></span>
               打开笔记

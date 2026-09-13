@@ -8,6 +8,7 @@ from pathlib import Path
 
 import cache
 import image_state
+import release_records
 from api import Api
 from model import OUT, IMAGE_TARGETS, checked_relative, enabled, env, identity, require, sha256, write_json
 
@@ -73,15 +74,25 @@ class Release:
         return content
 
     def get_json(self, name):
-        asset = self.assets().get(name)
-        if not asset:
-            return None
         if name not in self._contents:
-            self._contents[name] = json.loads(self.content(asset))
+            records = release_records.Records(self.provider, self.context['version'])
+            value = records.get(name)
+            if value is None:
+                asset = self.assets().get(name)
+                if not asset:
+                    return None
+                value = json.loads(self.content(asset))
+                records.put(name, value)
+            self._contents[name] = value
         return self._contents[name]
 
     def put(self, path, mutable=False):
         path = Path(path)
+        if path.suffix.lower() == '.json':
+            value = json.loads(path.read_bytes())
+            release_records.Records(self.provider, self.context['version']).put(path.name, value)
+            self._contents[path.name] = value
+            return
         existing = self.assets().get(path.name)
         digest = sha256(path)
         if existing:
@@ -131,7 +142,7 @@ class Release:
         lines = ['Release ' + self.context['version'], '', notes or '', '',
                  'Source: `' + self.context['source_sha'] + '`',
                  'Targets: ' + ', '.join(manifest['targets']), '',
-                 'See release-manifest.json and SHA256SUMS for provenance and checksums.']
+                 'See SHA256SUMS for download checksums. Build provenance is retained in Jenkins and the internal records store.']
         if any(f.get('legacy_upgrade') == 'export-and-reinstall' for f in manifest.get('files', [])):
             lines += ['', 'Android 签名变更：旧版用户必须先导出数据，再卸载旧版、安装新版并导入。',
                       '新签名 APK 无法直接覆盖旧签名安装；新版联网版和本地版可互相覆盖。']
@@ -234,7 +245,7 @@ def publish_target(context, target, files, images, worker_runs, endpoints=None):
         if images and not enabled(context, 'push_images'):
             # This target is built/validated; an immutable publication receipt is
             # written only when its image destinations actually exist.
-            if not release.assets().get('receipt-' + target + '.json'):
+            if not release.get_json('receipt-' + target + '.json'):
                 checkpoint = OUT / 'metadata' / ('validated-' + target + '.json')
                 write_json(checkpoint, receipt)
                 for image in images:
@@ -287,6 +298,6 @@ def save_manifest(manifest):
     write_json(path, manifest)
     sums = OUT / 'metadata' / 'SHA256SUMS'
     files = manifest['files'] + [image['archive'] for image in manifest.get('images', []) if image.get('archive')]
-    sums.write_text(''.join(f'{f["sha256"]}  {f["name"]}\n' for f in sorted(files, key=lambda x: x['name']))
-                   + f'{sha256(path)}  release-manifest.json\n', encoding='utf-8')
+    sums.write_text(''.join(f'{f["sha256"]}  {f["name"]}\n' for f in sorted(files, key=lambda x: x['name'])
+                           if not f['name'].lower().endswith('.json')), encoding='utf-8')
     return path, sums

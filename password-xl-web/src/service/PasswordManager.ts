@@ -243,6 +243,7 @@ export class PasswordManagerImpl implements PasswordManager {
     // 修改主密码：先准备密文，存储全部完成后才切换内存主密码。
     async updateMainPassword(mainPassword: string, newMainPasswordType: MainPasswordType, newMainPassword: string): Promise<RespData> {
         this.assertWritable()
+        this.databaseClient?.assertCanModify?.()
         if (!this.databaseClient || !this.storeData) throw new Error('存储引擎未初始化')
         if (!this.verifyPassword(mainPassword)) throw new Error('旧密码错误')
         if (!newMainPassword) throw new Error('新主密码不能为空')
@@ -574,7 +575,8 @@ export class PasswordManagerImpl implements PasswordManager {
         this.passwordStore.allPasswordArray = []
         this.passwordStore.labelArray = []
         this.passwordStore.setServiceStatus(ServiceStatus.LOGGED)
-        localStorage.removeItem('mainPassword')
+        const officialUser = localStorage.getItem('official-user')
+        localStorage.removeItem(this.loginStore.loginType === 'official' && officialUser ? `mainPassword:official:${officialUser}` : 'mainPassword')
     }
 
     // 清空回收站
@@ -613,6 +615,12 @@ export class PasswordManagerImpl implements PasswordManager {
         return this.enqueueWrite(async () => {
             if (revision !== this.storeRevision) return {status: false, message: '先前保存失败，本次操作未保存，请重新操作'}
             try {
+                if (this.databaseClient!.validateStoreChange) {
+                    const previous = this.storeData ? normalizePasswordArray(decompressionArray(JSON.parse(decryptAES(this.passwordStore.mainPassword, this.storeData.passwordData)))) : []
+                    const oldLabels = this.storeData ? decryptAES(this.passwordStore.mainPassword, this.storeData.labelData) : '[]'
+                    const next = normalizePasswordArray(decompressionArray(JSON.parse(decryptAES(this.passwordStore.mainPassword, content.passwordData))))
+                    this.databaseClient!.validateStoreChange(previous, next, oldLabels !== decryptAES(this.passwordStore.mainPassword, content.labelData))
+                }
                 this.requireSuccess(await this.databaseClient!.setStoreData(JSON.stringify(content)))
                 this.storeData = content
                 return {status: true}

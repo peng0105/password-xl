@@ -12,6 +12,9 @@ import mobileStaticBackground from '@/assets/images/background-m-static.svg'
 const refStore = useRefStore()
 const settingStore = useSettingStore()
 const passwordStore = usePasswordStore()
+const officialAccountChanged = () => passwordStore.logout(false)
+onMounted(() => window.addEventListener('official-account-changed', officialAccountChanged))
+onUnmounted(() => window.removeEventListener('official-account-changed', officialAccountChanged))
 
 // 系统加载初始化主题
 let topicMode = localStorage.getItem("topicMode") || 'auto';

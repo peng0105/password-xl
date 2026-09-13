@@ -2,7 +2,7 @@
 
 Use JENKINS_URL and JENKINS_AUTHORIZATION (the complete HTTP Authorization header).
 Run with --folder <folder>; inspect the report, then add --apply to install it.
-Only descriptions and parameter names change. Versions/defaults/SCM/history stay intact.
+Existing versions/defaults/SCM/history stay intact; Web/coordinator gain an opt-in cluster switch.
 """
 import argparse
 import http.cookiejar
@@ -14,7 +14,7 @@ import urllib.parse
 import urllib.request
 from xml.etree import ElementTree as ET
 
-NAMES = {'VERSION': '构建版本', 'DEPLOY_OSS': '发布OSS', 'PUBLISH_RELEASE': '发布Release',
+NAMES = {'VERSION': '构建版本', 'DEPLOY_OSS': '发布OSS', 'DEPLOY_KUBERNETES': '发布Kubernets', 'PUBLISH_RELEASE': '发布Release',
          'PUSH_IMAGES': '推送镜像', 'SYNC_REPOS': '同步仓库'}
 JOBS = ['password-xl-release'] + ['password-xl-' + d + '-release'
                                  for d in ('web', 'service', 'desktop', 'android')]
@@ -48,6 +48,14 @@ def migrate(config):
         raise ValueError('Duplicate or missing version parameter')
     for parameter, name in zip(definitions, translated):
         parameter.find('name').text = name
+        if name == '发布Release':
+            parameter.find('description').text = '发布 GitHub / Gitea / Gitee 发行版；关闭时产物只归档到 Jenkins'
+    if '发布OSS' in translated and '发布Kubernets' not in translated:
+        parameter = ET.Element('hudson.model.BooleanParameterDefinition')
+        ET.SubElement(parameter, 'name').text = '发布Kubernets'
+        ET.SubElement(parameter, 'description').text = '全部成功后部署集群 Web；关闭推送镜像时仅上传内网部署所需镜像'
+        ET.SubElement(parameter, 'defaultValue').text = 'false'
+        definitions.insert(translated.index('发布OSS') + 1, parameter)
     return config
 
 

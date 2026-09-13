@@ -1,6 +1,6 @@
 # 统一发布预验收记录
 
-这是冻结 1.5.0 发布源码前的环境与构建检查记录。最终发布结果以 Jenkins 总入口、两站 Release 中的 `release-manifest.json`、`SHA256SUMS` 和 `publication.json` 为准；预验收产物不会冒充最终提交的产物。
+这是冻结 1.5.0 发布源码前的环境与构建检查记录。最终发布结果以 Jenkins 总入口及归档记录、发行版中的 `SHA256SUMS` 为准；原公开 `release-manifest.json`、`publication.json` 等 JSON 已改为内部记录，见 [集群部署与发行版](kubernetes-and-releases.md)。预验收产物不会冒充最终提交的产物。
 
 ## 已通过的检查
 

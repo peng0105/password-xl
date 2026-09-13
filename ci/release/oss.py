@@ -100,11 +100,14 @@ def cdn_refresh(config):
 
 
 def public_verify(config, manifest):
-    for file in manifest['files']:
-        url = config['public_url'] + urllib.parse.quote(file['name'], safe='/')
-        with urllib.request.urlopen(url, timeout=30) as response:
-            digest = hashlib.sha256(response.read()).hexdigest()
-        require(digest == file['sha256'], 'CDN served an unexpected file: ' + file['name'])
+    # DNS may currently route to Kubernetes. Public access is diagnostic, not OSS proof.
+    try:
+        with urllib.request.urlopen(config['public_url'] + 'release.json', timeout=20) as response:
+            observed = json.loads(response.read())
+        return {'status': 'reachable', 'observed': observed,
+                'matches_deployment': all(observed.get(k) == manifest.get(k) for k in ('version', 'source_sha'))}
+    except Exception as error:
+        return {'status': 'unavailable', 'error_type': type(error).__name__}
 
 
 def activate(storage, config, manifest, backup):
@@ -120,9 +123,12 @@ def activate(storage, config, manifest, backup):
         cache = 'public,max-age=31536000,immutable' if re.search(r'^assets/.+-[A-Za-z0-9_-]{8,}\.', name) else 'no-cache'
         storage.put(name, data, cache)
     tasks = cdn_refresh(config)
-    public_verify(config, manifest)
+    for file in files:
+        require(hashlib.sha256(storage.get(file['name'])).hexdigest() == file['sha256'],
+                'OSS origin differs from deployment: ' + file['name'])
+    diagnostic = public_verify(config, manifest)
     storage.put('_releases/current.json', json.dumps({'deployment': manifest['deployment']}).encode())
-    return {'deployment': manifest['deployment'], 'cdn_tasks': tasks, 'status': 'verified'}
+    return {'deployment': manifest['deployment'], 'cdn_tasks': tasks, 'status': 'verified', 'public_access': diagnostic}
 
 
 def snapshot_existing(storage):

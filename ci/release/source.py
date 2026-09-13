@@ -43,7 +43,9 @@ def android_checkout(ref):
 def prepare(domain):
     targets = list(TARGETS if domain == 'all' else DOMAINS[domain])
     deploy = switch('DEPLOY_OSS', False)
+    kubernetes = switch('DEPLOY_KUBERNETES', False)
     require(not deploy or domain in ('all', 'web'), 'Only the coordinator/Web can deploy OSS')
+    require(not kubernetes or domain in ('all', 'web'), 'Only the coordinator/Web can deploy Kubernetes')
     sha = pin(env('GITEA_SOURCE_URL'), 'master', env('GITEA_TOKEN'))
     git(['checkout', '--detach', sha], env('GITEA_TOKEN'))
     version = env('RELEASE_VERSION', read_json(ROOT / 'password-xl-web/package.json')['version']).strip()
@@ -53,7 +55,7 @@ def prepare(domain):
         version_code(version)
         _, android_sha = android_checkout('master')
     context = {'schema': 1, 'version': version, 'source_sha': sha, 'android_sha': android_sha,
-               'targets': targets, 'deploy_oss': deploy,
+               'targets': targets, 'deploy_oss': deploy, 'deploy_kubernetes': kubernetes,
                'publish_release': switch('PUBLISH_RELEASE'), 'push_images': switch('PUSH_IMAGES'),
                'sync_repos': switch('SYNC_REPOS'),
                'update_latest': True, 'release_notes': '',
