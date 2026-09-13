@@ -76,7 +76,6 @@ watch(() => settingStore.setting.passwordDisplayMode, () => {
             class="password-card"
         >
           <!-- 密码表头 -->
-          <OfficialQuota v-if="officialState.info" />
           <PasswordHeader></PasswordHeader>
           <!-- 正在过滤密码提示语 -->
           <FilteringTip></FilteringTip>
@@ -109,7 +108,6 @@ watch(() => settingStore.setting.passwordDisplayMode, () => {
   <div v-else :style="{'background-color': passwordStore.isDark?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'}"
        style="backdrop-filter: blur(50px);height: 100vh">
     <!-- 密码表头 -->
-    <OfficialQuota v-if="officialState.info" />
     <PasswordHeader></PasswordHeader>
     <!-- 正在过滤密码提示语 -->
     <FilteringTip></FilteringTip>

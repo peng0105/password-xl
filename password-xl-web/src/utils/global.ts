@@ -31,9 +31,9 @@ export const displaySize = () => {
     return displaySizeValue;
 }
 
-window.onresize = () => {
+window.addEventListener('resize', () => {
     displaySize()
-}
+})
 
 // 复制文本
 export async function copyText(text: string, silent: boolean = false) {

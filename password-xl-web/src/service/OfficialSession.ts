@@ -1,11 +1,11 @@
 import { reactive } from 'vue'
 
-export interface OfficialQuota { quotaBytes: number; usedBytes: number; storeBytes: number; settingBytes: number; status: string; checkedAt: string | null }
+export interface OfficialQuota { quotaBytes: number; usedBytes: number; storeBytes: number; settingBytes: number; status: string; checkedAt: string | null; quotaUntil?: string | null; checkFailed?: boolean }
 export interface OfficialFileGrant { uploadUrl: string; fields: Record<string, string>; getUrl: string; headUrl: string; maxBytes: number }
 export interface OfficialGrant { userId: string; vaultId: string; quotaBytes: number; expiresAt: string; files: Record<string, OfficialFileGrant> }
-export interface OfficialInfo { user: { id: string; displayName?: string; email?: string }; quota: OfficialQuota; grant?: OfficialGrant; error?: string; contact: string; storageDisabled: boolean; storageStatus?: string; storageMessage?: string; usageKnown?: boolean }
+export interface OfficialInfo { user: { id: string; displayName?: string; email?: string; createdAt?: string }; loginIdentity?: {provider: string; value: string}; quota: OfficialQuota; grant?: OfficialGrant; error?: string; contact: string; storageDisabled: boolean; storageStatus?: string; storageMessage?: string; usageKnown?: boolean }
 export const officialOrigin = (import.meta.env.VITE_OFFICIAL_ACCOUNT_ORIGIN || 'https://account.password-xl.cn').replace(/\/$/, '')
-export const officialState = reactive<{ info: OfficialInfo | null; epoch: number }>({ info: null, epoch: 0 })
+export const officialState = reactive<{ info: OfficialInfo | null; epoch: number; initialization: number; usageDirty: boolean }>({ info: null, epoch: 0, initialization: 0, usageDirty: false })
 let refresh: Promise<OfficialInfo> | null = null
 const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('password-xl-official') : null
 
@@ -43,6 +43,8 @@ export async function restoreOfficial(initial = false): Promise<OfficialInfo> {
       throw new Error('官方账号已切换，请重新登录密码库')
     }
     officialState.info = info
+    officialState.usageDirty = false
+    if (initial) officialState.initialization++
     localStorage.setItem('official-user', info.user.id)
     localStorage.setItem('official-selected', 'true')
     channel?.postMessage({ type: 'identity', id: info.user.id })

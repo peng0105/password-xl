@@ -237,6 +237,7 @@ defineExpose({
       </el-tab-pane>
     </el-tabs>
 
+    <el-button v-if="loginStore.loginType === 'official' && passwordStore.serviceStatus === ServiceStatus.WAIT_INIT" link type="primary" @click="setPasswordVis = false; refStore.settingRef.openSetting('loginInfo')">查看官方账号信息</el-button>
     <template v-if="mainPasswordType === MainPasswordType.STANDARD" #footer>
       <el-button :disabled="passwordStore.globalLoading.vis" type="primary"
                  @click="setMainPasswordConfirm(setPasswordFormRef)">确定

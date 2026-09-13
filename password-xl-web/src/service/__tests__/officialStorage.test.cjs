@@ -2,6 +2,28 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {harness, clone, deferred} = require('./sourceHarness.cjs');
 
+test('quota notifications start at 80 percent and retain full and blocked boundaries', t => {
+  const {quotaNotice, quotaStatus} = harness(t).load('src/service/officialPresentation.ts');
+  for (const [used, expected] of [[7999, 'NORMAL'], [8000, 'WARNING'], [9999, 'WARNING'], [10000, 'FULL'], [19999, 'FULL'], [20000, 'BLOCKED']]) {
+    assert.equal(quotaStatus(used, 10000), expected);
+    const info = {usageKnown: true, quota: {usedBytes: used, quotaBytes: 10000}};
+    assert.equal(!!quotaNotice(info), used >= 8000);
+    assert.equal(quotaNotice({...info, usageKnown: false}), null);
+    assert.equal(quotaNotice({...info, quota: {...info.quota, checkFailed: true}}), null);
+  }
+});
+
+test('account deletion pauses new writes and waits for an existing save before submission', async t => {
+  const h = harness(t), pending = deferred();
+  h.database.setStoreData = async text => { await pending.promise; h.files.store = text; return {status: true}; };
+  const writing = h.manager.addPassword(h.password(2)); await new Promise(setImmediate);
+  let submitted = false;
+  const deletion = h.manager.withPausedWrites(async () => { submitted = true; });
+  await new Promise(setImmediate); assert.equal(submitted, false);
+  assert.throws(() => h.manager.addPassword(h.password(3)), /切换存储/);
+  pending.resolve(); await writing; await deletion; assert.equal(submitted, true);
+});
+
 async function fixture(t) {
   const h = harness(t), calls = [];
   const file = {maxBytes: 1000, fields: {key: 'users/a/v/store.json', policy: 'signed'}, uploadUrl: 'https://oss.test/upload', getUrl: 'https://oss.test/get', headUrl: 'https://oss.test/head'};

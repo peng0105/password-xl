@@ -15,7 +15,8 @@ const isAndroid = () => {
 
 <template>
   <el-form label-width="80px">
-    <template v-if="loginStore.loginType === 'oss'">
+    <OfficialAccountInfo v-if="loginStore.loginType === 'official'" />
+    <template v-else-if="loginStore.loginType === 'oss'">
       <div style="text-align: center;margin-bottom: 5px;width: 100%">
         <img alt="" class="login-type-image" src="@/assets/images/login/oss.png" style="height: 28px">
         <el-text style="font-size: 24px">阿里云OSS</el-text>

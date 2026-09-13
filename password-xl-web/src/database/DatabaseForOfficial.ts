@@ -1,3 +1,4 @@
+import {quotaStatus} from '@/service/officialPresentation.ts'
 import type { Database, Password, RespData } from '@/types'
 import { PasswordStatus } from '@/types'
 import { currentOfficialGrant, officialApi, officialState, restoreOfficial } from '@/service/OfficialSession'
@@ -101,7 +102,8 @@ export class DatabaseForOfficial implements Database {
     const q = officialState.info!.quota
     if (name === 'store.json') q.storeBytes = size; else q.settingBytes = size
     q.usedBytes = q.storeBytes + q.settingBytes
-    q.status = q.usedBytes >= 2 * q.quotaBytes ? 'BLOCKED' : q.usedBytes >= q.quotaBytes ? 'FULL' : q.usedBytes >= q.quotaBytes * .6 ? 'WARNING' : 'NORMAL'
+    q.status = quotaStatus(q.usedBytes, q.quotaBytes)
+    officialState.usageDirty = true
   }
   getStoreData() { return this.read('store.json') }
   getSettingData() { return this.read('setting.json') }

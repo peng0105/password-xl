@@ -240,9 +240,10 @@ test('edits during a note write remain dirty and the old write cannot rename ano
 
 test('note unmount cancels autosave and ignores a pending load response', async t => {
   const h = harness(t); h.addTree(); const pending = deferred();
+  const applicationListeners = new Set(h.listeners);
   h.database.getData = () => pending.promise; const editor = h.noteEditor();
   const show = editor.showNote(h.ns.getTreeNoteById('A')); await tick(); h.dispose(); pending.resolve('');
-  assert.equal(await show, false); assert.equal(editor.noteData.value.id, ''); assert.equal(h.listeners.size, 0);
+  assert.equal(await show, false); assert.equal(editor.noteData.value.id, ''); assert.deepEqual(h.listeners, applicationListeners);
 });
 
 test('a late data read cannot replace a newer successful cache write', async t => {
