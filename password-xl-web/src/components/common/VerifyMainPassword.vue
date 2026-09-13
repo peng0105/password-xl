@@ -186,7 +186,15 @@ const showGesture = (): boolean => {
   return settingStore.setting.verifyShowGesture
 }
 
+let sensitiveCancel: (() => void) | null = null
+const verifySensitive = (): Promise<string | null> => new Promise(resolve => {
+  getAndVerify((password: string) => passwordStore.passwordManager.verifyPassword(password)).then(resolve)
+  sensitiveCancel = () => resolve(null)
+})
+const afterClose = () => { sensitiveCancel?.(); sensitiveCancel = null }
+
 defineExpose({
+  verifySensitive,
   getAndVerify,
   verifyAndUnlock
 })
@@ -202,6 +210,7 @@ defineExpose({
       top="20vh"
       @open="formRef?.resetFields()"
       @opened="onOpen"
+      @closed="afterClose"
   >
     <template #header>
       <el-text size="large" style="user-select: none;">

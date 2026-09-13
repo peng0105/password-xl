@@ -247,7 +247,7 @@ export const usePasswordStore = defineStore('passwordStore', {
             this.privacyModeRevealed = false
         },
         // 退出登录
-        async logout(remote = true) {
+        async logout(remote = true, deleted = false) {
             const official = useLoginStore().loginType === 'official'
             if (official) {
                 const {officialApi, clearOfficial} = await import('@/service/OfficialSession')
@@ -275,7 +275,7 @@ export const usePasswordStore = defineStore('passwordStore', {
             useLoginStore().$resetFields()
             useSettingStore().$resetFields()
 
-            location.href = getLocationUrl() + '/login';
+            location.href = getLocationUrl() + (deleted ? '/login?accountDeleted=1' : '/login');
         },
         // 设置主题
         setTopicMode(topic: TopicMode) {

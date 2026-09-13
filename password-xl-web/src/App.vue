@@ -53,6 +53,8 @@ watch(backgroundMode, (mode) => {
        @click="passwordStore.resetTimeoutLock()">
     <el-config-provider :locale="zhCn">
       <router-view></router-view>
+      <OfficialQuotaNotification />
+      <OfficialDeletionResult />
 
       <!-- 密码验证组件 -->
       <VerifyMainPassword :ref="(el:any) => refStore.verifyPasswordRef = el"></VerifyMainPassword>

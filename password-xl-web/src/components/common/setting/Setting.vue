@@ -22,6 +22,7 @@ const refStore = useRefStore()
 
 // 是否已验证密码
 const authenticated = ref(false);
+const activeTab = ref('0')
 const aiApiKeyInput = ref('')
 const aiModelSaving = ref(false)
 const aiModelTesting = ref(false)
@@ -32,7 +33,8 @@ const passwordExclusions = computed(() => settingStore.setting.passwordExclusion
 const topicMode: Ref<TopicMode> = ref(TopicMode.AUTO)
 
 // 打开设置
-const openSetting = () => {
+const openSetting = (tab?: string) => {
+  activeTab.value = typeof tab === 'string' ? tab : '0'
   console.log('打开设置')
   let localTopicMode = localStorage.getItem("topicMode");
   if (!localTopicMode) {
@@ -118,7 +120,7 @@ const switchTab = (activeName: TabPaneName): Promise<boolean> => {
   if (authenticated.value) {
     return Promise.resolve(true);
   }
-  if (activeName === 'loginInfo' && !['local', 'electron'].includes(loginStore.loginType)) {
+  if (activeName === 'loginInfo' && !['local', 'electron', 'official'].includes(loginStore.loginType)) {
     console.log('设置，切换登录信息，验证密码')
     return new Promise((resolve, reject) => {
       refStore.verifyPasswordRef.getAndVerify((mainPassword: string) => passwordStore.passwordManager.verifyPassword(mainPassword)).then(() => {
@@ -434,6 +436,7 @@ const testAiModel = async () => {
 
 <template>
   <el-dialog
+      class="settings-dialog"
       v-model="settingStore.visSetting"
       :fullscreen="['xs', 'sm'].includes(displaySize().value)"
       draggable
@@ -446,7 +449,7 @@ const testAiModel = async () => {
       </el-text>
     </template>
     <el-form :model="settingStore.setting" label-position="right" label-width="140px">
-      <el-tabs :before-leave="switchTab" style="margin-top: 10px;" tab-position="left">
+      <el-tabs v-model="activeTab" :before-leave="switchTab" style="margin-top: 10px;" :tab-position="displaySize().value === 'xs' ? 'top' : 'left'">
         <el-tab-pane>
           <template #label>
             <el-text>
@@ -851,7 +854,8 @@ const testAiModel = async () => {
             </div>
             <div class="function-div" style="display: flex;justify-content: space-evenly;">
               <el-button plain type="primary" @click="refStore.setPasswordRef.setMainPassword">修改主密码</el-button>
-              <el-button type="danger" @click="refStore.cancelAccountRef.showCloseAccount">注销账户</el-button>
+              <el-button v-if="loginStore.loginType !== 'official'" type="danger" @click="refStore.cancelAccountRef.showCloseAccount">注销账户</el-button>
+              <el-button v-else @click="refStore.cancelAccountRef.showCloseAccount">清空密码库</el-button>
             </div>
           </el-scrollbar>
         </el-tab-pane>
@@ -868,7 +872,7 @@ const testAiModel = async () => {
             </div>
           </el-scrollbar>
         </el-tab-pane>
-        <el-tab-pane v-if="!isAndroid()">
+        <el-tab-pane v-if="!isAndroid()" name="backup">
           <template #label>
             <el-text>
               <span class="iconfont icon-recovery action-icon" style="color: #ffc400"></span>
@@ -1032,6 +1036,8 @@ const testAiModel = async () => {
 </template>
 
 <style scoped>
+.settings-dialog { max-width: 100vw; }
+:deep(.el-tabs__content) { min-width: 0; }
 .password-exclusion-header { align-items: center; }
 .excluded-characters { display: flex; align-items: center; gap: 18px; margin: 12px 10px 0; }
 .excluded-characters label { flex-shrink: 0; color: var(--el-text-color-regular); font-size: 13px; }
