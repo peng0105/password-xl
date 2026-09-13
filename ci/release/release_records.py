@@ -27,19 +27,23 @@ class Records:
 
     def get(self, name):
         filename = self.filename(name)
+        # List before reading: dozens of expected per-file 404s look like URL probing
+        # to the ingress protection when a new version is initialized.
+        try:
+            files = self.api.pages(self.files)
+        except ApiError as error:
+            if error.status != 404:
+                raise
+            files = []
         if name in MUTABLE:
-            try:
-                files = self.api.pages(self.files)
-            except ApiError as error:
-                if error.status != 404:
-                    raise
-                files = []
             prefix = filename[:-5] + '.rev-'
             matches = [f for f in files if f['name'].startswith(prefix) and f['name'].endswith('.json')]
             if not matches:
                 return None
             # Package file IDs are allocated by the server, avoiding client clock skew.
             filename = max(matches, key=lambda f: int(f['id']))['name']
+        elif not any(f['name'] == filename for f in files):
+            return None
         return self.api.maybe(self.path + filename)
 
     def put(self, name, value):

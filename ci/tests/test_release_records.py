@@ -52,6 +52,11 @@ class InternalRecords(unittest.TestCase):
         Records('gitea', '1.5.1').put('receipt-web-x86.json', {'sha':'b'})
         self.assertEqual(self.records.get('receipt-web-x86.json'), {'sha':'a'})
 
+    def test_missing_record_does_not_probe_nonexistent_file_url(self):
+        with patch.object(self.api, 'maybe', wraps=self.api.maybe) as read:
+            self.assertIsNone(self.records.get('release-source.json'))
+            read.assert_not_called()
+
     def test_failed_backup_never_deletes_public_attachment(self):
         store, remove = Mock(), Mock()
         store.get.return_value = None
