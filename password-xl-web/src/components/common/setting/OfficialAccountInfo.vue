@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { officialOrigin, officialState } from '@/service/OfficialSession'
-import { officialBytes, officialDate } from '@/service/officialPresentation'
+import { officialDate } from '@/service/officialPresentation'
+import { estimateRemainingPasswords } from '@/service/officialCapacity'
 import { copyText } from '@/utils/global'
 import { usePasswordStore } from '@/stores/PasswordStore'
 import { useRefStore } from '@/stores/RefStore'
@@ -13,7 +14,8 @@ const info = computed(() => officialState.info),
 const ratio = computed(() =>
   q.value?.quotaBytes ? (q.value.usedBytes / q.value.quotaBytes) * 100 : 0,
 )
-const known = computed(() => !!q.value && info.value?.usageKnown !== false)
+const known = computed(() => !!q.value && info.value?.usageKnown !== false && !q.value.checkFailed)
+const remainingPasswords = computed(() => estimateRemainingPasswords(store.allPasswordArray, info.value))
 const color = computed(() =>
   ratio.value >= 100 ? '#e45d66' : ratio.value >= 80 ? '#d79728' : '#32b7f0',
 )
@@ -65,8 +67,12 @@ function initialize() {
         :color="color"
       />
       <div class="capacity-values">
-        <strong>{{ known ? officialBytes(q.usedBytes) : '用量未知' }}</strong
-        ><span>/ {{ officialBytes(q.quotaBytes) }}</span>
+        <template v-if="remainingPasswords !== null">
+          <span>预计还可存储</span>
+          <strong>{{ remainingPasswords.toLocaleString('zh-CN') }}</strong>
+          <span>个密码</span>
+        </template>
+        <span v-else>{{ known && !store.allPasswordArray.length ? '添加密码后可估算剩余数量' : '暂无法估算剩余数量' }}</span>
       </div>
       <p v-if="q.quotaUntil">临时额度至 {{ officialDate(q.quotaUntil) }}</p>
     </div>
@@ -157,6 +163,7 @@ function initialize() {
 }
 .capacity-values {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 7px;
   margin-top: 17px;
