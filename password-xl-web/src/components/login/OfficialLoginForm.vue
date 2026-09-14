@@ -8,7 +8,7 @@ const profile = ref<OfficialInfo | null>(null)
 const busy = ref(true), error = ref(''), needsLogin = ref(false)
 let mounted = true
 const identity = computed(() => profile.value?.loginIdentity?.value || profile.value?.user.email || profile.value?.user.displayName || '')
-const identityLabel = computed(() => ({email: '邮箱', github: 'GitHub', phone: '手机号', sms: '手机号'}[profile.value?.loginIdentity?.provider || ''] || '账号'))
+const identityLabel = computed(() => ({email: '邮箱', github: 'GitHub', gitee: 'Gitee', wechat: '微信'}[profile.value?.loginIdentity?.provider || ''] || '账号'))
 
 function failed(e: any) {
   needsLogin.value = e.status === 401
@@ -59,7 +59,7 @@ onUnmounted(() => { mounted = false })
     </div>
     <el-skeleton v-else-if="busy" :rows="2" animated class="identity-loading" />
     <el-alert v-if="error" :title="error" type="error" :closable="false" class="connection-error" />
-    <el-button class="login-btn" plain round type="primary" :loading="busy" @click="enter">{{ needsLogin ? '重新登录' : !profile && !busy ? '重试' : '进入' }}</el-button>
+    <el-button class="login-btn" plain round type="primary" :loading="busy" @click="enter">{{ needsLogin ? '重新登录' : !profile && !busy ? '重试' : '继续进入密码库' }}</el-button>
     <div class="account-link"><el-link :href="officialOrigin" type="primary" underline="hover">账号中心</el-link></div>
   </section>
 </template>

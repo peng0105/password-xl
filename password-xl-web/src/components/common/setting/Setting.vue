@@ -449,7 +449,7 @@ const testAiModel = async () => {
       </el-text>
     </template>
     <el-form :model="settingStore.setting" label-position="right" label-width="140px">
-      <el-tabs v-model="activeTab" :before-leave="switchTab" style="margin-top: 10px;" :tab-position="displaySize().value === 'xs' ? 'top' : 'left'">
+      <el-tabs v-model="activeTab" :before-leave="switchTab" :tab-position="displaySize().value === 'xs' ? 'top' : 'left'">
         <el-tab-pane>
           <template #label>
             <el-text>
@@ -1037,6 +1037,8 @@ const testAiModel = async () => {
 
 <style scoped>
 .settings-dialog { max-width: 100vw; }
+:global(.settings-dialog .el-dialog__header) { padding-bottom: 8px; }
+:global(.settings-dialog .el-dialog__body) { padding-top: 8px; }
 :deep(.el-tabs__content) { min-width: 0; }
 .password-exclusion-header { align-items: center; }
 .excluded-characters { display: flex; align-items: center; gap: 18px; margin: 12px 10px 0; }
