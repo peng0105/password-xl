@@ -103,6 +103,8 @@ Skopeo 先将本地 Docker/OCI archive 规范为压缩的单架构 Docker v2 man
 
 ## 发布、重试和取消
 
+镜像查询跳过无用的仓库标签列表，查询和分发遇到临时网络错误最多重试三次。Release 附件上传默认超时为 600 秒，可用 `RELEASE_UPLOAD_TIMEOUT_SECONDS` 调整；上传异常后先重新列举远端附件，完整附件必须通过大小和 SHA256 校验后才复用，缺失附件才重传。GitHub 的空 `starter` 失败占位可清理后重传，已完成或非空的冲突附件不会覆盖。普通 API 只自动重试 GET，不直接重发结果未知的 POST。
+
 每个目标在验证成功后先保存 `validated-TARGET.json`，完成分发和附件上传后保存不可变 `receipt-TARGET.json`。重试优先读取已有 receipt/checkpoint，验证文件实际 SHA256，修复另一站缺失附件；原始 worker 的附件仅按保存的 Run ID、request ID 恢复。签名文件不会靠重新签名覆盖同名附件。若原 worker 已过期且双站都没有原始字节，需要从 Jenkins 归档恢复原文件；流水线会失败而不会静默替换。
 
 总清单 `release-manifest.json` 汇总同版本之前和本次已完成的目标，含主/安卓 SHA、Jenkins 构建、GitHub Run ID、文件 SHA256、镜像 digest/目的地址；公开 `SHA256SUMS` 只包含下载产物摘要。`publication.json` 另行记录 Release、latest、OSS、Kubernetes 等非原子操作的实际结果。所有 JSON 记录存储于内部 Gitea Generic Package 和 Jenkins 归档，不再作为公开发行版附件。下载附件同名不同内容会失败，只有校验文件允许按聚合产物更新。

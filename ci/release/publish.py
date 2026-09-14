@@ -2,6 +2,7 @@
 import hashlib
 import json
 import mimetypes
+import time
 import urllib.parse
 import uuid
 from pathlib import Path
@@ -9,7 +10,7 @@ from pathlib import Path
 import cache
 import image_state
 import release_records
-from api import Api
+from api import Api, ApiError, TRANSPORT_ERRORS
 from model import OUT, IMAGE_TARGETS, checked_relative, enabled, env, identity, require, sha256, write_json
 
 
@@ -106,23 +107,51 @@ class Release:
             self.api.request('DELETE', delete_path)
             self.assets().pop(path.name, None)
             self._contents.pop(path.name, None)
-        if self.github:
-            uploader = Api('https://uploads.github.com', env('GH_TOKEN'), True)
-            uploaded = uploader.request('POST', self.assets_path + '?name=' + urllib.parse.quote(path.name),
-                                        path.read_bytes(), {'Content-Type': mimetypes.guess_type(path.name)[0] or 'application/octet-stream'})
-        else:
-            boundary = 'release-' + uuid.uuid4().hex
-            head = (f'--{boundary}\r\nContent-Disposition: form-data; name="attachment"; filename="{path.name}"'
-                    '\r\nContent-Type: application/octet-stream\r\n\r\n').encode()
-            body = head + path.read_bytes() + f'\r\n--{boundary}--\r\n'.encode()
-            uploaded = self.api.request('POST', self.assets_path + '?name=' + urllib.parse.quote(path.name), body,
-                                        {'Content-Type': 'multipart/form-data; boundary=' + boundary})
+        uploaded = self.upload_with_recovery(path)
         require(uploaded and uploaded.get('name') == path.name and uploaded.get('size') == path.stat().st_size,
                 'Uploaded asset metadata mismatch')
         self.assets()[path.name] = uploaded
         actual = self.known_digest(uploaded) or hashlib.sha256(self.content(uploaded)).hexdigest()
         require(actual == digest, 'Uploaded asset checksum mismatch')
         cache.remember(path.read_bytes(), self.asset_key(uploaded))
+
+    def upload_with_recovery(self, path):
+        for attempt in range(4):
+            try:
+                return self.upload(path)
+            except (ApiError, *TRANSPORT_ERRORS) as error:
+                if isinstance(error, ApiError) and error.status not in (409, 422, 429) and error.status < 500:
+                    raise
+                # A lost response does not mean the upload failed. Re-list before retrying;
+                # put() verifies the returned metadata and checksum without replacing it.
+                existing = self.assets(refresh=True).get(path.name)
+                if existing:
+                    if self.github and existing.get('state') == 'starter' and existing.get('size') == 0:
+                        # GitHub can leave an empty starter after an upstream upload failure.
+                        self.api.request('DELETE', f'{self.path}/releases/assets/{existing["id"]}')
+                        self.assets().pop(path.name, None)
+                    else:
+                        return existing
+                if attempt == 3:
+                    raise
+                print(f'{self.provider}: retry asset upload {path.name} ({attempt + 1}/3)', flush=True)
+                time.sleep(2 ** attempt)
+
+    def upload(self, path):
+        timeout = int(env('RELEASE_UPLOAD_TIMEOUT_SECONDS', '600'))
+        require(timeout > 0, 'Release upload timeout must be positive')
+        if self.github:
+            uploader = Api('https://uploads.github.com', env('GH_TOKEN'), True)
+            return uploader.request('POST', self.assets_path + '?name=' + urllib.parse.quote(path.name),
+                                    path.read_bytes(), {'Content-Type': mimetypes.guess_type(path.name)[0] or 'application/octet-stream'},
+                                    timeout=timeout)
+        else:
+            boundary = 'release-' + uuid.uuid4().hex
+            head = (f'--{boundary}\r\nContent-Disposition: form-data; name="attachment"; filename="{path.name}"'
+                    '\r\nContent-Type: application/octet-stream\r\n\r\n').encode()
+            body = head + path.read_bytes() + f'\r\n--{boundary}--\r\n'.encode()
+            return self.api.request('POST', self.assets_path + '?name=' + urllib.parse.quote(path.name), body,
+                                    {'Content-Type': 'multipart/form-data; boundary=' + boundary}, timeout=timeout)
 
     def reserve(self):
         main = {key: self.context[key] for key in ('version', 'source_sha')}
