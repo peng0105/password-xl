@@ -36,15 +36,6 @@ const modes: Record<string, string> = {
   phone: '手机号',
   sms: '手机号',
 }
-const state = computed(() =>
-  info.value?.storageDisabled
-    ? '已暂停'
-    : ratio.value >= 200
-      ? '暂不可用'
-      : ratio.value >= 100
-        ? '空间已满'
-        : '已连接',
-)
 const userId = computed(() => info.value?.user.publicId || info.value?.user.id || '')
 const accountCenter = () => window.open(officialOrigin, '_blank', 'noopener')
 function initialize() {
@@ -60,12 +51,7 @@ function initialize() {
         <h2>官方存储</h2>
         <p>你的账号与云端空间</p>
       </div>
-      <el-tag
-        :type="ratio >= 100 || info.storageDisabled ? 'warning' : 'primary'"
-        effect="light"
-        round
-        >{{ state }}</el-tag
-      >
+      <el-button class="account-center" type="primary" plain @click="accountCenter">账号中心</el-button>
     </header>
     <div class="capacity-card">
       <div class="capacity-label">
@@ -111,14 +97,11 @@ function initialize() {
         <dd>{{ identity.value }}</dd>
       </div>
     </dl>
-    <div class="account-actions">
+    <div class="account-actions" v-if="store.serviceStatus === ServiceStatus.WAIT_INIT">
       <el-button
-        v-if="store.serviceStatus === ServiceStatus.WAIT_INIT"
         type="primary"
         @click="initialize"
         >设置主密码</el-button
-      ><el-button type="primary" plain @click="accountCenter"
-        >账号中心</el-button
       >
     </div>
   </section>
@@ -141,7 +124,9 @@ function initialize() {
 .identity-heading img {
   width: 42px;
   height: 42px;
+  flex-shrink: 0;
 }
+.identity-heading > div { min-width: 0; }
 .identity-heading h2 {
   font-size: 20px;
   margin: 0 0 5px;
@@ -151,8 +136,9 @@ function initialize() {
   color: var(--el-text-color-secondary);
   font-size: 12px;
 }
-.identity-heading .el-tag {
+.identity-heading .account-center {
   margin-left: auto;
+  flex-shrink: 0;
 }
 .capacity-card {
   background: var(--el-fill-color-light);
