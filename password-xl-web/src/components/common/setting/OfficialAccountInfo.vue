@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { officialOrigin, officialState } from '@/service/OfficialSession'
-import { officialDate } from '@/service/officialPresentation'
+import { officialBytes, officialDate } from '@/service/officialPresentation'
 import { estimateRemainingPasswords } from '@/service/officialCapacity'
 import { copyText } from '@/utils/global'
 import { usePasswordStore } from '@/stores/PasswordStore'
@@ -26,17 +26,11 @@ const identity = computed(
       ? { provider: 'email', value: info.value.user.email }
       : null),
 )
-const labels: Record<string, string> = {
-  email: '邮箱',
-  github: 'GitHub 用户名',
-  phone: '手机号',
-  sms: '手机号',
-}
 const modes: Record<string, string> = {
   email: '邮箱验证码',
   github: 'GitHub',
-  phone: '手机号',
-  sms: '手机号',
+  gitee: 'Gitee',
+  wechat: '微信',
 }
 const userId = computed(() => info.value?.user.publicId || info.value?.user.id || '')
 const accountCenter = () => window.open(officialOrigin, '_blank', 'noopener')
@@ -50,14 +44,14 @@ function initialize() {
     <header class="identity-heading">
       <img :src="logo" alt="password-XL" />
       <div>
-        <h2>官方存储</h2>
-        <p>你的账号与云端空间</p>
+        <div class="heading-title"><h2>官方存储</h2><el-tag type="success" effect="light" round size="small">已连接</el-tag></div>
+        <p>账号与加密云空间</p>
       </div>
-      <el-button class="account-center" type="primary" plain @click="accountCenter">账号中心</el-button>
+      <el-button class="account-center" type="primary" plain @click="accountCenter">管理账号</el-button>
     </header>
     <div class="capacity-card">
       <div class="capacity-label">
-        <span>存储空间</span
+        <div><span>存储空间</span><small v-if="known">{{ officialBytes(q.usedBytes) }} / {{ officialBytes(q.quotaBytes) }}</small></div
         ><strong>{{ known ? ratio.toFixed(1) + '%' : '待核对' }}</strong>
       </div>
       <el-progress
@@ -95,11 +89,11 @@ function initialize() {
         <dd>{{ officialDate(info.user.createdAt) }}</dd>
       </div>
       <div v-if="identity">
-        <dt>登录方式</dt>
+        <dt>本次登录</dt>
         <dd>{{ modes[identity.provider] || identity.provider }}</dd>
       </div>
       <div v-if="identity?.value">
-        <dt>{{ labels[identity.provider] || '登录身份' }}</dt>
+        <dt>登录身份</dt>
         <dd>{{ identity.value }}</dd>
       </div>
     </dl>
@@ -133,12 +127,13 @@ function initialize() {
   flex-shrink: 0;
 }
 .identity-heading > div { min-width: 0; }
+.heading-title { display: flex; align-items: center; gap: 9px; }
 .identity-heading h2 {
   font-size: 20px;
-  margin: 0 0 5px;
+  margin: 0;
 }
 .identity-heading p {
-  margin: 0;
+  margin: 5px 0 0;
   color: var(--el-text-color-secondary);
   font-size: 12px;
 }
@@ -158,6 +153,8 @@ function initialize() {
   margin-bottom: 16px;
   font-size: 13px;
 }
+.capacity-label > div { display: flex; flex-direction: column; gap: 5px; }
+.capacity-label small { color: var(--el-text-color-secondary); font-size: 11px; }
 .capacity-label strong {
   font-size: 18px;
 }
@@ -182,6 +179,10 @@ function initialize() {
 }
 .account-fields {
   margin: 22px 0;
+  padding: 2px 18px;
+  border: 1px solid var(--el-border-color-extra-light);
+  border-radius: 12px;
+  background: var(--el-bg-color);
 }
 .account-fields > div {
   display: flex;
@@ -202,6 +203,7 @@ function initialize() {
   gap: 8px;
   align-items: flex-start;
 }
+.account-fields > div:last-child { border-bottom: 0; }
 .account-actions {
   display: flex;
   gap: 8px;
@@ -210,12 +212,15 @@ function initialize() {
   .official-info {
     padding: 4px 4px 20px;
   }
+  .identity-heading { align-items: flex-start; }
+  .identity-heading .account-center { padding-inline: 12px; }
   .capacity-card {
     padding: 16px;
   }
   .account-fields > div {
     gap: 8px;
   }
+  .account-fields { padding-inline: 14px; }
   .account-fields dt {
     width: 70px;
   }
