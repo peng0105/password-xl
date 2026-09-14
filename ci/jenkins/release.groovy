@@ -43,10 +43,23 @@ def nextVersion(value) {
     return "${parts[0]}.${parts[1]}.${incremented}"
 }
 
+def nextDefaultVersion(selected, initialVersion) {
+    def candidate = nextVersion(selected)
+    def left = candidate.tokenize('.')
+    def right = checkedVersion(initialVersion).tokenize('.')
+    for (int i = 0; i < 3; i++) {
+        if (left[i].length() != right[i].length()) {
+            return left[i].length() > right[i].length() ? candidate : initialVersion
+        }
+        if (left[i] != right[i]) return left[i].compareTo(right[i]) > 0 ? candidate : initialVersion
+    }
+    return candidate
+}
+
 def configure(String domain, String next = '') {
     def names = parameterNames()
     def definitions = [string(name: names.VERSION, defaultValue: next, trim: true,
-        description: '本次构建版本，可修改；默认是上次构建版本的补丁号 +1，成功后回写 Gitea 源码')]
+        description: '本次构建版本，可修改；更新默认值时取本任务和源码下一版本中较大者，成功后回写 Gitea 源码')]
     if (domain in ['all', 'web']) {
         definitions.add(booleanParam(name: names.DEPLOY_OSS, defaultValue: false, description: '全部成功后用本次 dist 发布 OSS/CDN'))
         definitions.add(booleanParam(name: names.DEPLOY_KUBERNETES, defaultValue: false, description: '全部成功后部署集群 Web；关闭推送镜像时仅上传内网部署所需镜像'))
@@ -197,7 +210,7 @@ def releaseBody(String domain, config, parent) {
 def run(String domain, String podYaml, String initialVersion) {
     def selected = selectedParameters(params)
     def selectedVersion = checkedVersion(selected.VERSION ?: initialVersion)
-    configure(domain, nextVersion(selectedVersion))
+    configure(domain, nextDefaultVersion(selectedVersion, initialVersion))
     def deployKubernetes = domain in ['all', 'web'] && selected.DEPLOY_KUBERNETES
     if (!env.CI_TOOLS_IMAGE) error('Set Jenkins CI_TOOLS_IMAGE to the image built from ci/jenkins/tools.Dockerfile')
     def resolvedYaml = podYaml.replace('${CI_TOOLS_IMAGE}', env.CI_TOOLS_IMAGE)

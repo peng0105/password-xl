@@ -1,6 +1,7 @@
 """Small HTTP client; never forward Authorization across a redirect."""
 from __future__ import annotations
 
+import http.client
 import json
 import time
 import urllib.error
@@ -9,6 +10,9 @@ import urllib.request
 from pathlib import Path
 
 from model import require
+
+
+TRANSPORT_ERRORS = (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException)
 
 
 class ApiError(RuntimeError):
@@ -30,7 +34,7 @@ class Api:
         self.token = token
         self.github = github
 
-    def request(self, method, path, data=None, headers=None, binary=False):
+    def request(self, method, path, data=None, headers=None, binary=False, timeout=120):
         url = path if path.startswith('https://') else self.base + path
         require(urllib.parse.urlsplit(url).netloc == urllib.parse.urlsplit(self.base).netloc,
                 'Authenticated API request cannot change hosts')
@@ -46,20 +50,31 @@ class Api:
         for attempt in range(4):
             try:
                 request = urllib.request.Request(url, data=data, headers=request_headers, method=method)
-                with urllib.request.build_opener(NoRedirect).open(request, timeout=120) as response:
-                    body = response.read()
-                    return body if binary else (json.loads(body) if body else None)
+                body = self._read(request, binary, timeout)
+                return body if binary else (json.loads(body) if body else None)
             except urllib.error.HTTPError as error:
-                if error.code in (301, 302, 303, 307, 308) and method == 'GET' and binary:
-                    # GitHub artifact/asset downloads redirect to object storage. Strip all auth.
-                    location = error.headers.get('Location', '')
-                    require(location.startswith('https://'), 'Unsafe download redirect')
-                    with urllib.request.urlopen(location, timeout=120) as response:
-                        return response.read()
                 if method == 'GET' and (error.code == 429 or error.code >= 500) and attempt < 3:
                     time.sleep(2 ** attempt)
                     continue
                 raise ApiError(error.code, method, url) from None
+            except TRANSPORT_ERRORS:
+                # POST may already have succeeded. Its caller must reconcile remote state.
+                if method != 'GET' or attempt == 3:
+                    raise
+                time.sleep(2 ** attempt)
+
+    def _read(self, request, binary, timeout):
+        try:
+            with urllib.request.build_opener(NoRedirect).open(request, timeout=timeout) as response:
+                return response.read()
+        except urllib.error.HTTPError as error:
+            if error.code not in (301, 302, 303, 307, 308) or request.method != 'GET' or not binary:
+                raise
+            # GitHub downloads redirect to object storage. Strip all authentication.
+            location = error.headers.get('Location', '')
+            require(location.startswith('https://'), 'Unsafe download redirect')
+            with urllib.request.urlopen(location, timeout=timeout) as response:
+                return response.read()
 
     def maybe(self, path):
         try:

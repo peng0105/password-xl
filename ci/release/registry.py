@@ -18,14 +18,15 @@ def prefix(registry):
 
 def inspect(reference, optional=False):
     try:
-        return json.loads(run(['skopeo', 'inspect', '--authfile', env('REGISTRY_AUTH_FILE'), reference], capture=True))
+        return json.loads(run(['skopeo', 'inspect', '--no-tags', '--retry-times', '3',
+                               '--authfile', env('REGISTRY_AUTH_FILE'), reference], capture=True))
     except subprocess.CalledProcessError:
         if optional:
             # Probe the tag list as well: authentication/network errors must not be treated as absence.
             require(reference.startswith('docker://') and ':' in reference.rsplit('/', 1)[-1],
                     'Only tagged registry images can be optional')
             repository, tag = reference[9:].rsplit(':', 1)
-            tags = json.loads(run(['skopeo', 'list-tags', '--authfile', env('REGISTRY_AUTH_FILE'),
+            tags = json.loads(run(['skopeo', 'list-tags', '--retry-times', '3', '--authfile', env('REGISTRY_AUTH_FILE'),
                                    'docker://' + repository], capture=True))
             if tag not in (tags.get('Tags') or []):
                 return None
@@ -40,7 +41,7 @@ def validate(info, context, target):
 
 
 def copy(source, destination):
-    run(['skopeo', 'copy', '--all', '--preserve-digests', '--authfile', env('REGISTRY_AUTH_FILE'),
+    run(['skopeo', 'copy', '--all', '--preserve-digests', '--retry-times', '3', '--authfile', env('REGISTRY_AUTH_FILE'),
          source, 'docker://' + destination])
 
 
@@ -88,7 +89,8 @@ def stage(archive_reference, context, target):
 
 def optional_tag(reference):
     # manifest-unknown is the only absence result accepted; never mask denied or timeouts.
-    args = ['skopeo', 'inspect', '--authfile', env('REGISTRY_AUTH_FILE'), 'docker://' + reference]
+    args = ['skopeo', 'inspect', '--no-tags', '--retry-times', '3',
+            '--authfile', env('REGISTRY_AUTH_FILE'), 'docker://' + reference]
     result = subprocess.run(args, text=True, encoding='utf-8', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode == 0:
         return json.loads(result.stdout)
