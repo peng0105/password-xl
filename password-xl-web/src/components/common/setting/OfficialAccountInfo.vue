@@ -69,7 +69,7 @@ function initialize() {
       <div class="capacity-values">
         <template v-if="remainingPasswords !== null">
           <span>预计还可存储</span>
-          <strong>{{ remainingPasswords.toLocaleString('zh-CN') }}</strong>
+          <span class="capacity-count">{{ remainingPasswords }}</span>
           <span>个密码</span>
         </template>
         <span v-else>{{ known && !store.allPasswordArray.length ? '添加密码后可估算剩余数量' : '暂无法估算剩余数量' }}</span>
@@ -80,7 +80,7 @@ function initialize() {
       <div>
         <dt>用户 ID</dt>
         <dd>
-          <span class="user-id">{{ userId }}</span
+          <span>{{ userId }}</span
           ><el-button
             link
             type="primary"
@@ -168,13 +168,13 @@ function initialize() {
   gap: 7px;
   margin-top: 17px;
 }
-.capacity-values strong {
-  font-size: 23px;
-}
 .capacity-values span,
 .capacity-card p {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+.capacity-values .capacity-count {
+  color: #49c3ff;
 }
 .capacity-card p {
   margin: 10px 0 0;
@@ -201,9 +201,6 @@ function initialize() {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-}
-.user-id {
-  font-family: monospace;
 }
 .account-actions {
   display: flex;
