@@ -2,6 +2,52 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {harness, clone, deferred} = require('./sourceHarness.cjs');
 
+test('remaining password estimate matches real compressed/encrypted growth for one entry and Unicode', t => {
+  const h = harness(t);
+  const {estimateRemainingPasswords} = h.load('src/service/officialCapacity.ts');
+  for (const sample of [h.password(), {...h.password(), title: '邮箱与工作账号🔐', remark: '中文备注'.repeat(30)}]) {
+    const encode = entries => h.security.encryptAES('synthetic-key', JSON.stringify(h.compression.compressArray(entries))).length;
+    const initialBytes = encode([sample]);
+    const sharedBytes = 48000; // Large settings/labels/envelope are paid once, not per password.
+    const remaining = 16000;
+    const info = {quota: {usedBytes: initialBytes + sharedBytes, quotaBytes: initialBytes + sharedBytes + remaining}};
+    const result = estimateRemainingPasswords([sample], info);
+    assert.ok(result > 0);
+    assert.ok(encode(Array(result + 1).fill(sample)) - initialBytes <= remaining);
+    assert.ok(encode(Array(result + 2).fill(sample)) - initialBytes > remaining);
+    assert.equal(estimateRemainingPasswords([sample], {quota: {usedBytes: initialBytes, quotaBytes: initialBytes + remaining}}), result);
+    const largerSharedField = {...sample, ['shared-field-name'.repeat(150)]: ''};
+    const withSchema = estimateRemainingPasswords([largerSharedField], info);
+    // A long shared field name changes padding, but does not become per-entry cost.
+    const shortSchema = estimateRemainingPasswords([{...sample, a: ''}], info);
+    assert.ok(Math.abs(withSchema - shortSchema) <= 1);
+  }
+});
+
+test('remaining estimate uses all stored entries and responds to size, quota and cleanup changes', t => {
+  const h = harness(t);
+  const {estimateRemainingPasswords: estimate} = h.load('src/service/officialCapacity.ts');
+  const small = h.password(), large = {...h.password(2), remark: 'x'.repeat(2000), status: h.types.PasswordStatus.DELETED};
+  const info = {quota: {usedBytes: 10000, quotaBytes: 100000}};
+  assert.ok(estimate([small, large], info) < estimate([small], info));
+  assert.ok(estimate([small, large], info) > estimate([large], info));
+  assert.ok(estimate([small], {...info, quota: {...info.quota, quotaBytes: 200000}}) > estimate([small], info));
+  assert.ok(estimate([small], {...info, quota: {...info.quota, usedBytes: 90000}}) < estimate([small], info));
+});
+
+test('remaining estimate does not invent empty or unknown samples and clamps full capacity to zero', t => {
+  const h = harness(t);
+  const {estimateRemainingPasswords: estimate} = h.load('src/service/officialCapacity.ts');
+  const info = {quota: {usedBytes: 100, quotaBytes: 10000}};
+  assert.equal(estimate([], info), null);
+  assert.equal(estimate([h.password()], null), null);
+  assert.equal(estimate([h.password()], {...info, usageKnown: false}), null);
+  assert.equal(estimate([h.password()], {quota: {...info.quota, checkFailed: true}}), null);
+  for (const usedBytes of [10000, 20000]) assert.equal(estimate([h.password()], {quota: {...info.quota, usedBytes}}), 0);
+  for (const usedBytes of [-1, NaN, Infinity]) assert.equal(estimate([h.password()], {quota: {...info.quota, usedBytes}}), null);
+  assert.equal(estimate([h.password()], {quota: {usedBytes: 0, quotaBytes: 0}}), null);
+});
+
 test('quota notifications start at 80 percent and retain full and blocked boundaries', t => {
   const {quotaNotice, quotaStatus} = harness(t).load('src/service/officialPresentation.ts');
   for (const [used, expected] of [[7999, 'NORMAL'], [8000, 'WARNING'], [9999, 'WARNING'], [10000, 'FULL'], [19999, 'FULL'], [20000, 'BLOCKED']]) {
