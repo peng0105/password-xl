@@ -74,7 +74,8 @@ def configure(String domain, String next = '') {
     properties(settings)
 }
 
-def credentialsFor(config, boolean images, boolean oss, boolean sync = false, boolean privateImage = false) {
+def credentialsFor(config, boolean images, boolean oss, boolean sync = false, boolean privateImage = false,
+                   boolean kubernetes = false) {
     def credentials = [string(credentialsId: config.credentials.github, variable: 'GH_TOKEN'),
                        string(credentialsId: config.credentials.gitea, variable: 'GITEA_TOKEN')]
     if (sync) {
@@ -101,6 +102,9 @@ def credentialsFor(config, boolean images, boolean oss, boolean sync = false, bo
             credentials.add(usernamePassword(credentialsId: config.credentials.cdn,
                 usernameVariable: 'CDN_ACCESS_KEY_ID', passwordVariable: 'CDN_ACCESS_KEY_SECRET'))
         }
+    }
+    if (kubernetes) {
+        credentials.add(file(credentialsId: 'k8s-password-xl-deployer', variable: 'KUBECONFIG'))
     }
     return credentials
 }
@@ -256,7 +260,8 @@ def run(String domain, String podYaml, String initialVersion) {
                     withEnv(variables) {
                         withCredentials(credentialsFor(config, images, deploy,
                             !parent && (actions.SYNC_REPOS || actions.PUBLISH_RELEASE),
-                            domain in ['all', 'web'] && (parent ? inherited.deploy_kubernetes == true : deployKubernetes))) {
+                            domain in ['all', 'web'] && (parent ? inherited.deploy_kubernetes == true : deployKubernetes),
+                            !parent && deployKubernetes)) {
                             try {
                                 timeout(time: 12, unit: 'HOURS') { releaseBody(domain, config, parent) }
                             } finally {
@@ -274,28 +279,11 @@ def run(String domain, String podYaml, String initialVersion) {
 }
 
 def deploymentPod(String yaml) {
-    if (!yaml.contains('  volumes:\n') || !yaml.contains('      volumeMounts:\n')) error('Invalid release agent template')
+    if (!yaml.contains('serviceAccountName: jenkins-build')) error('Invalid release agent template')
     def metadata = "\nmetadata:\n  labels:\n    password-xl.cn/web-deployer: 'true'\n"
     yaml = yaml.contains('\nmetadata:\n') ? yaml.replace('\nmetadata:\n', metadata) :
         yaml.replace('\nkind: Pod\n', '\nkind: Pod' + metadata)
-    return yaml.replace('serviceAccountName: jenkins-build', 'serviceAccountName: password-xl-web-deployer')
-        .replaceFirst('      volumeMounts:\n', '''      volumeMounts:
-        - name: deployment-api
-          mountPath: /var/run/secrets/password-xl
-          readOnly: true
-''').replace('  volumes:\n', '''  volumes:
-    - name: deployment-api
-      projected:
-        sources:
-          - serviceAccountToken:
-              path: token
-              expirationSeconds: 3600
-          - configMap:
-              name: kube-root-ca.crt
-              items:
-                - key: ca.crt
-                  path: ca.crt
-''')
+    return yaml
 }
 
 return this

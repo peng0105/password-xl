@@ -1,4 +1,5 @@
 import copy
+import base64
 import hashlib
 import itertools
 import json
@@ -8,6 +9,8 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import MagicMock, Mock, patch
+
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'release'))
 import kubernetes_deploy as kube
@@ -19,6 +22,43 @@ import release
 
 C = {'version': '1.5.2', 'source_sha': 'a' * 40, 'android_sha': None}
 IMAGE = 'private.test/password-xl-web-x86@sha256:' + 'b' * 64
+
+
+class Kubeconfig(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / 'kubeconfig'
+        self.config = {
+            'current-context': 'deployer@k3s',
+            'contexts': [{'name': 'deployer@k3s', 'context': {
+                'cluster': 'k3s', 'user': 'deployer', 'namespace': 'password-xl'}}],
+            'clusters': [{'name': 'k3s', 'cluster': {
+                'server': 'https://k3s.example:6443/',
+                'certificate-authority-data': base64.b64encode(b'CA PEM').decode()}}],
+            'users': [{'name': 'deployer', 'user': {'token': 'test-token'}}],
+        }
+
+    def load(self):
+        self.path.write_text(yaml.safe_dump(self.config))
+        with patch.dict(os.environ, {'KUBECONFIG': str(self.path)}), \
+                patch.object(kube.ssl, 'create_default_context', return_value='tls') as tls:
+            result = kube.kube_credentials('password-xl')
+        return result, tls
+
+    def test_uses_current_context_token_and_ca(self):
+        result, tls = self.load()
+        self.assertEqual(result, ('https://k3s.example:6443', 'test-token', 'tls'))
+        tls.assert_called_once_with(cadata='CA PEM')
+
+    def test_rejects_wrong_namespace_or_insecure_tls(self):
+        self.config['contexts'][0]['context']['namespace'] = 'default'
+        with self.assertRaisesRegex(ValueError, 'wrong namespace'):
+            self.load()
+        self.config['contexts'][0]['context']['namespace'] = 'password-xl'
+        self.config['clusters'][0]['cluster']['insecure-skip-tls-verify'] = True
+        with self.assertRaisesRegex(ValueError, 'certificate verification'):
+            self.load()
 
 
 class Cluster:

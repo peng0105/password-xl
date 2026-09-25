@@ -1,5 +1,6 @@
 """Limited Kubernetes API deployment with optimistic concurrency and checked rollback."""
 import copy
+import base64
 import hashlib
 import json
 import os
@@ -11,23 +12,46 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+import yaml
+
 from model import OUT, identity, require, write_json
 
 ANNOTATION = 'password-xl.cn/release'
+
+
+def kube_credentials(namespace):
+    config_path = os.environ.get('KUBECONFIG')
+    require(config_path, 'KUBECONFIG credential is missing')
+    config = yaml.safe_load(Path(config_path).read_text())
+
+    def named(items, name):
+        matches = [item for item in items if item.get('name') == name]
+        require(len(matches) == 1, 'Kubeconfig reference is missing or ambiguous')
+        return matches[0]
+
+    context = named(config['contexts'], config['current-context'])['context']
+    require(context.get('namespace') == namespace, 'Kubeconfig targets the wrong namespace')
+    cluster = named(config['clusters'], context['cluster'])['cluster']
+    user = named(config['users'], context['user'])['user']
+    base = cluster['server'].rstrip('/')
+    require(base.startswith('https://'), 'Kubernetes API requires TLS')
+    require(not cluster.get('insecure-skip-tls-verify'), 'Kubernetes API certificate verification is required')
+    require(cluster.get('certificate-authority-data'), 'Kubeconfig CA is missing')
+    require(user.get('token'), 'Kubeconfig service account token is missing')
+    ca = base64.b64decode(cluster['certificate-authority-data'], validate=True).decode('ascii')
+    return base, user['token'], ssl.create_default_context(cadata=ca)
 
 
 class Kubernetes:
     def __init__(self, namespace='password-xl', name='password-xl-web'):
         self.namespace, self.name = namespace, name
         self.path = f'/apis/apps/v1/namespaces/{namespace}/deployments/{name}'
-        self.base = os.environ.get('KUBE_API_URL', 'https://kubernetes.default.svc')
-        require(self.base.startswith('https://'), 'Kubernetes API requires TLS')
-        self.token = Path('/var/run/secrets/password-xl/token')
+        self.base, self.token, tls = kube_credentials(namespace)
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}),
-            urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile='/var/run/secrets/password-xl/ca.crt')))
+            urllib.request.HTTPSHandler(context=tls))
 
     def request(self, method, path, data=None):
-        headers = {'Authorization': 'Bearer ' + self.token.read_text().strip()}
+        headers = {'Authorization': 'Bearer ' + self.token}
         if data is not None:
             headers['Content-Type'] = 'application/json-patch+json'
         request = urllib.request.Request(self.base + path, headers=headers, method=method,
@@ -56,7 +80,7 @@ class Kubernetes:
                  'spec': {'resourceAttributes': {'namespace': self.namespace, 'verb': 'patch',
                          'group': 'apps', 'resource': 'deployments', 'name': self.name}}}
         request = urllib.request.Request(self.base + '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
-            data=json.dumps(value).encode(), headers={'Authorization': 'Bearer ' + self.token.read_text().strip(),
+            data=json.dumps(value).encode(), headers={'Authorization': 'Bearer ' + self.token,
                                                       'Content-Type': 'application/json'}, method='POST')
         with self.opener.open(request, timeout=30) as response:
             require(json.loads(response.read())['status']['allowed'], 'Kubernetes deployment permission is missing')
