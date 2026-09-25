@@ -12,7 +12,7 @@
 
 目标固定为 `password-xl/password-xl-web` Deployment 和同名容器。只更新容器镜像及 `password-xl.cn/release` 追踪注解，保留 Service、Ingress、TLS、副本数和资源配置。部署从 Web 结果的 `deployment_image` 读取已验证镜像，禁止使用可变标签。
 
-首次安装由运维在控制平面应用 `/home/huangyp/k8s-home/password-xl/jenkins-rbac.yaml` 和 `network-policy.yaml`。RBAC 和网络策略属于环境专属配置，不随应用仓库发布。账号站、后台与密码网站共用 `password-xl` 命名空间中的 `jenkins-deployer` ServiceAccount 和 Role；权限包含部署所需的 Deployment、Service、ConfigMap、Ingress 等资源，不包含业务 Secret。将 `/home/huangyp/k8s-home/password-xl/jenkins-password-xl.kubeconfig` 以 Jenkins 文件凭据 `k8s-password-xl-deployer` 保存，不提交该文件。仅开启 Kubernetes 部署的总入口/Web 任务绑定此凭据；普通构建 Pod 保持 `jenkins-build` 且关闭自动挂载 token。Python 使用 kubeconfig 中的 HTTPS API 地址、CA 和 token，无需在工具镜像内安装 kubectl；首次使用前需重建包含 PyYAML 的 CI tools 镜像。
+首次安装由运维在控制平面应用 `/home/huangyp/k8s-home/password-xl/jenkins-rbac.yaml` 和 `network-policy.yaml`。RBAC 和网络策略属于环境专属配置，不随应用仓库发布。还需从本项目依次应用 `k8s/web/deployment.yaml`、`k8s/web/service.yaml` 和 `k8s/web/ingress.yaml`，确认 `password-xl-web` Deployment 就绪且 Service `/healthz` 可访问；发布预检会读取现有 Deployment，不负责创建它。账号站、后台与密码网站共用 `password-xl` 命名空间中的 `jenkins-deployer` ServiceAccount 和 Role；权限包含部署所需的 Deployment、Service、ConfigMap、Ingress 等资源，不包含业务 Secret。将 `/home/huangyp/k8s-home/password-xl/jenkins-password-xl.kubeconfig` 以 Jenkins 文件凭据 `k8s-password-xl-deployer` 保存，不提交该文件。仅开启 Kubernetes 部署的总入口/Web 任务绑定此凭据；普通构建 Pod 保持 `jenkins-build` 且关闭自动挂载 token。Python 使用 kubeconfig 中的 HTTPS API 地址、CA 和 token，无需在工具镜像内安装 kubectl；首次使用前需重建包含 PyYAML 的 CI tools 镜像。
 
 生产命名空间有默认拒绝入站策略，因此清单同时增加受限 NetworkPolicy：仅允许 `jenkins-agent` 命名空间中带 `password-xl.cn/web-deployer=true` 标签的部署 Pod 访问 Web TCP 80。其他 Jenkins Pod 不获得此入口，现有 Traefik 规则保持不变。构建前先验证 Service 可达；滚动后的短暂服务路由切换允许最多 30 秒连接重试。
 
