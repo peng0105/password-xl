@@ -12,7 +12,7 @@
 
 目标固定为 `password-xl/password-xl-web` Deployment 和同名容器。只更新容器镜像及 `password-xl.cn/release` 追踪注解，保留 Service、Ingress、TLS、副本数和资源配置。部署从 Web 结果的 `deployment_image` 读取已验证镜像，禁止使用可变标签。
 
-首次安装执行 `kubectl apply -f k8s/ci/web-deployer.yaml`。专用 SA 只能读取/更新指定 Deployment 和读取本命名空间 Pod；无 Secret、其他 Deployment 或集群级写权限。只有开启部署的总入口/Web Pod 切换 SA，短期 projected token 仅挂载 tools 容器，不挂载 jnlp。Python 使用 Kubernetes HTTPS API，无需 kubectl 或重建工具镜像。
+首次安装由运维在控制平面执行 `kubectl apply -f /home/huangyp/k8s-home/password-xl/common/jenkins/web-deployer.yaml`。RBAC 和网络策略属于环境专属配置，不随应用仓库发布。专用 SA 只能读取/更新指定 Deployment 和读取本命名空间 Pod；无 Secret、其他 Deployment 或集群级写权限。只有开启部署的总入口/Web Pod 切换 SA，短期 projected token 仅挂载 tools 容器，不挂载 jnlp。Python 使用 Kubernetes HTTPS API，无需 kubectl 或重建工具镜像。
 
 生产命名空间有默认拒绝入站策略，因此清单同时增加受限 NetworkPolicy：仅允许 `jenkins-agent` 命名空间中带 `password-xl.cn/web-deployer=true` 标签的专用部署 Pod 访问 Web TCP 80。其他 Jenkins Pod 不获得此入口，现有 Traefik 规则保持不变。构建前先验证 Service 可达；滚动后的短暂服务路由切换允许最多 30 秒连接重试。
 
