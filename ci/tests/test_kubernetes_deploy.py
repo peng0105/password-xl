@@ -62,7 +62,7 @@ class Kubeconfig(unittest.TestCase):
 
 
 class Cluster:
-    name, namespace = 'password-xl-web', 'test'
+    name, namespace = 'password-xl-web', 'password-xl'
 
     def __init__(self):
         self.value = {'metadata': {'resourceVersion': '1', 'generation': 1},
@@ -71,16 +71,41 @@ class Cluster:
                       'status': {'observedGeneration': 1, 'replicas': 1, 'updatedReplicas': 1,
                                  'readyReplicas': 1, 'availableReplicas': 1}}
         self.writes = []
+        self.applies = []
+        self.resources = {}
         self.files = {'index.html': b'<script src="/assets/app.js"></script>', 'assets/app.js': b'app',
                       'release.json': json.dumps({k: C[k] for k in ('version', 'source_sha')}).encode(), 'healthz': b'ok'}
 
-    def access(self): pass
-    def get(self): return copy.deepcopy(self.value)
+    def access(self, *args): pass
+    def get(self, missing_ok=False): return copy.deepcopy(self.value)
     def pods(self):
+        if self.value is None:
+            return []
         image = self.value['spec']['template']['spec']['containers'][0]['image']
         return [{'metadata': {'name': 'web-pod'}, 'status': {'containerStatuses': [
             {'name': self.name, 'ready': True, 'imageID': image}]}}]
     def fetch(self, path): return self.files[path]
+    def apply(self, document):
+        document = copy.deepcopy(document)
+        self.applies.append(document)
+        if document['kind'] != 'Deployment':
+            self.resources[document['kind']] = document
+            return document
+        template = document['spec']['template']
+        if self.value is None:
+            self.value = copy.deepcopy(document)
+            self.value['metadata'].update(resourceVersion='1', generation=1)
+            self.value['status'] = {'observedGeneration': 1, 'replicas': 1, 'updatedReplicas': 1,
+                                    'readyReplicas': 1, 'availableReplicas': 1}
+            self.writes.append(copy.deepcopy(template))
+        elif template != self.value['spec']['template'] or document['spec']['replicas'] != self.value['spec']['replicas']:
+            self.value['spec']['template'] = copy.deepcopy(template)
+            self.value['spec']['replicas'] = document['spec']['replicas']
+            self.value['metadata']['generation'] += 1
+            self.value['metadata']['resourceVersion'] = str(self.value['metadata']['generation'])
+            self.value['status']['observedGeneration'] = self.value['metadata']['generation']
+            self.writes.append(copy.deepcopy(template))
+        return self.get()
     def patch(self, previous, template):
         if previous['metadata']['resourceVersion'] != self.value['metadata']['resourceVersion']:
             raise RuntimeError('conflict')
@@ -104,13 +129,42 @@ class Deployment(unittest.TestCase):
         diagnostic = patch.object(kube, 'public_diagnostic', return_value={'status':'test'})
         diagnostic.start(); self.addCleanup(diagnostic.stop)
 
-    def test_success_and_repeat_do_not_restart_or_change_other_settings(self):
+    def test_preflight_does_not_query_resources_before_the_build(self):
+        self.cluster.get = Mock(side_effect=AssertionError('queried Deployment'))
+        self.cluster.pods = Mock(side_effect=AssertionError('queried Pods'))
+        self.cluster.fetch = Mock(side_effect=AssertionError('queried Service'))
+        self.assertIs(kube.preflight(self.cluster), self.cluster)
+
+    def test_apply_uses_kubernetes_server_side_apply(self):
+        client = kube.Kubernetes.__new__(kube.Kubernetes)
+        client.namespace = 'password-xl'
+        client.request = Mock(return_value={})
+        document = kube.web_manifests()['Service']
+        client.apply(document)
+        args, kwargs = client.request.call_args
+        self.assertEqual(args[0], 'PATCH')
+        self.assertIn('/api/v1/namespaces/password-xl/services/password-xl-web?', args[1])
+        self.assertIn('fieldManager=password-xl-release&force=true', args[1])
+        self.assertEqual(kwargs['content_type'], 'application/apply-patch+yaml')
+
+    def test_applies_project_manifests_with_digest_and_repeat_does_not_restart(self):
         before = self.cluster.get()
         result = kube.deploy(C, IMAGE, self.path, self.cluster)
         self.assertEqual(result['status'], 'success')
         self.assertEqual(self.cluster.value['spec']['replicas'], before['spec']['replicas'])
+        self.assertEqual(set(self.cluster.resources), {'Service', 'Ingress'})
+        self.assertEqual(self.cluster.applies[-1]['spec']['template']['spec']['containers'][0]['image'], IMAGE)
         self.assertEqual(kube.deploy(C, IMAGE, self.path, self.cluster)['changed'], False)
         self.assertEqual(len(self.cluster.writes), 1)
+
+    def test_first_install_creates_deployment_service_and_ingress(self):
+        self.cluster.value = None
+        self.assertIs(kube.preflight(self.cluster), self.cluster)
+        result = kube.deploy(C, IMAGE, self.path, self.cluster)
+        self.assertTrue(result['created'])
+        self.assertEqual(result['previous_image'], None)
+        self.assertEqual([item['kind'] for item in self.cluster.applies], ['Service', 'Ingress', 'Deployment'])
+        self.assertEqual(self.cluster.value['spec']['template']['spec']['containers'][0]['image'], IMAGE)
 
     def test_content_failure_rolls_back_and_remains_failed(self):
         self.cluster.files['assets/app.js'] = b'wrong'
@@ -135,21 +189,22 @@ class Deployment(unittest.TestCase):
         self.assertEqual(self.cluster.value['spec']['template']['spec']['containers'][0]['image'], 'operator:new')
         self.assertEqual(model.read_json(self.path / 'kubernetes-deployment.json')['rollback'], 'failed')
 
-    def test_lost_patch_response_is_rolled_back_only_when_template_matches(self):
-        original = self.cluster.patch
-        def patch_then_disconnect(previous, template):
-            result = original(previous, template)
-            if len(self.cluster.writes) == 1: raise ConnectionError('lost response')
+    def test_lost_apply_response_does_not_overwrite_uncertain_state(self):
+        original = self.cluster.apply
+        def apply_then_disconnect(document):
+            result = original(document)
+            if document['kind'] == 'Deployment': raise ConnectionError('lost response')
             return result
-        self.cluster.patch = patch_then_disconnect
+        self.cluster.apply = apply_then_disconnect
         with self.assertRaises(ConnectionError): kube.deploy(C, IMAGE, self.path, self.cluster)
-        self.assertEqual(model.read_json(self.path / 'kubernetes-deployment.json')['rollback'], 'success')
+        self.assertEqual(model.read_json(self.path / 'kubernetes-deployment.json')['rollback'], 'failed')
+        self.assertEqual(len(self.cluster.writes), 1)
 
-    def test_unreachable_service_fails_before_changing_the_image(self):
+    def test_unreachable_service_rolls_back_the_image(self):
         self.cluster.fetch = Mock(side_effect=ConnectionRefusedError())
         with self.assertRaises(ConnectionRefusedError):
             kube.deploy(C, IMAGE, self.path, self.cluster)
-        self.assertEqual(self.cluster.writes, [])
+        self.assertEqual(self.cluster.value['spec']['template']['spec']['containers'][0]['image'], 'old:49')
 
     def test_service_read_retries_transient_endpoint_failure(self):
         client = kube.Kubernetes.__new__(kube.Kubernetes)

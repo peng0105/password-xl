@@ -14,9 +14,15 @@ from pathlib import Path
 
 import yaml
 
-from model import OUT, identity, require, write_json
+from model import OUT, ROOT, identity, require, write_json
 
 ANNOTATION = 'password-xl.cn/release'
+FIELD_MANAGER = 'password-xl-release'
+WEB_RESOURCES = (
+    ('Deployment', 'apps/v1', 'deployments', 'deployment.yaml', 'password-xl-web'),
+    ('Service', 'v1', 'services', 'service.yaml', 'password-xl-web'),
+    ('Ingress', 'networking.k8s.io/v1', 'ingresses', 'ingress.yaml', 'password-xl-web-ingress'),
+)
 
 
 def kube_credentials(namespace):
@@ -50,20 +56,22 @@ class Kubernetes:
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}),
             urllib.request.HTTPSHandler(context=tls))
 
-    def request(self, method, path, data=None):
+    def request(self, method, path, data=None, content_type='application/json-patch+json', missing_ok=False):
         headers = {'Authorization': 'Bearer ' + self.token}
         if data is not None:
-            headers['Content-Type'] = 'application/json-patch+json'
+            headers['Content-Type'] = content_type
         request = urllib.request.Request(self.base + path, headers=headers, method=method,
                                          data=json.dumps(data).encode() if data is not None else None)
         try:
             with self.opener.open(request, timeout=30) as response:
                 return json.loads(response.read())
         except urllib.error.HTTPError as error:
+            if missing_ok and error.code == 404:
+                return None
             raise RuntimeError(f'Kubernetes {method} failed: HTTP {error.code}') from None
 
-    def get(self):
-        return self.request('GET', self.path)
+    def get(self, missing_ok=False):
+        return self.request('GET', self.path, missing_ok=missing_ok)
 
     def pods(self):
         selector = urllib.parse.quote('app=' + self.name, safe='')
@@ -75,15 +83,28 @@ class Kubernetes:
             {'op': 'test', 'path': '/metadata/resourceVersion', 'value': previous['metadata']['resourceVersion']},
             {'op': 'replace', 'path': '/spec/template', 'value': template}])
 
-    def access(self):
+    def apply(self, document):
+        kind = document['kind']
+        group = next((group for item, group, resource, _, _ in WEB_RESOURCES if item == kind), None)
+        resource = next((resource for item, _, resource, _, _ in WEB_RESOURCES if item == kind), None)
+        require(resource is not None, 'Unsupported Kubernetes manifest kind')
+        api = '/api/v1' if group == 'v1' else '/apis/' + group
+        name = urllib.parse.quote(document['metadata']['name'], safe='')
+        path = f'{api}/namespaces/{self.namespace}/{resource}/{name}?fieldManager={FIELD_MANAGER}&force=true'
+        return self.request('PATCH', path, document, content_type='application/apply-patch+yaml')
+
+    def access(self, group, resource, verb, name=None):
+        attributes = {'namespace': self.namespace, 'verb': verb, 'group': group, 'resource': resource}
+        if name:
+            attributes['name'] = name
         value = {'apiVersion': 'authorization.k8s.io/v1', 'kind': 'SelfSubjectAccessReview',
-                 'spec': {'resourceAttributes': {'namespace': self.namespace, 'verb': 'patch',
-                         'group': 'apps', 'resource': 'deployments', 'name': self.name}}}
+                 'spec': {'resourceAttributes': attributes}}
         request = urllib.request.Request(self.base + '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
             data=json.dumps(value).encode(), headers={'Authorization': 'Bearer ' + self.token,
                                                       'Content-Type': 'application/json'}, method='POST')
         with self.opener.open(request, timeout=30) as response:
-            require(json.loads(response.read())['status']['allowed'], 'Kubernetes deployment permission is missing')
+            require(json.loads(response.read())['status']['allowed'],
+                    f'Kubernetes {verb} permission is missing for {resource}')
 
     def fetch(self, path):
         url = f'http://{self.name}.{self.namespace}.svc.cluster.local/' + urllib.parse.quote(path, safe='/')
@@ -108,15 +129,34 @@ def container_index(deployment, name):
     return matches[0]
 
 
+def web_manifests(namespace='password-xl', name='password-xl-web'):
+    manifests = {}
+    for kind, api_version, _, filename, expected_name in WEB_RESOURCES:
+        # The deployer reads the checked-out source, never a cluster-side copy of the manifests.
+        document = yaml.safe_load((ROOT / 'k8s/web' / filename).read_text(encoding='utf-8'))
+        require(isinstance(document, dict) and document.get('apiVersion') == api_version and
+                document.get('kind') == kind and document.get('metadata', {}).get('name') == expected_name and
+                document['metadata'].get('namespace') == namespace,
+                f'Invalid Kubernetes web manifest: {filename}')
+        manifests[kind] = document
+    deployment, service, ingress = (manifests[kind] for kind in ('Deployment', 'Service', 'Ingress'))
+    container_index(deployment, name)
+    labels = deployment['spec']['template']['metadata']['labels']
+    require(all(labels.get(key) == value for key, value in service['spec']['selector'].items()),
+            'Web Service selector does not match the Deployment')
+    require(all(path['backend']['service']['name'] == name for rule in ingress['spec']['rules']
+                for path in rule['http']['paths']), 'Web Ingress targets another Service')
+    return manifests
+
+
 def preflight(client=None):
     client = client or Kubernetes()
-    value = client.get()
-    container_index(value, client.name)
-    require(value['spec'].get('replicas', 1) > 0, 'Web deployment has no replicas')
-    require(not value['spec'].get('paused'), 'Web deployment is paused')
-    client.pods()
-    client.access()
-    client.fetch('healthz')  # Detect namespace network policy restrictions before changing an image.
+    web_manifests(client.namespace, client.name)
+    for _, group, resource, _, name in WEB_RESOURCES:
+        api_group = '' if group == 'v1' else group.rsplit('/', 1)[0]
+        for verb in ('get', 'create', 'patch'):
+            client.access(api_group, resource, verb, None if verb == 'create' else name)
+    client.access('', 'pods', 'list')
     return client
 
 
@@ -158,41 +198,52 @@ def verify(client, context, image, directory):
 def deploy(context, image, directory, client=None, timeout=300):
     client = preflight(client)
     require(re.fullmatch(r'[^\s@]+@sha256:[0-9a-f]{64}', image), 'Deploy a pinned image digest')
-    before = client.get()
-    index = container_index(before, client.name)
-    template = copy.deepcopy(before['spec']['template'])
-    template['spec']['containers'][index]['image'] = image
+    manifests = web_manifests(client.namespace, client.name)
+    deployment = copy.deepcopy(manifests['Deployment'])
+    index = container_index(deployment, client.name)
+    deployment['spec']['template']['spec']['containers'][index]['image'] = image
     marker = json.dumps({k: context[k] for k in ('version', 'source_sha')}, sort_keys=True)
-    template.setdefault('metadata', {}).setdefault('annotations', {})[ANNOTATION] = marker
+    deployment['spec']['template'].setdefault('metadata', {}).setdefault('annotations', {})[ANNOTATION] = marker
+    before = client.get(missing_ok=True)
+    if before is not None:
+        container_index(before, client.name)
     report = {**identity(context), 'namespace': client.namespace, 'deployment': client.name,
-              'previous_image': before['spec']['template']['spec']['containers'][index]['image'],
+              'created': before is None,
+              'previous_image': before['spec']['template']['spec']['containers'][container_index(before, client.name)]['image']
+              if before else None,
               'previous_pods': [{'name': p['metadata']['name'], 'images': p.get('status', {}).get('containerStatuses', [])}
-                                for p in client.pods()], 'image': image, 'status': 'deploying'}
+                                for p in client.pods()] if before else [], 'image': image, 'status': 'deploying'}
     write_json(OUT / 'kubernetes-before.json', before)
     path = OUT / 'kubernetes-deployment.json'
     write_json(path, report)
     applied = None
     try:
-        applied = before if template == before['spec']['template'] else client.patch(before, template)
+        client.apply(manifests['Service'])
+        client.apply(manifests['Ingress'])
+        applied = client.apply(deployment)
         wait_ready(client, applied, timeout)
         verify(client, context, image, directory)
         report['status'] = 'success'
-        report['changed'] = applied['metadata']['resourceVersion'] != before['metadata']['resourceVersion']
+        report['changed'] = before is None or applied['metadata']['resourceVersion'] != before['metadata']['resourceVersion']
         report['public_access'] = public_diagnostic(context)
         return report
     except BaseException as error:
         report['status'], report['error_type'] = 'failed', type(error).__name__
         try:
-            current = client.get()
-            # Also covers a lost PATCH response: only undo our exact template.
-            if current['spec']['template'] != before['spec']['template']:
-                require(current['spec']['template'] == template, 'Concurrent edit prevents rollback')
-                restored = client.patch(current, before['spec']['template'])
-                wait_ready(client, restored, timeout)
-                client.fetch('healthz')
-                report['rollback'] = 'success'
+            if before is None:
+                # No previous image exists to restore on the first installation.
+                report['rollback'] = 'unavailable-first-install'
             else:
-                report['rollback'] = 'not-needed'
+                current = client.get()
+                if current['spec']['template'] != before['spec']['template']:
+                    require(applied is not None and current['spec']['template'] == applied['spec']['template'],
+                            'Concurrent edit or lost apply response prevents rollback')
+                    restored = client.patch(current, before['spec']['template'])
+                    wait_ready(client, restored, timeout)
+                    client.fetch('healthz')
+                    report['rollback'] = 'success'
+                else:
+                    report['rollback'] = 'not-needed'
         except BaseException as rollback_error:
             report['rollback'] = 'failed'
             report['rollback_error_type'] = type(rollback_error).__name__
