@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import {PasswordDisplayMode} from "@/types";
-import {usePasswordStore} from "@/stores/PasswordStore.ts";
-import {useSettingStore} from "@/stores/SettingStore.ts";
-import BatchAddLabelDialog from "@/components/index/BatchAddLabelDialog.vue";
+import { PasswordDisplayMode } from '@/types'
+import { usePasswordStore } from '@/stores/PasswordStore.ts'
+import { useSettingStore } from '@/stores/SettingStore.ts'
+import BatchAddLabelDialog from '@/components/index/BatchAddLabelDialog.vue'
 
 const passwordStore = usePasswordStore()
 const settingStore = useSettingStore()
@@ -10,9 +10,10 @@ const deleteLoading = ref(false)
 const labelDialogVisible = ref(false)
 
 const hasSelectedPassword = computed(() => passwordStore.batchSelectedPasswordCount > 0)
-const allVisiblePasswordsSelected = computed(() =>
-    passwordStore.visPasswordArray.length > 0
-    && passwordStore.batchSelectedPasswordCount === passwordStore.visPasswordArray.length
+const allVisiblePasswordsSelected = computed(
+  () =>
+    passwordStore.visPasswordArray.length > 0 &&
+    passwordStore.batchSelectedPasswordCount === passwordStore.visPasswordArray.length,
 )
 
 const deleteSelectedPasswords = async () => {
@@ -23,8 +24,8 @@ const deleteSelectedPasswords = async () => {
 
   const recycleBinEnabled = settingStore.setting.enableRecycleBin
   const message = recycleBinEnabled
-      ? `确认删除已选中的 ${selectedCount} 个密码吗？删除后将移入回收站。`
-      : `确认永久删除已选中的 ${selectedCount} 个密码吗？此操作无法撤销。`
+    ? `确认删除已选中的 ${selectedCount} 个密码吗？删除后将移入回收站。`
+    : `确认永久删除已选中的 ${selectedCount} 个密码吗？此操作无法撤销。`
 
   try {
     await ElMessageBox.confirm(message, '批量删除密码', {
@@ -39,7 +40,9 @@ const deleteSelectedPasswords = async () => {
 
   deleteLoading.value = true
   try {
-    const resp = await passwordStore.passwordManager.batchDeletePasswords([...passwordStore.batchSelectedPasswordIds])
+    const resp = await passwordStore.passwordManager.batchDeletePasswords([
+      ...passwordStore.batchSelectedPasswordIds,
+    ])
     if (!resp.status) {
       throw new Error(resp.message || '批量删除密码失败')
     }
@@ -58,55 +61,57 @@ const deleteSelectedPasswords = async () => {
 
 <template>
   <el-space :size="6" alignment="center" class="batch-operation-toolbar">
-    <el-text class="batch-selected-count">已选 {{ passwordStore.batchSelectedPasswordCount }} 项</el-text>
-    <template v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD">
+    <el-text class="batch-selected-count"
+      >已选 {{ passwordStore.batchSelectedPasswordCount }} 项</el-text
+    >
+    <template v-if="settingStore.setting.passwordDisplayMode !== PasswordDisplayMode.TABLE">
       <el-button
-          :disabled="deleteLoading || allVisiblePasswordsSelected"
-          plain
-          size="small"
-          @click="passwordStore.selectAllVisiblePasswords"
+        :disabled="deleteLoading || allVisiblePasswordsSelected"
+        plain
+        size="small"
+        @click="passwordStore.selectAllVisiblePasswords"
       >
         全选
       </el-button>
       <el-button
-          :disabled="deleteLoading || !hasSelectedPassword"
-          plain
-          size="small"
-          @click="passwordStore.clearBatchPasswordSelection"
+        :disabled="deleteLoading || !hasSelectedPassword"
+        plain
+        size="small"
+        @click="passwordStore.clearBatchPasswordSelection"
       >
         取消全选
       </el-button>
     </template>
     <el-button
-        :disabled="!hasSelectedPassword"
-        :loading="deleteLoading"
-        plain
-        size="small"
-        type="danger"
-        @click="deleteSelectedPasswords"
+      :disabled="!hasSelectedPassword"
+      :loading="deleteLoading"
+      plain
+      size="small"
+      type="danger"
+      @click="deleteSelectedPasswords"
     >
       删除
     </el-button>
     <el-button
-        :disabled="!hasSelectedPassword || deleteLoading"
-        plain
-        size="small"
-        type="primary"
-        @click="labelDialogVisible = true"
+      :disabled="!hasSelectedPassword || deleteLoading"
+      plain
+      size="small"
+      type="primary"
+      @click="labelDialogVisible = true"
     >
       添加标签
     </el-button>
     <el-button
-        :disabled="deleteLoading"
-        plain
-        size="small"
-        @click="passwordStore.exitBatchOperation"
+      :disabled="deleteLoading"
+      plain
+      size="small"
+      @click="passwordStore.exitBatchOperation"
     >
       退出
     </el-button>
   </el-space>
 
-  <BatchAddLabelDialog v-model="labelDialogVisible"/>
+  <BatchAddLabelDialog v-model="labelDialogVisible" />
 </template>
 
 <style scoped>

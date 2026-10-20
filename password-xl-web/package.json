@@ -23,6 +23,8 @@
     "url": "https://github.com/peng0105/password-xl"
   },
   "scripts": {
+    "test:relations": "node --test src/service/__tests__/passwordRelations.test.cjs src/utils/__tests__/relationLayout.test.cjs src/utils/__tests__/relationEdgeRouting.test.cjs",
+    "test:loading": "node --test src/utils/__tests__/loading.test.cjs",
     "start": "vite",
     "preview": "vue-tsc -b && vite build && vite preview",
     "build": "vue-tsc -b && vite build",
@@ -33,6 +35,8 @@
     "test": "node --test src/service/__tests__/storageSafety.test.cjs src/service/__tests__/officialStorage.test.cjs src/service/__tests__/officialEntry.test.cjs src/utils/__tests__/passwordGenerator.test.mjs src/utils/__tests__/aiPasswordExtraction.test.mjs src/service/__tests__/aiCreation.test.cjs"
   },
   "dependencies": {
+    "@dagrejs/dagre": "^3.1.1",
+    "@vue-flow/core": "1.48.2",
     "@vue/devtools-api": "^8.2.1",
     "@vueuse/core": "^14.4.0",
     "aieditor": "^1.4.2",

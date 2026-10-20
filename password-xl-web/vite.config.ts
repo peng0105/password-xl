@@ -1,64 +1,74 @@
-import path from 'path';
-import {defineConfig} from 'vite'
+import path from 'path'
+import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
-import {ElementPlusResolver} from 'unplugin-vue-components/resolvers'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 
 const srcPath = path.resolve(import.meta.dirname, './src')
 
 // https://vitejs.dev/config/
-export default defineConfig(({mode}) => ({
-    base: ['electron', 'android-local'].includes(mode) ? './' : '/',
-    resolve: {
-        alias: {
-            '@': srcPath
-        },
-        extensions: ['.d.ts', '.ts', '.vue']
+export default defineConfig(({ mode }) => ({
+  base: ['electron', 'android-local'].includes(mode) ? './' : '/',
+  resolve: {
+    alias: {
+      '@': srcPath,
     },
-    server: {
-        host: '0.0.0.0',
+    extensions: ['.d.ts', '.ts', '.vue'],
+  },
+  server: {
+    host: '0.0.0.0',
+  },
+  plugins: [
+    vue(),
+    AutoImport({
+      imports: ['vue'],
+      resolvers: [ElementPlusResolver()],
+      dts: path.resolve(srcPath, 'auto-imports.d.ts'),
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()],
+      dts: path.resolve(srcPath, 'components.d.ts'),
+    }),
+  ],
+  build: {
+    chunkSizeWarningLimit: 1500,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
     },
-    plugins: [
-        vue(),
-        AutoImport({
-            imports: ['vue'],
-            resolvers: [
-                ElementPlusResolver(),
-            ],
-            dts: path.resolve(srcPath, 'auto-imports.d.ts'),
-        }),
-        Components({
-            resolvers: [
-                ElementPlusResolver(),
-            ],
-            dts: path.resolve(srcPath, 'components.d.ts'),
-        }),
-    ],
-    build: {
-        chunkSizeWarningLimit: 1500,
-        minify: 'terser',
-        terserOptions: {
-            compress: {
-                drop_console: true,
-                drop_debugger: true,
-            },
-        },
-        rollupOptions: {
-            output: {
-                manualChunks(id) {
-                    if (id.includes('node_modules')) {
-                        let node_modules = id.toString().split('node_modules/')
-                        if (node_modules && node_modules.length > 1) {
-                            let name = node_modules[1].split('/')[0].toString();
-                            if (['@vue', 'element-plus', '@element-plus', 'cos-js-sdk-v5', 'ali-oss', 'exceljs', 'aieditor', 'pinyin-pro'].includes(name)) {
-                                return name
-                            }
-                            return 'vendor'
-                        }
-                    }
-                }
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            let node_modules = id.toString().split('node_modules/')
+            if (node_modules && node_modules.length > 1) {
+              let name = node_modules[1].split('/')[0].toString()
+              if (['@vue-flow', '@dagrejs'].includes(name) || name.startsWith('d3-')) {
+                return 'relations'
+              }
+              if (
+                [
+                  '@vue',
+                  'element-plus',
+                  '@element-plus',
+                  'cos-js-sdk-v5',
+                  'ali-oss',
+                  'exceljs',
+                  'aieditor',
+                  'pinyin-pro',
+                ].includes(name)
+              ) {
+                return name
+              }
+              return 'vendor'
             }
-        }
-    }
+          }
+        },
+      },
+    },
+  },
 }))

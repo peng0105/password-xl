@@ -1,13 +1,15 @@
 <!--备份与恢复-->
 <script lang="ts" setup>
-import {BackupFile, Label, Password} from "@/types";
-import {displaySize, formatterDate, getLabelCount, mergeLabel, mergePassword} from "@/utils/global.ts";
-import {usePasswordStore} from "@/stores/PasswordStore.ts";
-import {useRefStore} from "@/stores/RefStore.ts";
-import FileSaver from "file-saver";
-import {checkPassword, decryptAES} from "@/utils/security.ts";
-import {decompressionArray} from "@/utils/compress";
-import {normalizePasswordArray} from "@/utils/passwordFieldOrder.ts";
+import { BackupFile, Label, Password, PasswordRelation, ServiceStatus } from '@/types'
+import { displaySize, formatterDate, getLabelCount } from '@/utils/global.ts'
+import { usePasswordStore } from '@/stores/PasswordStore.ts'
+import { useRefStore } from '@/stores/RefStore.ts'
+import FileSaver from 'file-saver'
+import { checkPassword, decryptAES } from '@/utils/security.ts'
+import { decompressionArray } from '@/utils/compress'
+import { normalizePasswordArray } from '@/utils/passwordFieldOrder.ts'
+import { readRelations } from '@/service/relationStorage.ts'
+import { preparePasswordRecovery } from '@/service/passwordRecovery.ts'
 
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
@@ -20,6 +22,28 @@ const fileInput = ref()
 const recoveryPasswordArray: Ref<Array<Password>> = ref([])
 // 准备恢复的标签列表
 const recoveryLabelArray: Ref<Array<Label>> = ref([])
+const recoveryRelations = ref<PasswordRelation[]>([])
+const recovering = ref(false)
+let recoveryVersion = 0
+
+watch(
+  [() => passwordStore.serviceStatus, () => passwordStore.passwordManager],
+  ([status]) => {
+    recoveryVersion++
+    if (status !== ServiceStatus.UNLOCKED) {
+      visRecovery.value = false
+      recoveryPasswordArray.value = []
+      recoveryLabelArray.value = []
+      recoveryRelations.value = []
+    }
+  },
+  { flush: 'sync' },
+)
+
+const isRecoveryCurrent = (version: number, manager = passwordStore.passwordManager) =>
+  version === recoveryVersion &&
+  manager === passwordStore.passwordManager &&
+  passwordStore.serviceStatus === ServiceStatus.UNLOCKED
 
 // 密码备份
 const backup = (auto: boolean) => {
@@ -27,25 +51,27 @@ const backup = (auto: boolean) => {
   let storeData = passwordStore.passwordManager.getStoreData()
   if (!storeData) {
     console.error('系统异常 备份文件不存在')
-    ElNotification.error({title: '系统异常', message: '备份文件不存在'})
+    ElNotification.error({ title: '系统异常', message: '备份文件不存在' })
     return
   }
 
-  let backupType = auto ? `您与“${formatterDate(Date.now(), 'YYYY-MM-DD HH:mm')}” 进行密码恢复时系统自动备份了该文件，` : `您于“${formatterDate(Date.now(), 'YYYY-MM-DD HH:mm')}” 手动备份了该文件，`
-  let passwordCount = passwordStore.allPasswordArray.length;
-  let labelCount = getLabelCount();
+  let backupType = auto
+    ? `您与“${formatterDate(Date.now(), 'YYYY-MM-DD HH:mm')}” 进行密码恢复时系统自动备份了该文件，`
+    : `您于“${formatterDate(Date.now(), 'YYYY-MM-DD HH:mm')}” 手动备份了该文件，`
+  let passwordCount = passwordStore.allPasswordArray.length
+  let labelCount = getLabelCount()
 
   let backupFile: BackupFile = {
     explain: `此文件为password-XL 密码备份文件，${backupType}此文件包含：${passwordCount} 个密码、${labelCount} 个标签。 password-XL 官网服务地址为：https://password-xl.cn`,
     storeData: storeData,
-    backupTime: Date.now()
-  };
+    backupTime: Date.now(),
+  }
 
   let fileName = '密码备份 ' + formatterDate(Date.now(), 'YYYY-MM-DD HH:mm:ss') + '.json'
-  const blob = new Blob([JSON.stringify(backupFile)], {type: 'text/plain;charset=utf-8'});
+  const blob = new Blob([JSON.stringify(backupFile)], { type: 'text/plain;charset=utf-8' })
 
   console.log('密码备份 导出文件:', fileName)
-  FileSaver.saveAs(blob, fileName);
+  FileSaver.saveAs(blob, fileName)
 }
 
 // 密码恢复
@@ -62,55 +88,81 @@ const fileChange = () => {
   }
   console.log('密码备份,文件选择器选择了文件：', fileInput.value.files.length)
   let file = fileInput.value.files[0]
+  const version = ++recoveryVersion
+  const manager = passwordStore.passwordManager
   let fileReader = new FileReader()
-  fileReader.onload = () => {
-    if (!fileReader.result) {
+  fileReader.onload = async () => {
+    if (!fileReader.result || !isRecoveryCurrent(version, manager)) {
       return
     }
     try {
-      let backupFile: BackupFile = JSON.parse(fileReader.result as string);
+      let backupFile: BackupFile = JSON.parse(fileReader.result as string)
       fileInput.value.value = ''
       // 开始恢复文件
-      startRecovery(backupFile)
+      await startRecovery(backupFile, version, manager)
     } catch (e) {
       console.error(e)
-      ElNotification.error({title: '恢复失败', message: '请检查备份文件是否正确'})
+      ElNotification.error({ title: '恢复失败', message: '请检查备份文件是否正确' })
     }
   }
   fileReader.readAsText(file)
 }
 
 // 开始恢复密码
-const startRecovery = async (backupFile: BackupFile) => {
+const startRecovery = async (
+  backupFile: BackupFile,
+  version: number,
+  manager: typeof passwordStore.passwordManager,
+) => {
   console.log('密码备份,开始恢复密码')
   let passwordText, labelText
+  let relations: PasswordRelation[] = []
   // 检查当前主密码是否可以解锁备份文件
   let checkUnlockFile = checkPassword(passwordStore.mainPassword, backupFile.storeData.passwordData)
   console.log('密码备份, 检查当前主密码是否可以解锁备份文件:', checkUnlockFile)
   if (checkUnlockFile) {
     // 当前主密码可以解锁备份文件
-    passwordText = decryptAES(passwordStore.mainPassword, backupFile.storeData.passwordData);
-    labelText = decryptAES(passwordStore.mainPassword, backupFile.storeData.labelData);
+    passwordText = decryptAES(passwordStore.mainPassword, backupFile.storeData.passwordData)
+    labelText = decryptAES(passwordStore.mainPassword, backupFile.storeData.labelData)
+    relations = readRelations(backupFile.storeData, passwordStore.mainPassword)
   } else {
     // 当前主密码无法解锁备份文件，需要用户输入备份文件的主密码
-    let mainPassword = await refStore.verifyPasswordRef.getAndVerify((mainPassword: string) => checkPassword(mainPassword, backupFile.storeData.passwordData), backupFile.storeData.mainPasswordType)
-    console.log('密码备份, 需要用户输入备份文件的主密码 mainPassword:', mainPassword)
+    let mainPassword = await refStore.verifyPasswordRef.getAndVerify(
+      (mainPassword: string) => checkPassword(mainPassword, backupFile.storeData.passwordData),
+      backupFile.storeData.mainPasswordType,
+    )
+    if (!isRecoveryCurrent(version, manager)) return
     if (mainPassword) {
-      passwordText = decryptAES(mainPassword, backupFile.storeData.passwordData);
-      labelText = decryptAES(mainPassword, backupFile.storeData.labelData);
+      passwordText = decryptAES(mainPassword, backupFile.storeData.passwordData)
+      labelText = decryptAES(mainPassword, backupFile.storeData.labelData)
+      relations = readRelations(backupFile.storeData, mainPassword)
     }
   }
 
   if (!passwordText || !labelText) {
     console.log('密码恢复失败, 请检查备份文件及主密码是否正确')
-    ElNotification.error({title: '恢复失败', message: '请检查备份文件及主密码是否正确'})
+    ElNotification.error({ title: '恢复失败', message: '请检查备份文件及主密码是否正确' })
     return false
   }
 
   // 解压缩密码列表
-  recoveryPasswordArray.value = normalizePasswordArray(decompressionArray(JSON.parse(passwordText)))
-  recoveryLabelArray.value = JSON.parse(labelText)
-  console.log('密码恢复, 解压缩密码列表: ', recoveryPasswordArray.value.length, recoveryLabelArray.value)
+  const recovered = preparePasswordRecovery(
+    { passwords: [], labels: [], relations: [] },
+    {
+      passwords: normalizePasswordArray(decompressionArray(JSON.parse(passwordText))),
+      labels: JSON.parse(labelText),
+      relations,
+    },
+    'cover',
+  )
+  recoveryPasswordArray.value = recovered.passwords
+  recoveryLabelArray.value = recovered.labels
+  recoveryRelations.value = recovered.relations
+  console.log(
+    '密码恢复, 解压缩密码列表: ',
+    recoveryPasswordArray.value.length,
+    recoveryLabelArray.value,
+  )
 
   if (!passwordStore.allPasswordArray.length && !passwordStore.labelArray.length) {
     // 当前列表没有密码直接恢复
@@ -123,121 +175,111 @@ const startRecovery = async (backupFile: BackupFile) => {
 }
 
 // 覆盖方式恢复
-const coverRecovery = () => {
-  console.log('密码恢复, 覆盖方式恢复 验证密码')
-  refStore.verifyPasswordRef.getAndVerify((mainPassword: string) => passwordStore.passwordManager.verifyPassword(mainPassword)).then(() => {
-    startCoverRecovery()
-  })
-}
-
-// 覆盖方式恢复
-const startCoverRecovery = () => {
-  console.log('密码恢复, 覆盖方式恢复')
-  if (passwordStore.allPasswordArray.length || passwordStore.labelArray.length) {
-    console.log('密码恢复, 恢复前先备份当前数据')
-    // 恢复前先备份当前数据
-    backup(true);
-    ElMessage.success('已为您自动备份现有密码')
-  }
-
-  console.log('密码恢复, 覆盖 数据确认：', passwordStore.allPasswordArray.length, recoveryPasswordArray.value.length, passwordStore.labelArray.length, recoveryLabelArray.value.length)
-
-  // 覆盖现有密码列表
-  passwordStore.allPasswordArray = recoveryPasswordArray.value
-  // 覆盖现有标签树
-  passwordStore.labelArray = recoveryLabelArray.value
-
-  // 同步密码与标签文件
-  syncPasswordAndLabel()
-}
+const coverRecovery = () => restore('cover')
 
 // 合并方式恢复
-const mergeRecovery = () => {
-  console.log('密码恢复, 合并方式恢复 验证密码')
-  refStore.verifyPasswordRef.getAndVerify((mainPassword: string) => passwordStore.passwordManager.verifyPassword(mainPassword)).then(() => {
-    startMergeRecovery()
-  })
-}
-const startMergeRecovery = () => {
-  console.log('密码恢复, 合并方式恢复')
-  if (passwordStore.allPasswordArray.length || passwordStore.labelArray.length) {
-    console.log('密码恢复, 恢复前先备份当前数据')
-    // 恢复前先备份当前数据
-    backup(true);
-    ElMessage.success('已为您自动备份现有密码')
-  }
+const mergeRecovery = () => restore('merge')
 
-  // 先合并标签并转换引用，再合并密码；保留恢复来源以便失败后重试。
-  const passwords: Password[] = JSON.parse(JSON.stringify(recoveryPasswordArray.value))
-  const idMap = mergeLabel(passwordStore.labelArray, recoveryLabelArray.value)
-  passwords.forEach(password => {
-    password.labels = password.labels.map(id => idMap.get(id) ?? id)
-  })
-  mergePassword(passwordStore.allPasswordArray, passwords)
-
-  // 同步密码与标签文件
-  syncPasswordAndLabel()
-}
-
-// 同步密码与标签文件
-const syncPasswordAndLabel = async () => {
-
-  console.log('密码恢复, 同步密码与标签文件')
-  let passwordSync = await passwordStore.passwordManager.syncStoreData().catch((err) => err)
-  console.log('密码恢复, 同步密码与标签文件 结果：', passwordSync)
-  if (passwordSync.status) {
-    ElMessage.success('密码恢复成功')
-    visRecovery.value = false
-  } else {
-    ElNotification.error({title: '系统异常', message: passwordSync.message})
+const restore = async (mode: 'cover' | 'merge') => {
+  if (recovering.value || passwordStore.serviceStatus !== ServiceStatus.UNLOCKED) return
+  recovering.value = true
+  const version = recoveryVersion
+  const manager = passwordStore.passwordManager
+  try {
+    const verified = await refStore.verifyPasswordRef.verifySensitive()
+    // 验证弹窗等待期间可能锁定或切换账号，旧回调不得覆盖新会话。
+    if (!verified || !isRecoveryCurrent(version, manager)) return
+    const recovered = preparePasswordRecovery(
+      {
+        passwords: passwordStore.allPasswordArray,
+        labels: passwordStore.labelArray,
+        relations: passwordStore.relations,
+      },
+      {
+        passwords: recoveryPasswordArray.value,
+        labels: recoveryLabelArray.value,
+        relations: recoveryRelations.value,
+      },
+      mode,
+    )
+    if (passwordStore.allPasswordArray.length || passwordStore.labelArray.length) {
+      backup(true)
+      ElMessage.success('已为您自动备份现有密码')
+    }
+    passwordStore.$patch({
+      allPasswordArray: recovered.passwords,
+      labelArray: recovered.labels,
+      relations: recovered.relations,
+    })
+    const result = await manager.syncStoreData()
+    if (!isRecoveryCurrent(version, manager)) return
+    if (result.status) {
+      ElMessage.success('密码恢复成功')
+      visRecovery.value = false
+      recoveryPasswordArray.value = []
+      recoveryLabelArray.value = []
+      recoveryRelations.value = []
+    }
+  } catch (error) {
+    if (isRecoveryCurrent(version, manager)) {
+      ElNotification.error({
+        title: '恢复失败',
+        message: error instanceof Error ? error.message : String(error),
+      })
+    }
+  } finally {
+    recovering.value = false
   }
 }
 
 defineExpose({
   backup,
-  recovery
+  recovery,
 })
 </script>
 
 <template>
-  <input ref="fileInput" accept="application/json" style="display: none" type="file" @change="fileChange()">
+  <input
+    ref="fileInput"
+    accept="application/json"
+    style="display: none"
+    type="file"
+    @change="fileChange()"
+  />
   <el-dialog
-      v-model="visRecovery"
-      :fullscreen="['xs', 'sm'].includes(displaySize().value)"
-      draggable
-      width="600px">
+    v-model="visRecovery"
+    :fullscreen="['xs', 'sm'].includes(displaySize().value)"
+    draggable
+    width="600px"
+  >
     <template #header>
-      <el-text size="large" style="user-select: none;">
+      <el-text size="large" style="user-select: none">
         <span class="iconfont icon-recovery"></span>
         恢复密码 <span style="font-weight: bold">·</span> 请选择恢复方式
       </el-text>
     </template>
     <el-row>
-      <el-col :md="{span:12}" :sm="{span:24}" class="recovery-col">
+      <el-col :md="{ span: 12 }" :sm="{ span: 24 }" class="recovery-col">
         <div class="recovery-type recovery-merge" @click="mergeRecovery">
-          <div style="position: absolute;padding: 7px;">
+          <div style="position: absolute; padding: 7px">
             <el-tag effect="dark" type="success">推荐</el-tag>
           </div>
           <div class="icon-div">
             <span class="iconfont icon-merge"></span>
           </div>
-          <el-text class="recovery-text">
-            合并恢复
-          </el-text>
-          <div style="margin-top: 20px;padding: 10px">
+          <el-text class="recovery-text"> 合并恢复 </el-text>
+          <div style="margin-top: 20px; padding: 10px">
             <el-text>将现有密码与备份文件中的密码合并（修改过的密码会添加备注说明）</el-text>
           </div>
         </div>
       </el-col>
-      <el-col :md="{span:12}" :sm="{span:24}" class="recovery-col">
+      <el-col :md="{ span: 12 }" :sm="{ span: 24 }" class="recovery-col">
         <div class="recovery-type recovery-cover" @click="coverRecovery">
           <div class="icon-div">
             <span class="iconfont icon-cover"></span>
           </div>
-          <el-text class="recovery-text">
-            覆盖恢复
-          </el-text>
-          <div style="margin-top: 20px;padding: 10px">
+          <el-text class="recovery-text"> 覆盖恢复 </el-text>
+          <div style="margin-top: 20px; padding: 10px">
             <el-text>使用备份文件覆盖密码列表，现有的密码和标签都将被删除</el-text>
           </div>
         </div>
@@ -249,7 +291,7 @@ defineExpose({
 <style scoped>
 .icon-recovery {
   font-size: 110%;
-  color: #409EFF;
+  color: #409eff;
   margin-right: 5px;
 }
 
@@ -284,17 +326,17 @@ defineExpose({
 }
 
 .icon-merge {
-  color: #409EFF;
+  color: #409eff;
   font-size: 130px;
 }
 
 .icon-cover {
-  color: #F56C6C;
+  color: #f56c6c;
   font-size: 130px;
 }
 
 .recovery-col {
-  padding: 15px
+  padding: 15px;
 }
 
 .recovery-text {

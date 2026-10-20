@@ -1,15 +1,21 @@
 <!--密码列表头组件-->
 <script lang="ts" setup>
 import { useLoginStore } from '@/stores/LoginStore'
-import {PasswordDisplayMode, ServiceStatus, Setting, Sort, TopicMode} from "@/types";
-import {usePasswordStore} from "@/stores/PasswordStore.ts";
-import {displaySize, supportAI} from "@/utils/global.ts";
-import {useRefStore} from "@/stores/RefStore.ts";
-import {useSettingStore} from "@/stores/SettingStore.ts";
-import {useRouter} from "vue-router";
-import {ArrowDown, ArrowRight, ArrowUp, Sort as SortIcon} from "@element-plus/icons-vue";
-import BatchOperationToolbar from "@/components/index/BatchOperationToolbar.vue";
-import {loadPinyinMatcher} from "@/utils/pinyin.ts";
+import { PasswordDisplayMode, ServiceStatus, Setting, Sort, TopicMode } from '@/types'
+import { usePasswordStore } from '@/stores/PasswordStore.ts'
+import { displaySize, supportAI } from '@/utils/global.ts'
+import { useRefStore } from '@/stores/RefStore.ts'
+import { useSettingStore } from '@/stores/SettingStore.ts'
+import { useRouter } from 'vue-router'
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  Connection,
+  Sort as SortIcon,
+} from '@element-plus/icons-vue'
+import BatchOperationToolbar from '@/components/index/BatchOperationToolbar.vue'
+import { loadPinyinMatcher } from '@/utils/pinyin.ts'
 
 const passwordStore = usePasswordStore()
 const refStore = useRefStore()
@@ -19,18 +25,18 @@ const settingStore = useSettingStore()
 type PasswordSortField = Setting['sortField'] | 'strength'
 
 interface PasswordSortOption {
-  label: string,
-  value: PasswordSortField,
-  defaultOrder: Sort,
+  label: string
+  value: PasswordSortField
+  defaultOrder: Sort
 }
 
 const passwordSortOptions: Array<PasswordSortOption> = [
-  {label: '添加时间', value: 'addTime', defaultOrder: Sort.DESC},
-  {label: '修改时间', value: 'updateTime', defaultOrder: Sort.DESC},
-  {label: '密码强度', value: 'strength', defaultOrder: Sort.DESC},
-  {label: '密码名称', value: 'title', defaultOrder: Sort.ASC},
-  {label: '登录名', value: 'username', defaultOrder: Sort.ASC},
-  {label: '收藏', value: 'favorite', defaultOrder: Sort.DESC},
+  { label: '添加时间', value: 'addTime', defaultOrder: Sort.DESC },
+  { label: '修改时间', value: 'updateTime', defaultOrder: Sort.DESC },
+  { label: '密码强度', value: 'strength', defaultOrder: Sort.DESC },
+  { label: '密码名称', value: 'title', defaultOrder: Sort.ASC },
+  { label: '登录名', value: 'username', defaultOrder: Sort.ASC },
+  { label: '收藏', value: 'favorite', defaultOrder: Sort.DESC },
 ]
 
 const menuDropdownRef = ref()
@@ -47,8 +53,10 @@ const switchPasswordSort = async (option: PasswordSortOption) => {
 
   settingStore.setting.sortField = option.value as Setting['sortField']
   settingStore.setting.sortOrder = isCurrentField
-      ? (oldSortOrder === Sort.ASC ? Sort.DESC : Sort.ASC)
-      : option.defaultOrder
+    ? oldSortOrder === Sort.ASC
+      ? Sort.DESC
+      : Sort.ASC
+    : option.defaultOrder
 
   sortPopoverVisible.value = false
   menuDropdownRef.value?.handleClose?.()
@@ -104,7 +112,7 @@ const saveSearchLog = () => {
   }
   console.log('header 保存搜索记录：', searchText.value)
 
-  let searchHistory: Array<string> = [];
+  let searchHistory: Array<string> = []
   let searchHistoryStr = localStorage.getItem('searchHistory')
   if (searchHistoryStr) {
     searchHistory = JSON.parse(searchHistoryStr)
@@ -128,19 +136,21 @@ const saveSearchLog = () => {
 const querySearch = (queryString: string, cb: any) => {
   if (!queryString) {
     cb([])
-    return;
+    return
   }
-  console.log('header 自动补全：', queryString);
+  console.log('header 自动补全：', queryString)
   let searchHistory = localStorage.getItem('searchHistory')
   if (searchHistory) {
     let array = JSON.parse(searchHistory)
     if (array && array.length > 0) {
-      let historyArray = queryString ? array.filter((text: string) => text.includes(queryString)) : array
+      let historyArray = queryString
+        ? array.filter((text: string) => text.includes(queryString))
+        : array
       historyArray = historyArray.slice(0, 5)
-      let result = historyArray.map(((text: string) => {
-        return {value: text}
-      }))
-      result.push({value: searchText.value, type: 'cleanHistory'})
+      let result = historyArray.map((text: string) => {
+        return { value: text }
+      })
+      result.push({ value: searchText.value, type: 'cleanHistory' })
       cb(result)
       return
     }
@@ -170,7 +180,7 @@ const delayedSearch = () => {
   // 延时0.2秒开始过滤密码
   searchTimeout = setTimeout(function () {
     filterPassword('delayed')
-  }, 200);
+  }, 200)
 }
 
 // 添加密码
@@ -232,59 +242,59 @@ const aiAddPassword = () => {
   refStore.aiAddPasswordRef.show()
 }
 
+const handleSearchBlur = () => {
+  inputIng.value = false
+  saveSearchLog()
+}
 </script>
 
 <template>
   <div class="password-card-header">
     <div>
-      <el-text v-if="settingStore.setting.showPasswordStatistics" class="hidden-sm-and-down password-title"
-               style="width: 300px">
-        <template v-if="passwordStore.privacyPlaceholderVisible">
-          密码列表已隐藏
-        </template>
+      <el-text
+        v-if="settingStore.setting.showPasswordStatistics"
+        class="hidden-sm-and-down password-title"
+        style="width: 300px"
+      >
+        <template v-if="passwordStore.privacyPlaceholderVisible"> 密码列表已隐藏 </template>
         <template v-else-if="passwordStore.visPasswordArray.length > 0">
-          <span>
-            共
-          </span>
+          <span> 共 </span>
           <span class="password-count">
             {{ passwordStore.visPasswordArray.length }}
           </span>
-          <span>
-            个密码
-          </span>
+          <span> 个密码 </span>
         </template>
-        <template v-else-if="!passwordStore.passwordArray.length">
-          没有保存的密码
-        </template>
+        <template v-else-if="!passwordStore.passwordArray.length"> 没有保存的密码 </template>
       </el-text>
       <div v-else class="hidden-xs-only" style="height: 32px" @click="goAbout">
-        <img alt="" src="../../assets/images/logo.svg" style="height: 32px;cursor: pointer">
+        <img alt="" src="../../assets/images/logo.svg" style="height: 32px; cursor: pointer" />
       </div>
     </div>
-    <div style="display: flex;">
+    <div style="display: flex">
       <el-autocomplete
-          :ref="(el: any) => refStore.searchInputRef = el"
-          v-model="searchText"
-          :debounce="10"
-          :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
-
-          :fetch-suggestions="querySearch"
-          class="search-input"
-          popper-class="header-autocomplete-suggestion"
-          clearable
-          placeholder="搜索.. Ctrl + F"
-
-          @blur="inputIng = false;saveSearchLog()"
-          @change="filterPassword('change')"
-          @clear="filterPassword('clear')"
-          @compositionend="inputIng = false"
-          @compositionstart="inputIng = true"
-          @keyup="delayedSearch"
-          @keyup.enter.native="filterPassword('inputEnter')"
+        :ref="(el: any) => (refStore.searchInputRef = el)"
+        v-model="searchText"
+        :debounce="10"
+        :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
+        :fetch-suggestions="querySearch"
+        class="search-input"
+        popper-class="header-autocomplete-suggestion"
+        clearable
+        placeholder="搜索.. Ctrl + F"
+        @blur="handleSearchBlur"
+        @change="filterPassword('change')"
+        @clear="filterPassword('clear')"
+        @compositionend="inputIng = false"
+        @compositionstart="inputIng = true"
+        @keyup="delayedSearch"
+        @keyup.enter.native="filterPassword('inputEnter')"
       >
         <template #default="{ item }">
-          <div v-if="item.type === 'cleanHistory'" class="clear-history"
-               style="text-align: center;margin-left: -20px;margin-right: -20px;">
+          <div
+            v-if="item.type === 'cleanHistory'"
+            class="clear-history"
+            style="text-align: center; margin-left: -20px; margin-right: -20px"
+          >
             <span class="clear-history-text" @click="clearSearchHistory">清除搜索历史</span>
           </div>
           <div v-else>
@@ -293,189 +303,242 @@ const aiAddPassword = () => {
         </template>
         <template #append>
           <el-button class="search-btn" @click="filterPassword('searchBtn')">
-            <span class="iconfont icon-search search-input-icon"/>
+            <span class="iconfont icon-search search-input-icon" />
           </el-button>
         </template>
       </el-autocomplete>
     </div>
     <div class="header-operation-area">
       <div v-if="passwordStore.batchOperationEnabled" class="batch-operation-toolbar-wrapper">
-        <BatchOperationToolbar/>
+        <BatchOperationToolbar />
       </div>
       <div class="standard-operation-toolbar">
-      <el-button
+        <el-button
           v-if="settingStore.setting.enableAiAdd && supportAI()"
-          :ref="(el: any) => refStore.aiCreatePasswordBtnRef = el"
+          :ref="(el: any) => (refStore.aiCreatePasswordBtnRef = el)"
           :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
           class="ai-add-password-btn"
           plain
           type="primary"
-          @click="aiAddPassword">
-        Ai
-      </el-button>
-      <el-button
-          :ref="(el: any) => refStore.createPasswordBtnRef = el"
+          @click="aiAddPassword"
+        >
+          Ai
+        </el-button>
+        <el-button
+          :ref="(el: any) => (refStore.createPasswordBtnRef = el)"
           :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
           class="add-password-btn"
           plain
           type="primary"
-          @click="addPassword">
-        添加
-      </el-button>
+          @click="addPassword"
+        >
+          添加
+        </el-button>
 
-      <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED
-      && useLoginStore().loginType !== 'official' && !['xs','sm'].includes(displaySize().value) && settingStore.setting.showNote" content="打开笔记">
-        <el-button class="to-note-btn" plain @click="toNote">
-          <span class="iconfont icon-note" style="font-size: 125%;transform: scaleX(1.1);color: #67C23A"/>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED" content="锁定">
-        <el-button class="lock-btn" plain @click="lock">
-          <span :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="iconfont icon-lock"
-                style="font-size: 120%;"/>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.LOGGED" content="解锁">
-        <el-button class="unlock-btn" plain @click="unlock">
-          <span :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="iconfont icon-unlock"
-                style="font-size: 120%;"/>
-        </el-button>
-      </el-tooltip>
-      <el-dropdown ref="menuDropdownRef" trigger="click">
-        <el-button :style="{'color':passwordStore.isDark?'#ccc':'#666'}" class="menu-btn" plain>
-          <span class="iconfont icon-menu" style="font-size: 130%;"/>
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item
-                v-if="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showLabelCard"
+        <el-tooltip
+          v-if="
+            passwordStore.serviceStatus === ServiceStatus.UNLOCKED &&
+            useLoginStore().loginType !== 'official' &&
+            !['xs', 'sm'].includes(displaySize().value) &&
+            settingStore.setting.showNote
+          "
+          content="打开笔记"
+        >
+          <el-button class="to-note-btn" plain @click="toNote">
+            <span
+              class="iconfont icon-note"
+              style="font-size: 125%; transform: scaleX(1.1); color: #67c23a"
+            />
+          </el-button>
+        </el-tooltip>
+        <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.UNLOCKED" content="锁定">
+          <el-button class="lock-btn" plain @click="lock">
+            <span
+              :style="{ color: passwordStore.isDark ? '#ccc' : '#666' }"
+              class="iconfont icon-lock"
+              style="font-size: 120%"
+            />
+          </el-button>
+        </el-tooltip>
+        <el-tooltip v-if="passwordStore.serviceStatus === ServiceStatus.LOGGED" content="解锁">
+          <el-button class="unlock-btn" plain @click="unlock">
+            <span
+              :style="{ color: passwordStore.isDark ? '#ccc' : '#666' }"
+              class="iconfont icon-unlock"
+              style="font-size: 120%"
+            />
+          </el-button>
+        </el-tooltip>
+        <el-dropdown ref="menuDropdownRef" trigger="click">
+          <el-button
+            :style="{ color: passwordStore.isDark ? '#ccc' : '#666' }"
+            class="menu-btn"
+            plain
+          >
+            <span class="iconfont icon-menu" style="font-size: 130%" />
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                v-if="
+                  ['xs', 'sm'].includes(displaySize().value) || !settingStore.setting.showLabelCard
+                "
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
-                @click="refStore.labelDrawer?.showLabelDrawer">
-              <span class="iconfont icon-label menu-item" style="color: #409EFF"></span>
-              标签
-            </el-dropdown-item>
-            <el-dropdown-item
-                v-if="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showFavoriteCard"
+                @click="refStore.labelDrawer?.showLabelDrawer"
+              >
+                <span class="iconfont icon-label menu-item" style="color: #409eff"></span>
+                标签
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-if="
+                  ['xs', 'sm'].includes(displaySize().value) ||
+                  !settingStore.setting.showFavoriteCard
+                "
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
-                @click="refStore.favoriteDrawer?.showFavoriteDrawer">
-              <span class="iconfont icon-collect menu-item" style="color: #FF9700"></span>
-              收藏
-            </el-dropdown-item>
-            <el-popover
+                @click="refStore.favoriteDrawer?.showFavoriteDrawer"
+              >
+                <span class="iconfont icon-collect menu-item" style="color: #ff9700"></span>
+                收藏
+              </el-dropdown-item>
+              <el-popover
                 v-model:visible="sortPopoverVisible"
                 :hide-after="100"
                 :width="150"
                 placement="left-start"
                 popper-class="password-sort-popover"
                 trigger="hover"
-            >
-              <template #reference>
-                <li
+              >
+                <template #reference>
+                  <li
                     class="el-dropdown-menu__item sort-menu-reference"
                     role="menuitem"
                     tabindex="0"
                     style="padding-right: 5px"
                     @click.stop="sortPopoverVisible = !sortPopoverVisible"
                     @keydown.enter.prevent.stop="sortPopoverVisible = !sortPopoverVisible"
-                >
-                  <el-icon class="sort-menu-symbol">
-                    <SortIcon/>
-                  </el-icon>
-                  <span>排序方式</span>
-                  <el-icon class="sort-menu-arrow">
-                    <ArrowRight/>
-                  </el-icon>
-                </li>
-              </template>
-              <div class="password-sort-options" role="menu">
-                <div
+                  >
+                    <el-icon class="sort-menu-symbol">
+                      <SortIcon />
+                    </el-icon>
+                    <span>排序方式</span>
+                    <el-icon class="sort-menu-arrow">
+                      <ArrowRight />
+                    </el-icon>
+                  </li>
+                </template>
+                <div class="password-sort-options" role="menu">
+                  <div
                     v-for="option in passwordSortOptions"
                     :key="option.value"
-                    :class="{'is-active': settingStore.setting.sortField === option.value}"
+                    :class="{ 'is-active': settingStore.setting.sortField === option.value }"
                     class="password-sort-option"
                     role="menuitem"
                     tabindex="0"
                     @click="switchPasswordSort(option)"
                     @keydown.enter.prevent="switchPasswordSort(option)"
-                >
-                  <span>{{ option.label }}</span>
-                  <el-icon
+                  >
+                    <span>{{ option.label }}</span>
+                    <el-icon
                       v-if="settingStore.setting.sortField === option.value"
                       class="password-sort-direction"
-                  >
-                    <ArrowUp v-if="settingStore.setting.sortOrder === Sort.ASC"/>
-                    <ArrowDown v-else/>
-                  </el-icon>
+                    >
+                      <ArrowUp v-if="settingStore.setting.sortOrder === Sort.ASC" />
+                      <ArrowDown v-else />
+                    </el-icon>
+                  </div>
                 </div>
-              </div>
-            </el-popover>
-            <el-dropdown-item
-                :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED
-                || (!passwordStore.batchOperationEnabled
-                && (passwordStore.privacyPlaceholderVisible || !passwordStore.visPasswordArray.length))"
+              </el-popover>
+              <el-dropdown-item
+                :disabled="
+                  passwordStore.serviceStatus !== ServiceStatus.UNLOCKED ||
+                  (!passwordStore.batchOperationEnabled &&
+                    (passwordStore.privacyPlaceholderVisible ||
+                      !passwordStore.visPasswordArray.length))
+                "
                 @click="toggleBatchOperation"
-            >
-              <span class="iconfont icon-check-mark menu-item" style="color: #409EFF"></span>
-              {{ passwordStore.batchOperationEnabled ? '退出批量操作' : '批量操作' }}
-            </el-dropdown-item>
-            <el-dropdown-item
-                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.TABLE"
-                :divided="['xs','sm'].includes(displaySize().value) || !settingStore.setting.showFavoriteCard || !settingStore.setting.showLabelCard"
+              >
+                <span class="iconfont icon-check-mark menu-item" style="color: #409eff"></span>
+                {{ passwordStore.batchOperationEnabled ? '退出批量操作' : '批量操作' }}
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-if="settingStore.setting.passwordDisplayMode !== PasswordDisplayMode.CARD"
+                :divided="
+                  ['xs', 'sm'].includes(displaySize().value) ||
+                  !settingStore.setting.showFavoriteCard ||
+                  !settingStore.setting.showLabelCard
+                "
                 @click="switchDisplayMode(PasswordDisplayMode.CARD)"
-            >
-              <span class="iconfont icon-card menu-item" style="color: #67c23a"></span>
-              卡片视图
-            </el-dropdown-item>
-            <el-dropdown-item
-                v-if="settingStore.setting.passwordDisplayMode === PasswordDisplayMode.CARD"
+              >
+                <span class="iconfont icon-card menu-item" style="color: #67c23a"></span>
+                卡片视图
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-if="settingStore.setting.passwordDisplayMode !== PasswordDisplayMode.TABLE"
                 @click="switchDisplayMode(PasswordDisplayMode.TABLE)"
-            >
-              <span class="iconfont icon-list menu-item" style="color: #409eff"></span>
-              列表视图
-            </el-dropdown-item>
-            <el-dropdown-item
+              >
+                <span class="iconfont icon-list menu-item" style="color: #409eff"></span>
+                列表视图
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-if="settingStore.setting.passwordDisplayMode !== PasswordDisplayMode.RELATION"
+                @click="switchDisplayMode(PasswordDisplayMode.RELATION)"
+              >
+                <el-icon class="menu-item relation-view-menu-icon"><Connection /></el-icon>
+                关系视图
+              </el-dropdown-item>
+              <el-dropdown-item
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
                 divided
                 v-if="useLoginStore().loginType !== 'official'"
-                @click="toNote">
-              <span class="iconfont icon-note menu-item" style="color: #67C23A;transform: scaleX(1.1);"></span>
-              打开笔记
-            </el-dropdown-item>
-            <el-dropdown-item
+                @click="toNote"
+              >
+                <span
+                  class="iconfont icon-note menu-item"
+                  style="color: #67c23a; transform: scaleX(1.1)"
+                ></span>
+                打开笔记
+              </el-dropdown-item>
+              <el-dropdown-item
                 v-if="!passwordStore.isDark"
-                :divided="['xs','sm'].includes(displaySize().value)"
+                :divided="['xs', 'sm'].includes(displaySize().value)"
                 @click="switchTopicMode(TopicMode.DARK)"
-            >
-              <span class="iconfont icon-dark-mode menu-item" style="color: rgb(96 0 255)"></span>
-              深色主题
-            </el-dropdown-item>
-            <el-dropdown-item
+              >
+                <span class="iconfont icon-dark-mode menu-item" style="color: rgb(96 0 255)"></span>
+                深色主题
+              </el-dropdown-item>
+              <el-dropdown-item
                 v-if="passwordStore.isDark"
-                :divided="['xs','sm'].includes(displaySize().value)"
+                :divided="['xs', 'sm'].includes(displaySize().value)"
                 @click="switchTopicMode(TopicMode.LIGHT)"
-            >
-              <span class="iconfont icon-right-mode menu-item" style="color: rgb(186 255 0)"></span>
-              明亮主题
-            </el-dropdown-item>
-            <el-dropdown-item
+              >
+                <span
+                  class="iconfont icon-right-mode menu-item"
+                  style="color: rgb(186 255 0)"
+                ></span>
+                明亮主题
+              </el-dropdown-item>
+              <el-dropdown-item
                 :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
                 divided
-                @click="refStore.settingRef?.openSetting">
-              <span class="iconfont icon-setting menu-item" style="color: #409EFF"></span>
-              系统设置
-            </el-dropdown-item>
-            <el-dropdown-item :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
-                              @click="openRecycleBin">
-              <span class="iconfont icon-recycle-bin menu-item" style="color: #E6A23C;"></span>
-              回收站
-            </el-dropdown-item>
-            <el-dropdown-item divided @click="passwordStore.logout()">
-              <span class="iconfont icon-exit menu-item" style="color: #F56C6C"></span>
-              退出登录
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+                @click="refStore.settingRef?.openSetting"
+              >
+                <span class="iconfont icon-setting menu-item" style="color: #409eff"></span>
+                系统设置
+              </el-dropdown-item>
+              <el-dropdown-item
+                :disabled="passwordStore.serviceStatus !== ServiceStatus.UNLOCKED"
+                @click="openRecycleBin"
+              >
+                <span class="iconfont icon-recycle-bin menu-item" style="color: #e6a23c"></span>
+                回收站
+              </el-dropdown-item>
+              <el-dropdown-item divided @click="passwordStore.logout()">
+                <span class="iconfont icon-exit menu-item" style="color: #f56c6c"></span>
+                退出登录
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
   </div>
@@ -500,7 +563,7 @@ const aiAddPassword = () => {
 .search-btn:active {
   color: #fff !important;
   border-radius: 0 4px 4px 0 !important;
-  background-color: #409EFF !important;
+  background-color: #409eff !important;
 }
 
 :deep(.search-input) {
@@ -510,7 +573,7 @@ const aiAddPassword = () => {
 }
 
 .clear-history:hover {
-  color: #F56C6C;
+  color: #f56c6c;
   padding: 0;
 }
 
@@ -541,7 +604,19 @@ const aiAddPassword = () => {
 }
 
 .menu-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
   margin-right: 10px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.relation-view-menu-icon {
+  color: var(--el-color-success);
 }
 
 .sort-menu-reference {
@@ -575,10 +650,7 @@ const aiAddPassword = () => {
   margin-left: 10px;
   font-size: 20px;
   font-weight: bold;
-  background: linear-gradient(
-      to right top,
-      #d200ff, #00ffee
-  );
+  background: linear-gradient(to right top, #d200ff, #00ffee);
 
   -webkit-background-clip: text;
   background-clip: text;
@@ -586,7 +658,11 @@ const aiAddPassword = () => {
   text-shadow: 0 0 5px rgba(138, 43, 226, 0);
 }
 
-.lock-btn, .unlock-btn, .table-btn, .card-btn, .to-note-btn {
+.lock-btn,
+.unlock-btn,
+.table-btn,
+.card-btn,
+.to-note-btn {
   margin-left: 10px;
   color: #666;
 }
@@ -620,7 +696,6 @@ const aiAddPassword = () => {
     margin-right: 0;
   }
 }
-
 </style>
 <style>
 .header-autocomplete-suggestion .el-autocomplete-suggestion li:hover {

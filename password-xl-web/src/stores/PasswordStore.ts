@@ -1,356 +1,422 @@
-import {defineStore} from 'pinia'
-import {MainPasswordType, Password, PasswordStatus, PasswordStore, ServiceStatus, Sort, TopicMode} from "@/types";
-import {useDark} from '@vueuse/core'
-import {getLocationUrl, getPasswordStrength, searchFields} from "@/utils/global.ts";
-import {PasswordManagerImpl} from "@/service/PasswordManager.ts";
-import {useSettingStore} from "@/stores/SettingStore.ts";
-import {useRefStore} from "@/stores/RefStore.ts";
-import {useLoginStore} from "@/stores/LoginStore.ts";
+import { defineStore } from 'pinia'
+import {
+  Label,
+  MainPasswordType,
+  Password,
+  PasswordStatus,
+  PasswordStore,
+  ServiceStatus,
+  Sort,
+  TopicMode,
+} from '@/types'
+import { useDark } from '@vueuse/core'
+import { getLocationUrl, getPasswordStrength, searchFields } from '@/utils/global.ts'
+import { PasswordManagerImpl } from '@/service/PasswordManager.ts'
+import { useSettingStore } from '@/stores/SettingStore.ts'
+import { useRefStore } from '@/stores/RefStore.ts'
+import { useLoginStore } from '@/stores/LoginStore.ts'
+import { useRelationStore } from '@/stores/RelationStore.ts'
+import { buildRelationIndex } from '@/utils/passwordRelations.ts'
 
 export const usePasswordStore = defineStore('passwordStore', {
-    state: (): PasswordStore => {
-        return {
-            // 密码管理器
-            passwordManager: new PasswordManagerImpl(),
-            // 全部密码列表
-            allPasswordArray: [],
-            // 标签树
-            labelArray: [],
-            // 主密码
-            mainPassword: '',
-            // 服务状态
-            serviceStatus: ServiceStatus.NO_LOGIN,
-            // 主题
-            topicMode: TopicMode.AUTO,
-            // 主密码类型
-            mainPasswordType: MainPasswordType.GESTURE,
-            // 密码表单抽屉是否显示
-            passwordFormDrawerVis: false,
-            // 是否显示密码回收站弹窗
-            recycleBinDialogVis: false,
-            // 超时锁
-            timeoutLock: null,
-            // 加载中动画
-            globalLoading: {
-                vis: false,
-                timeout: null,
-                content: ''
-            },
-            // 隐私模式下是否已临时显示全部密码（页面刷新或密码本锁定后复位）
-            privacyModeRevealed: false,
-            // 是否处于批量操作模式（页面刷新或密码本锁定后复位）
-            batchOperationEnabled: false,
-            // 批量操作选中的密码ID
-            batchSelectedPasswordIds: [],
-            // 密码列表筛选条件
-            filterCondition: {
-                // 文字搜索
-                searchText: '',
-                // 标签搜索
-                labelArray: [],
-                // 收藏搜索
-                favoriteId: 0
-            }
+  state: (): PasswordStore => {
+    return {
+      // 密码管理器
+      passwordManager: new PasswordManagerImpl(),
+      // 全部密码列表
+      allPasswordArray: [],
+      relations: [],
+      // 标签树
+      labelArray: [],
+      // 主密码
+      mainPassword: '',
+      // 服务状态
+      serviceStatus: ServiceStatus.NO_LOGIN,
+      // 主题
+      topicMode: TopicMode.AUTO,
+      // 主密码类型
+      mainPasswordType: MainPasswordType.GESTURE,
+      // 密码表单抽屉是否显示
+      passwordFormDrawerVis: false,
+      // 是否显示密码回收站弹窗
+      recycleBinDialogVis: false,
+      // 超时锁
+      timeoutLock: null,
+      // 加载中动画
+      globalLoading: {
+        vis: false,
+        timeout: null,
+        content: '',
+      },
+      // 隐私模式下是否已临时显示全部密码（页面刷新或密码本锁定后复位）
+      privacyModeRevealed: false,
+      // 是否处于批量操作模式（页面刷新或密码本锁定后复位）
+      batchOperationEnabled: false,
+      // 批量操作选中的密码ID
+      batchSelectedPasswordIds: [],
+      // 密码列表筛选条件
+      filterCondition: {
+        // 文字搜索
+        searchText: '',
+        // 标签搜索
+        labelArray: [],
+        // 收藏搜索
+        favoriteId: 0,
+      },
+    }
+  },
+  getters: {
+    passwordById(): Map<number, Password> {
+      return new Map(
+        this.allPasswordArray
+          .filter((password) => password.status === PasswordStatus.NORMAL)
+          .map((password) => [password.id, password]),
+      )
+    },
+    labelIndex(): Map<number, { label: Label; order: number }> {
+      const index = new Map<number, { label: Label; order: number }>()
+      const visit = (labels: Label[]) =>
+        labels.forEach((label) => {
+          index.set(label.id, { label, order: index.size })
+          visit(label.children)
+        })
+      visit(this.labelArray)
+      return index
+    },
+    expandedLabelIds(): number[] {
+      return this.labelArray.map((label) => label.id)
+    },
+    batchSelectedPasswordIdSet(): Set<number> {
+      return new Set(this.batchSelectedPasswordIds)
+    },
+    relationIndex(): ReturnType<typeof buildRelationIndex> {
+      return buildRelationIndex(this.relations, new Set(this.passwordById.keys()))
+    },
+    // 排序后的密码列表
+    passwordArray(): Array<Password> {
+      console.log('获取排序后的密码列表')
+      const settingStore = useSettingStore()
+      // 过滤出状态为 NORMAL 的密码
+      let array = this.allPasswordArray
+        .filter((password) => password.status === PasswordStatus.NORMAL)
+        .sort((a: Password, b: Password) => {
+          // 获取比较值
+          let aSort = a[settingStore.setting.sortField]
+          let bSort = b[settingStore.setting.sortField]
+
+          // 如果排序字段是 strength，则使用密码强度进行比较
+          if ((settingStore.setting.sortField as string) === 'strength') {
+            aSort = getPasswordStrength(a.password)
+            bSort = getPasswordStrength(b.password)
+          }
+          // 比较值并返回排序结果
+          if (aSort > bSort) {
+            return settingStore.setting.sortOrder === Sort.ASC ? 1 : -1
+          } else if (aSort < bSort) {
+            return settingStore.setting.sortOrder === Sort.ASC ? -1 : 1
+          } else {
+            return 0
+          }
+        })
+
+      console.log('排序后的密码列表数量：', array.length)
+      return array
+    },
+    // 已删除的密码列表
+    deletedArray(): Array<Password> {
+      console.log('获取已删除的密码列表')
+      let array = this.allPasswordArray
+        .filter((password) => password.status === PasswordStatus.DELETED)
+        .sort((a: Password, b: Password) => {
+          if (a.deleteTime > b.deleteTime) {
+            return 1
+          } else if (a.deleteTime < b.deleteTime) {
+            return -1
+          } else {
+            return 0
+          }
+        })
+      console.log('已删除的密码列表数量：', array.length)
+      return array
+    },
+    // 收藏的密码列表
+    favoritePasswordArray(): Array<Password> {
+      console.log('获取收藏的密码列表')
+      let array = this.passwordArray
+        .filter((p) => p.favorite)
+        .sort((a: Password, b: Password) => {
+          if (a.favoriteTime > b.favoriteTime) {
+            return 1
+          } else if (a.favoriteTime < b.favoriteTime) {
+            return -1
+          } else {
+            return 0
+          }
+        })
+      console.log('收藏的密码列表数量：', array.length)
+      return array
+    },
+    // 是否存在密码筛选条件
+    hasActiveFilter(): boolean {
+      return (
+        this.filterCondition.searchText.trim().length > 0 ||
+        this.filterCondition.labelArray.length > 0 ||
+        this.filterCondition.favoriteId !== 0
+      )
+    },
+    // 是否显示隐私模式占位内容
+    privacyPlaceholderVisible(): boolean {
+      const settingStore = useSettingStore()
+      return (
+        settingStore.setting.enablePrivacyMode &&
+        this.serviceStatus === ServiceStatus.UNLOCKED &&
+        this.passwordArray.length > 0 &&
+        !this.hasActiveFilter &&
+        !this.privacyModeRevealed
+      )
+    },
+    // 显示的密码列表
+    visPasswordArray(): Array<Password> {
+      console.log('获取显示的密码列表')
+      let array = this.passwordArray.filter((password) => {
+        // 收藏选定结果
+        if (this.filterCondition.favoriteId) {
+          return password.id === this.filterCondition.favoriteId
         }
-    },
-    getters: {
-        // 排序后的密码列表
-        passwordArray(): Array<Password> {
-            console.log('获取排序后的密码列表')
-            const settingStore = useSettingStore()
-            // 过滤出状态为 NORMAL 的密码
-            let array = this.allPasswordArray
-                .filter(password => password.status === PasswordStatus.NORMAL)
-                .sort((a: Password, b: Password) => {
-                    // 获取比较值
-                    let aSort = a[settingStore.setting.sortField];
-                    let bSort = b[settingStore.setting.sortField];
 
-                    // 如果排序字段是 strength，则使用密码强度进行比较
-                    if ((settingStore.setting.sortField as string) === 'strength') {
-                        aSort = getPasswordStrength(a.password);
-                        bSort = getPasswordStrength(b.password);
-                    }
-                    // 比较值并返回排序结果
-                    if (aSort > bSort) {
-                        return settingStore.setting.sortOrder === Sort.ASC ? 1 : -1;
-                    } else if (aSort < bSort) {
-                        return settingStore.setting.sortOrder === Sort.ASC ? -1 : 1;
-                    } else {
-                        return 0;
-                    }
-                });
+        // 文本搜索结果
+        let textSearchResult = true
+        // 标签搜索结果
+        let labelSearchResult = true
 
-            console.log('排序后的密码列表数量：', array.length)
-            return array
-        },
-        // 已删除的密码列表
-        deletedArray(): Array<Password> {
-            console.log('获取已删除的密码列表')
-            let array = this.allPasswordArray.filter(password => password.status === PasswordStatus.DELETED).sort((a: Password, b: Password) => {
-                if (a.deleteTime > b.deleteTime) {
-                    return 1
-                } else if (a.deleteTime < b.deleteTime) {
-                    return -1
-                } else {
-                    return 0;
-                }
-            })
-            console.log('已删除的密码列表数量：', array.length)
-            return array
-        },
-        // 收藏的密码列表
-        favoritePasswordArray(): Array<Password> {
-            console.log('获取收藏的密码列表')
-            let array = this.passwordArray.filter(p => p.favorite)
-                .sort((a: Password, b: Password) => {
-                    if (a.favoriteTime > b.favoriteTime) {
-                        return 1
-                    } else if (a.favoriteTime < b.favoriteTime) {
-                        return -1
-                    } else {
-                        return 0;
-                    }
-                })
-            console.log('收藏的密码列表数量：', array.length)
-            return array
-        },
-        // 是否存在密码筛选条件
-        hasActiveFilter(): boolean {
-            return this.filterCondition.searchText.trim().length > 0
-                || this.filterCondition.labelArray.length > 0
-                || this.filterCondition.favoriteId !== 0
-        },
-        // 是否显示隐私模式占位内容
-        privacyPlaceholderVisible(): boolean {
-            const settingStore = useSettingStore()
-            return settingStore.setting.enablePrivacyMode
-                && this.serviceStatus === ServiceStatus.UNLOCKED
-                && this.passwordArray.length > 0
-                && !this.hasActiveFilter
-                && !this.privacyModeRevealed
-        },
-        // 显示的密码列表
-        visPasswordArray(): Array<Password> {
-            console.log('获取显示的密码列表')
-            let array = this.passwordArray.filter(password => {
-
-                // 收藏选定结果
-                if (this.filterCondition.favoriteId) {
-                    return password.id === this.filterCondition.favoriteId
-                }
-
-                // 文本搜索结果
-                let textSearchResult = true
-                // 标签搜索结果
-                let labelSearchResult = true
-
-                // 文本搜索
-                if (this.filterCondition.searchText) {
-                    textSearchResult = false
-                    const searchFieldValues = [
-                        password.title,
-                        password.address,
-                        password.username,
-                        password.password,
-                        password.remark
-                    ].filter(Boolean);
-                    if (password.customFields) {
-                        for (let i = 0; i < password.customFields.length; i++) {
-                            searchFieldValues.push(password.customFields[i].key);
-                            searchFieldValues.push(password.customFields[i].val);
-                        }
-                    }
-                    textSearchResult = searchFields(this.filterCondition.searchText, searchFieldValues)
-                }
-
-                // 标签搜索
-                if (this.filterCondition.labelArray.length) {
-                    labelSearchResult = false
-                    const passwordLabels = new Set(password.labels);
-                    for (const label of this.filterCondition.labelArray) {
-                        if (passwordLabels.has(label)) {
-                            labelSearchResult = true
-                            break
-                        }
-                    }
-                }
-                return textSearchResult && labelSearchResult;
-            });
-
-            console.log('显示的密码列表数量：', array.length)
-            return array
-        },
-        // 当前筛选结果中已选中的密码数量
-        batchSelectedPasswordCount(): number {
-            const visiblePasswordIds = new Set(this.visPasswordArray.map(password => password.id))
-            return this.batchSelectedPasswordIds.filter(id => visiblePasswordIds.has(id)).length
-        },
-        // 深色模式
-        isDark(): boolean {
-            return this.topicMode === TopicMode.DARK
+        // 文本搜索
+        if (this.filterCondition.searchText) {
+          textSearchResult = false
+          const searchFieldValues = [
+            password.title,
+            password.address,
+            password.username,
+            password.password,
+            password.remark,
+          ].filter(Boolean)
+          if (password.customFields) {
+            for (let i = 0; i < password.customFields.length; i++) {
+              searchFieldValues.push(password.customFields[i].key)
+              searchFieldValues.push(password.customFields[i].val)
+            }
+          }
+          textSearchResult = searchFields(this.filterCondition.searchText, searchFieldValues)
         }
+
+        // 标签搜索
+        if (this.filterCondition.labelArray.length) {
+          labelSearchResult = false
+          const passwordLabels = new Set(password.labels)
+          for (const label of this.filterCondition.labelArray) {
+            if (passwordLabels.has(label)) {
+              labelSearchResult = true
+              break
+            }
+          }
+        }
+        return textSearchResult && labelSearchResult
+      })
+
+      console.log('显示的密码列表数量：', array.length)
+      return array
     },
-    actions: {
-        // 设置服务状态
-        setServiceStatus(serviceStatus: ServiceStatus) {
-            console.log('服务状态变更为：', serviceStatus)
-            if (serviceStatus !== ServiceStatus.UNLOCKED) {
-                this.exitBatchOperation()
-            }
-            this.serviceStatus = serviceStatus
-        },
-        // 进入批量操作模式
-        enterBatchOperation() {
-            if (this.serviceStatus !== ServiceStatus.UNLOCKED || this.privacyPlaceholderVisible || !this.visPasswordArray.length) {
-                return
-            }
-            this.batchSelectedPasswordIds = []
-            this.batchOperationEnabled = true
-        },
-        // 退出批量操作模式
-        exitBatchOperation() {
-            this.batchSelectedPasswordIds = []
-            this.batchOperationEnabled = false
-        },
-        // 设置批量选中的密码
-        setBatchSelectedPasswordIds(ids: number[]) {
-            const visiblePasswordIds = new Set(this.visPasswordArray.map(password => password.id))
-            this.batchSelectedPasswordIds = Array.from(new Set(ids.filter(id => visiblePasswordIds.has(id))))
-        },
-        // 切换单个密码的批量选择状态
-        toggleBatchPasswordSelection(id: number, selected: boolean) {
-            const selectedPasswordIds = new Set(this.batchSelectedPasswordIds)
-            if (selected) {
-                if (this.visPasswordArray.some(password => password.id === id)) {
-                    selectedPasswordIds.add(id)
-                }
-            } else {
-                selectedPasswordIds.delete(id)
-            }
-            this.batchSelectedPasswordIds = Array.from(selectedPasswordIds)
-        },
-        // 全选当前筛选结果
-        selectAllVisiblePasswords() {
-            this.batchSelectedPasswordIds = this.visPasswordArray.map(password => password.id)
-        },
-        // 取消批量选择
-        clearBatchPasswordSelection() {
-            this.batchSelectedPasswordIds = []
-        },
-        // 隐私模式下临时显示全部密码
-        showAllPasswords() {
-            this.privacyModeRevealed = true
-        },
-        // 恢复隐私模式隐藏状态
-        resetPrivacyMode() {
-            this.privacyModeRevealed = false
-        },
-        // 退出登录
-        async logout(remote = true, deleted = false) {
-            const official = useLoginStore().loginType === 'official'
-            if (official) {
-                const {officialApi, clearOfficial} = await import('@/service/OfficialSession')
-                if (remote) try { await officialApi('/session/logout') } catch (e: any) {
-                    if (e.status !== 401) { ElNotification.error({title: '退出失败', message: '无法撤销官方会话，请检查网络后重试'}); return }
-                }
-                clearOfficial(remote)
-            }
-            console.log('退出登录')
-            this.resetPrivacyMode()
-            sessionStorage.removeItem('loginForm')
-            if (!official) {
-                localStorage.removeItem('loginInfo')
-                localStorage.removeItem('mainPassword')
-            }
-            localStorage.removeItem('topicMode')
-
-            this.passwordManager = new PasswordManagerImpl()
-            this.allPasswordArray = []
-            this.labelArray = []
-            this.mainPassword = ''
-            this.serviceStatus = ServiceStatus.NO_LOGIN
-
-            usePasswordStore().$resetFields()
-            useLoginStore().$resetFields()
-            useSettingStore().$resetFields()
-
-            location.href = getLocationUrl() + (deleted ? '/login?accountDeleted=1' : '/login');
-        },
-        // 设置主题
-        setTopicMode(topic: TopicMode) {
-            console.log('设置主题:', topic)
-            localStorage.setItem('topicMode', topic)
-            if (topic === TopicMode.AUTO) {
-                let isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)")
-                useDark().value = isDarkTheme.matches
-                this.topicMode = isDarkTheme.matches ? TopicMode.DARK : TopicMode.LIGHT
-                if(window.electronAPI?.setTopic){
-                    window.electronAPI?.setTopic('system');
-                }
-                if (window.androidAPI?.setTopic) {
-                    window.androidAPI?.setTopic('system');
-                }
-            } else if (topic === TopicMode.DARK) {
-                useDark().value = true
-                this.topicMode = TopicMode.DARK
-                if(window.electronAPI?.setTopic){
-                    window.electronAPI?.setTopic(this.topicMode);
-                }
-                if (window.androidAPI?.setTopic) {
-                    window.androidAPI?.setTopic(this.topicMode);
-                }
-            } else if (topic === TopicMode.LIGHT) {
-                useDark().value = false
-                this.topicMode = TopicMode.LIGHT
-                if(window.electronAPI?.setTopic){
-                    window.electronAPI?.setTopic(this.topicMode);
-                }
-                if (window.androidAPI?.setTopic) {
-                    window.androidAPI?.setTopic(this.topicMode);
-                }
-            }
-        },
-        // 全局加载
-        loading(content?: string) {
-            console.log('触发全局加载')
-            this.globalLoading.timeout = setTimeout(() => {
-                this.globalLoading.timeout = null
-                this.globalLoading.vis = true
-                this.globalLoading.content = (content || '请稍等')
-            }, 300)
-        },
-        // 取消全局加载
-        unloading() {
-            console.log('取消全局加载')
-            if (this.globalLoading.timeout) {
-                clearTimeout(this.globalLoading.timeout)
-                this.globalLoading.timeout = null
-            }
-            this.globalLoading.vis = false;
-        },
-        // 重置超时自动锁定时长
-        resetTimeoutLock() {
-            if (this.timeoutLock) {
-                clearTimeout(this.timeoutLock)
-                this.timeoutLock = null
-            }
-
-            const settingStore = useSettingStore()
-
-            if (settingStore.setting.timeoutLock === 0) {
-                return
-            }
-            this.timeoutLock = setTimeout(() => {
-                if (settingStore.setting.timeoutLock && this.serviceStatus === ServiceStatus.UNLOCKED && !settingStore.setting.autoUnlock) {
-                    console.log('超时自动锁定')
-                    this.passwordManager.lock();
-                    let refStore = useRefStore()
-                    refStore.settingRef?.closeSetting()
-                    refStore.passwordFormRef?.closePasswordForm()
-                }
-            }, settingStore.setting.timeoutLock * 1000);
-        },
-
+    // 当前筛选结果中已选中的密码数量
+    batchSelectedPasswordCount(): number {
+      const visiblePasswordIds = new Set(this.visPasswordArray.map((password) => password.id))
+      return this.batchSelectedPasswordIds.filter((id) => visiblePasswordIds.has(id)).length
     },
+    // 深色模式
+    isDark(): boolean {
+      return this.topicMode === TopicMode.DARK
+    },
+  },
+  actions: {
+    // 设置服务状态
+    setServiceStatus(serviceStatus: ServiceStatus) {
+      console.log('服务状态变更为：', serviceStatus)
+      if (serviceStatus !== ServiceStatus.UNLOCKED) {
+        this.exitBatchOperation()
+        this.relations = []
+        useRelationStore().$reset()
+      }
+      this.serviceStatus = serviceStatus
+    },
+    // 进入批量操作模式
+    enterBatchOperation() {
+      if (
+        this.serviceStatus !== ServiceStatus.UNLOCKED ||
+        this.privacyPlaceholderVisible ||
+        !this.visPasswordArray.length
+      ) {
+        return
+      }
+      this.batchSelectedPasswordIds = []
+      this.batchOperationEnabled = true
+    },
+    // 退出批量操作模式
+    exitBatchOperation() {
+      this.batchSelectedPasswordIds = []
+      this.batchOperationEnabled = false
+    },
+    // 设置批量选中的密码
+    setBatchSelectedPasswordIds(ids: number[]) {
+      const visiblePasswordIds = new Set(this.visPasswordArray.map((password) => password.id))
+      this.batchSelectedPasswordIds = Array.from(
+        new Set(ids.filter((id) => visiblePasswordIds.has(id))),
+      )
+    },
+    // 切换单个密码的批量选择状态
+    toggleBatchPasswordSelection(id: number, selected: boolean) {
+      const selectedPasswordIds = new Set(this.batchSelectedPasswordIds)
+      if (selected) {
+        if (this.visPasswordArray.some((password) => password.id === id)) {
+          selectedPasswordIds.add(id)
+        }
+      } else {
+        selectedPasswordIds.delete(id)
+      }
+      this.batchSelectedPasswordIds = Array.from(selectedPasswordIds)
+    },
+    // 全选当前筛选结果
+    selectAllVisiblePasswords() {
+      this.batchSelectedPasswordIds = this.visPasswordArray.map((password) => password.id)
+    },
+    // 取消批量选择
+    clearBatchPasswordSelection() {
+      this.batchSelectedPasswordIds = []
+    },
+    // 隐私模式下临时显示全部密码
+    showAllPasswords() {
+      this.privacyModeRevealed = true
+    },
+    // 恢复隐私模式隐藏状态
+    resetPrivacyMode() {
+      this.privacyModeRevealed = false
+    },
+    // 退出登录
+    async logout(remote = true, deleted = false) {
+      const official = useLoginStore().loginType === 'official'
+      if (official) {
+        const { officialApi, clearOfficial } = await import('@/service/OfficialSession')
+        if (remote)
+          try {
+            await officialApi('/session/logout')
+          } catch (e: any) {
+            if (e.status !== 401) {
+              ElNotification.error({
+                title: '退出失败',
+                message: '无法撤销官方会话，请检查网络后重试',
+              })
+              return
+            }
+          }
+        clearOfficial(remote)
+      }
+      console.log('退出登录')
+      this.resetPrivacyMode()
+      sessionStorage.removeItem('loginForm')
+      if (!official) {
+        localStorage.removeItem('loginInfo')
+        localStorage.removeItem('mainPassword')
+      }
+      localStorage.removeItem('topicMode')
+
+      this.passwordManager = new PasswordManagerImpl()
+      this.allPasswordArray = []
+      this.relations = []
+      useRelationStore().$reset()
+      this.labelArray = []
+      this.mainPassword = ''
+      this.serviceStatus = ServiceStatus.NO_LOGIN
+
+      usePasswordStore().$resetFields()
+      useLoginStore().$resetFields()
+      useSettingStore().$resetFields()
+
+      location.href = getLocationUrl() + (deleted ? '/login?accountDeleted=1' : '/login')
+    },
+    // 设置主题
+    setTopicMode(topic: TopicMode) {
+      console.log('设置主题:', topic)
+      localStorage.setItem('topicMode', topic)
+      if (topic === TopicMode.AUTO) {
+        let isDarkTheme = window.matchMedia('(prefers-color-scheme: dark)')
+        useDark().value = isDarkTheme.matches
+        this.topicMode = isDarkTheme.matches ? TopicMode.DARK : TopicMode.LIGHT
+        if (window.electronAPI?.setTopic) {
+          window.electronAPI?.setTopic('system')
+        }
+        if (window.androidAPI?.setTopic) {
+          window.androidAPI?.setTopic('system')
+        }
+      } else if (topic === TopicMode.DARK) {
+        useDark().value = true
+        this.topicMode = TopicMode.DARK
+        if (window.electronAPI?.setTopic) {
+          window.electronAPI?.setTopic(this.topicMode)
+        }
+        if (window.androidAPI?.setTopic) {
+          window.androidAPI?.setTopic(this.topicMode)
+        }
+      } else if (topic === TopicMode.LIGHT) {
+        useDark().value = false
+        this.topicMode = TopicMode.LIGHT
+        if (window.electronAPI?.setTopic) {
+          window.electronAPI?.setTopic(this.topicMode)
+        }
+        if (window.androidAPI?.setTopic) {
+          window.androidAPI?.setTopic(this.topicMode)
+        }
+      }
+    },
+    // 全局加载
+    loading(content?: string) {
+      console.log('触发全局加载')
+      this.globalLoading.timeout = setTimeout(() => {
+        this.globalLoading.timeout = null
+        this.globalLoading.vis = true
+        this.globalLoading.content = content || '请稍等'
+      }, 300)
+    },
+    // 取消全局加载
+    unloading() {
+      console.log('取消全局加载')
+      if (this.globalLoading.timeout) {
+        clearTimeout(this.globalLoading.timeout)
+        this.globalLoading.timeout = null
+      }
+      this.globalLoading.vis = false
+    },
+    // 重置超时自动锁定时长
+    resetTimeoutLock() {
+      if (this.timeoutLock) {
+        clearTimeout(this.timeoutLock)
+        this.timeoutLock = null
+      }
+
+      const settingStore = useSettingStore()
+
+      if (settingStore.setting.timeoutLock === 0) {
+        return
+      }
+      this.timeoutLock = setTimeout(() => {
+        if (
+          settingStore.setting.timeoutLock &&
+          this.serviceStatus === ServiceStatus.UNLOCKED &&
+          !settingStore.setting.autoUnlock
+        ) {
+          console.log('超时自动锁定')
+          this.passwordManager.lock()
+          let refStore = useRefStore()
+          refStore.settingRef?.closeSetting()
+          refStore.passwordFormRef?.closePasswordForm()
+        }
+      }, settingStore.setting.timeoutLock * 1000)
+    },
+  },
 })

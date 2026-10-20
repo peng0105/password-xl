@@ -1,11 +1,11 @@
 <!--验证主密码组件-->
 <script lang="ts" setup>
-
-import {usePasswordStore} from "@/stores/PasswordStore.ts";
-import {MainPasswordType, ServiceStatus} from "@/types";
-import {useRouter} from "vue-router";
-import {useSettingStore} from "@/stores/SettingStore.ts";
-import {displaySize} from "@/utils/global.ts";
+import { usePasswordStore } from '@/stores/PasswordStore.ts'
+import { MainPasswordType, ServiceStatus } from '@/types'
+import { useRouter } from 'vue-router'
+import { useSettingStore } from '@/stores/SettingStore.ts'
+import { displaySize } from '@/utils/global.ts'
+import { withLoading } from '@/utils/loading.ts'
 
 const router = useRouter()
 const passwordStore = usePasswordStore()
@@ -17,29 +17,32 @@ const passwordInputRef = ref()
 const formRef = ref()
 // 组件是否显示
 const visVerify = ref(false)
+const verifying = ref(false)
+let verificationVersion = 0
 // 验证通过后回调
 const resolveFun = ref<Function | null>(null)
 // 组件模式 getAndVerify.获取并验证主密码 verifyAndUnlock.验证并解锁
 const modelType = ref('')
 // 密码类型
-const mainPasswordType: Ref<MainPasswordType> = ref(JSON.parse(JSON.stringify(passwordStore.mainPasswordType)))
+const mainPasswordType: Ref<MainPasswordType> = ref(
+  JSON.parse(JSON.stringify(passwordStore.mainPasswordType)),
+)
 // 验证方法
 const getVerifyFunction: Ref<Function | undefined> = ref()
 
 // 密码表单
 const form = reactive({
-  mainPassword: ''
+  mainPassword: '',
 })
 
 // 密码表单校验规则
 const formRules = reactive({
-  mainPassword: [
-    {required: true, message: '请输入主密码', trigger: 'change'}
-  ]
+  mainPassword: [{ required: true, message: '请输入主密码', trigger: 'change' }],
 })
 
 // 获取并验证主密码（组件入口1）
 const getAndVerify = (verifyFun: Function, passwordType?: MainPasswordType): Promise<string> => {
+  verificationVersion++
   console.log('获取并验证主密码 passwordType:', passwordType)
   // 主密码类型
   mainPasswordType.value = passwordType || passwordStore.mainPasswordType
@@ -49,18 +52,19 @@ const getAndVerify = (verifyFun: Function, passwordType?: MainPasswordType): Pro
   getVerifyFunction.value = verifyFun
   if (passwordType === MainPasswordType.STANDARD) {
     // 重置主密码录入框
-    formRef.value?.resetFields();
+    formRef.value?.resetFields()
   }
   form.mainPassword = ''
   // 显示组件
   visVerify.value = true
 
   // 设置回调方法
-  return new Promise((resolve) => resolveFun.value = resolve)
+  return new Promise((resolve) => (resolveFun.value = resolve))
 }
 
 // 验证密码并解锁（组件入口2）
 const verifyAndUnlock = (): Promise<boolean> => {
+  verificationVersion++
   console.log('验证密码并解锁')
   // 主密码类型
   mainPasswordType.value = passwordStore.mainPasswordType
@@ -68,18 +72,19 @@ const verifyAndUnlock = (): Promise<boolean> => {
   modelType.value = 'verifyAndUnlock'
   if (passwordStore.mainPasswordType === MainPasswordType.STANDARD) {
     // 重置主密码录入框
-    formRef.value?.resetFields();
+    formRef.value?.resetFields()
   }
 
   form.mainPassword = ''
   // 显示组件
   visVerify.value = true
   // 设置回调方法
-  return new Promise(async (resolve) => resolveFun.value = resolve)
+  return new Promise((resolve) => (resolveFun.value = resolve))
 }
 
 // 标准密码输入确认
 const alertConfirm = (formRef: any) => {
+  if (verifying.value) return
   console.log('标准密码输入确认')
   // 校验密码表单
   formRef.validate((valid: any) => {
@@ -90,22 +95,41 @@ const alertConfirm = (formRef: any) => {
       return
     }
 
-    if (modelType.value === 'getAndVerify') {
-      getAndVerifyFun()
-    } else if (modelType.value === 'verifyAndUnlock') {
-      verifyAndUnlockFun()
-    }
+    void submitVerification()
   })
 }
 
 // 手势密码绘制完成
 const gestureComplete = (mainPassword: string) => {
+  if (verifying.value) return
   console.log('手势密码绘制完成')
   form.mainPassword = mainPassword
-  if (modelType.value === 'getAndVerify') {
-    getAndVerifyFun()
-  } else if (modelType.value === 'verifyAndUnlock') {
-    verifyAndUnlockFun()
+  void submitVerification()
+}
+
+const submitVerification = async () => {
+  if (verifying.value) return
+  verifying.value = true
+  const version = verificationVersion
+  const manager = passwordStore.passwordManager
+  try {
+    const unlocking = modelType.value === 'verifyAndUnlock'
+    const storeData = unlocking ? manager.getStoreData() : null
+    await withLoading(() => {
+      if (
+        !visVerify.value ||
+        version !== verificationVersion ||
+        manager !== passwordStore.passwordManager ||
+        (unlocking && storeData !== manager.getStoreData())
+      )
+        return
+      if (modelType.value === 'getAndVerify') getAndVerifyFun()
+      else if (modelType.value === 'verifyAndUnlock') verifyAndUnlockFun()
+    })
+  } catch {
+    ElMessage.error('验证失败')
+  } finally {
+    verifying.value = false
   }
 }
 
@@ -114,7 +138,7 @@ const getAndVerifyFun = () => {
   console.log('获取并验证主密码回调 验证方法是否存在：', !!getVerifyFunction.value)
   // 验证方法不存在则不验证正确性直接返回
   if (!getVerifyFunction.value) {
-    visVerify.value = false;
+    visVerify.value = false
     // 回调方法
     if (resolveFun.value) resolveFun.value(form.mainPassword)
     return
@@ -126,15 +150,15 @@ const getAndVerifyFun = () => {
     if (!verifyResult) {
       console.log('验证失败')
       ElMessage.error('验证失败')
-      return;
+      return
     }
   } catch (e) {
     console.error('验证失败', e)
     ElMessage.error('验证失败')
-    return;
+    return
   }
   // 验证通过
-  visVerify.value = false;
+  visVerify.value = false
   // 回调方法
   if (resolveFun.value) resolveFun.value(form.mainPassword)
 }
@@ -142,23 +166,17 @@ const getAndVerifyFun = () => {
 // 验证并解锁回调方法
 const verifyAndUnlockFun = () => {
   console.log('验证并解锁回调方法')
-  let verifyResult = passwordStore.passwordManager.verifyPassword(form.mainPassword)
-  if (!verifyResult) {
-    console.log('验证失败')
-    ElMessage.error('验证失败')
-    return;
-  }
   let unlockResult = passwordStore.passwordManager.unlock(form.mainPassword)
   if (!unlockResult) {
     console.log('验证失败')
     ElMessage.error('验证失败')
-    return;
+    return
   }
   // 验证通过
   visVerify.value = false
 
   // 回调方法
-  if (resolveFun.value) resolveFun.value(form.mainPassword)
+  if (resolveFun.value) resolveFun.value(true)
 }
 
 // 跳转登录页
@@ -187,54 +205,64 @@ const showGesture = (): boolean => {
 }
 
 let sensitiveCancel: (() => void) | null = null
-const verifySensitive = (): Promise<string | null> => new Promise(resolve => {
-  getAndVerify((password: string) => passwordStore.passwordManager.verifyPassword(password)).then(resolve)
-  sensitiveCancel = () => resolve(null)
+const verifySensitive = (): Promise<string | null> =>
+  new Promise((resolve) => {
+    getAndVerify((password: string) => passwordStore.passwordManager.verifyPassword(password)).then(
+      resolve,
+    )
+    sensitiveCancel = () => resolve(null)
+  })
+const afterClose = () => {
+  // 上一次关闭动画结束前可能已打开下一次验证，不能取消新的请求。
+  if (visVerify.value) return
+  verificationVersion++
+  sensitiveCancel?.()
+  sensitiveCancel = null
+}
+onBeforeUnmount(() => {
+  verificationVersion++
 })
-const afterClose = () => { sensitiveCancel?.(); sensitiveCancel = null }
 
 defineExpose({
   verifySensitive,
   getAndVerify,
-  verifyAndUnlock
+  verifyAndUnlock,
 })
 </script>
 
 <template>
   <el-dialog
-      v-model="visVerify"
-      :close-on-click-modal="passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
-      :close-on-press-escape="passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
-      :show-close="passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
-      :width="['xs', 'sm'].includes(displaySize().value)?'95%':'400px'"
-      top="20vh"
-      @open="formRef?.resetFields()"
-      @opened="onOpen"
-      @closed="afterClose"
+    v-model="visVerify"
+    :close-on-click-modal="!verifying && passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
+    :close-on-press-escape="!verifying && passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
+    :show-close="!verifying && passwordStore.serviceStatus !== ServiceStatus.NO_LOGIN"
+    :width="['xs', 'sm'].includes(displaySize().value) ? '95%' : '400px'"
+    top="20vh"
+    @open="formRef?.resetFields()"
+    @opened="onOpen"
+    @closed="afterClose"
   >
     <template #header>
-      <el-text size="large" style="user-select: none;">
+      <el-text size="large" style="user-select: none">
         <span class="iconfont icon-verify"></span>
-        <template v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN">自动登录<span style="font-weight: bold"> · </span>
+        <template v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN"
+          >自动登录<span style="font-weight: bold"> · </span>
         </template>
         验证主密码
       </el-text>
     </template>
     <div v-if="mainPasswordType === MainPasswordType.STANDARD" style="margin: 20px">
-      <el-form
-          ref="formRef"
-          :model="form"
-          :rules="formRules"
-          @submit.native.prevent>
+      <el-form ref="formRef" :model="form" :rules="formRules" @submit.native.prevent>
         <el-form-item prop="mainPassword">
           <el-input
-              ref="passwordInputRef"
-              v-model="form.mainPassword"
-              autocomplete="new-password"
-              placeholder="请输入主密码"
-              show-password
-              type="password"
-              @keyup.enter.native="alertConfirm(formRef)"
+            ref="passwordInputRef"
+            v-model="form.mainPassword"
+            :disabled="verifying"
+            autocomplete="new-password"
+            placeholder="请输入主密码"
+            show-password
+            type="password"
+            @keyup.enter.native="alertConfirm(formRef)"
           ></el-input>
         </el-form-item>
       </el-form>
@@ -243,13 +271,22 @@ defineExpose({
       <GesturePassword :show-gesture="showGesture()" @complete="gestureComplete"></GesturePassword>
     </div>
     <template #footer>
-      <div style="display: flex;justify-content: space-between">
+      <div style="display: flex; justify-content: space-between">
         <div>
-          <el-link v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN" underline="never" type="primary"
-                   @click="toLogin">返回登录页
+          <el-link
+            v-if="passwordStore.serviceStatus === ServiceStatus.NO_LOGIN"
+            underline="never"
+            type="primary"
+            @click="toLogin"
+            >返回登录页
           </el-link>
         </div>
-        <el-button v-if="mainPasswordType === MainPasswordType.STANDARD" type="primary" @click="alertConfirm(formRef)">
+        <el-button
+          v-if="mainPasswordType === MainPasswordType.STANDARD"
+          :loading="verifying"
+          type="primary"
+          @click="alertConfirm(formRef)"
+        >
           确定
         </el-button>
       </div>
@@ -260,7 +297,7 @@ defineExpose({
 <style scoped>
 .icon-verify {
   font-size: 110%;
-  color: #409EFF;
+  color: #409eff;
   margin-right: 5px;
 }
 </style>

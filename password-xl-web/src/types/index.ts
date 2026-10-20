@@ -1,94 +1,109 @@
 // 密码
-import {Ref} from "vue";
-import {TreeNote} from "@/types/types";
+import { Ref } from 'vue'
+import { TreeNote } from '@/types/types'
 
 // 自定义字段
 export interface CustomField {
-    id?: string;
-    key: string;
-    val: string;
-    hidden: boolean;
+  id?: string
+  key: string
+  val: string
+  hidden: boolean
 }
 
 // 可排序的内置密码字段（名称与颜色固定，不参与排序）
-export type SortablePasswordField = 'address' | 'username' | 'password' | 'labels' | 'remark';
+export type SortablePasswordField = 'address' | 'username' | 'password' | 'labels' | 'remark'
 
 // 自定义字段使用 custom:<稳定ID> 的形式参与统一排序
-export type PasswordFieldRef = SortablePasswordField | `custom:${string}`;
+export type PasswordFieldRef = SortablePasswordField | `custom:${string}`
 
 // 密码
 export interface Password {
-    id: number,
-    title: string,
-    address: string,
-    username: string,
-    password: string,
-    remark: string,
-    addTime: number,
-    updateTime: number,
-    deleteTime: number,
-    favoriteTime: number,
-    favorite: boolean,
-    customFields: CustomField[],
-    fieldOrder?: PasswordFieldRef[],
-    labels: Array<number>,
-    status: PasswordStatus,
-    bgColor: string,
+  id: number
+  title: string
+  address: string
+  username: string
+  password: string
+  remark: string
+  addTime: number
+  updateTime: number
+  deleteTime: number
+  favoriteTime: number
+  favorite: boolean
+  customFields: CustomField[]
+  fieldOrder?: PasswordFieldRef[]
+  labels: Array<number>
+  status: PasswordStatus
+  bgColor: string
 }
 
 // 标签
 export interface Label {
-    id: number,
-    pid: number,
-    name: string,
-    children: Array<Label>,
+  id: number
+  pid: number
+  name: string
+  children: Array<Label>
 }
 
 // 排序规则
 export enum Sort {
-    ASC = 'ascending',
-    DESC = 'descending'
+  ASC = 'ascending',
+  DESC = 'descending',
 }
 
 // 密码状态
 export enum PasswordStatus {
-    NORMAL = 0,
-    DELETED = 1
+  NORMAL = 0,
+  DELETED = 1,
 }
 
 // 主题
 export enum TopicMode {
-    AUTO = 'auto',
-    LIGHT = 'light',
-    DARK = 'dark',
+  AUTO = 'auto',
+  LIGHT = 'light',
+  DARK = 'dark',
 }
 
 // 密码展示方式
 export enum PasswordDisplayMode {
-    CARD,
-    TABLE
+  CARD,
+  TABLE,
+  RELATION,
+}
+
+export interface PasswordRelation {
+  sourceId: number
+  targetId: number
+  directed: boolean
+}
+
+export type RelationDirection = 'incoming' | 'undirected' | 'outgoing'
+
+// 新增密码保存前仅记录已有密码及其相对方向，不生成临时关系端点。
+export interface DraftPasswordRelation {
+  passwordId: number
+  direction: RelationDirection
 }
 
 // AI模型供应商
 export enum AiProvider {
-    OFFICIAL = 'official',
-    DEEPSEEK = 'deepseek',
-    CUSTOM = 'custom',
+  OFFICIAL = 'official',
+  DEEPSEEK = 'deepseek',
+  CUSTOM = 'custom',
 }
 
 // AI思考模式
 export enum AiThinking {
-    ENABLED = 'enabled',
-    DISABLED = 'disabled',
+  ENABLED = 'enabled',
+  DISABLED = 'disabled',
 }
 
 // AI模型设置
 export interface AiModelSetting {
-    provider: AiProvider,// AI模型供应商
-    apiBaseUrl: string,// OpenAI兼容接口地址
-    model: string,// 模型名称
-    apiKey: string,// 使用主密码加密后的API Key
-    thinking: AiThinking,// 思考模式
+  provider: AiProvider // AI模型供应商
+  apiBaseUrl: string // OpenAI兼容接口地址
+  model: string // 模型名称
+  apiKey: string // 使用主密码加密后的API Key
+  thinking: AiThinking // 思考模式
 }
 
 // 密码生成规则
@@ -96,381 +111,400 @@ export type PasswordCharacterType = 'uppercase' | 'lowercase' | 'symbol' | 'numb
 export type PasswordCharacterRatios = Record<PasswordCharacterType, number>
 
 export interface PasswordExclusions {
-    enabled: boolean,
-    characters?: string,// 完整排除字符，默认值可直接编辑
-    additional?: string,// 兼容旧版额外排除配置
-    defaultsVersion?: number,// 默认排除内容的迁移版本，避免重复覆盖用户修改
+  enabled: boolean
+  characters?: string // 完整排除字符，默认值可直接编辑
+  additional?: string // 兼容旧版额外排除配置
+  defaultsVersion?: number // 默认排除内容的迁移版本，避免重复覆盖用户修改
 }
 
 export interface GenerateRule {
-    length: number,// 密码长度
-    number: boolean,// 是否使用数字
-    lowercase: boolean,// 是否使用小写字母
-    uppercase: boolean,// 是否使用大写字母
-    symbol: boolean,// 是否使用特殊符号
-    ratios?: PasswordCharacterRatios,// 字符搭配比例，兼容旧版类型开关
+  length: number // 密码长度
+  number: boolean // 是否使用数字
+  lowercase: boolean // 是否使用小写字母
+  uppercase: boolean // 是否使用大写字母
+  symbol: boolean // 是否使用特殊符号
+  ratios?: PasswordCharacterRatios // 字符搭配比例，兼容旧版类型开关
 }
 
 export type BackgroundMode = 'off' | 'static' | 'dynamic'
 
 // 设置
 export interface Setting {
-    sortField: Exclude<keyof Password, 'fieldOrder'>, // 排序字段
-    sortOrder: Sort,// 排序方向
-    showTimeForTable: string,// 在列表中显示时间 no.不显示 addTime.添加时间 updateTime.修改时间
-    showLabelForTable: boolean,// 在列表中显示标签
-    showStrength: boolean,// 在列表中显示密码强度
-    showLabelCard: boolean,// 启用标签模块
-    enableAiAdd: boolean,// 启用AI创建
-    showFavoriteCard: boolean,// 启用收藏模块
-    enableShortcutKey: boolean,// 启用快捷键
-    enableRecycleBin: boolean,// 启用密码回收站
-    verifyShowGesture: boolean,// 验证密码时显示手势
-    autoGeneratePassword: boolean,// 添加密码时是否默认自动一次
-    generateRule: GenerateRule, // 密码生成规则
-    easyConfuseChat: string,// 易混淆字符
-    passwordExclusions?: PasswordExclusions,// 易混淆字符开关与排除内容
-    customFields: CustomField[], // 默认自定义字段
-    timeoutLock: number, // 超时锁定（秒）
-    passwordDisplayMode: PasswordDisplayMode, // 密码展示方式
-    autoLogin: boolean,// 记住登录信息
-    autoUnlock: boolean,// 记住主密码
-    enablePrivacyMode: boolean, // 启用密码列表隐私模式
-    showPasswordStatistics: boolean, // 显示密码统计
-    showNote: boolean, // 显示笔记功能
-    bgColors: Array<string>, // 背景色
-    backgroundMode: BackgroundMode, // 背景图：关闭、静态、动态
-    dynamicBackground: boolean, // 兼容旧版：是否显示背景图
-    passwordColor: boolean, // 密码颜色
-    aiModel: AiModelSetting, // AI模型配置
+  sortField: Exclude<keyof Password, 'fieldOrder'> // 排序字段
+  sortOrder: Sort // 排序方向
+  showTimeForTable: string // 在列表中显示时间 no.不显示 addTime.添加时间 updateTime.修改时间
+  showLabelForTable: boolean // 在列表中显示标签
+  showStrength: boolean // 在列表中显示密码强度
+  showLabelCard: boolean // 启用标签模块
+  enableAiAdd: boolean // 启用AI创建
+  showFavoriteCard: boolean // 启用收藏模块
+  enableShortcutKey: boolean // 启用快捷键
+  enableRecycleBin: boolean // 启用密码回收站
+  verifyShowGesture: boolean // 验证密码时显示手势
+  autoGeneratePassword: boolean // 添加密码时是否默认自动一次
+  generateRule: GenerateRule // 密码生成规则
+  easyConfuseChat: string // 易混淆字符
+  passwordExclusions?: PasswordExclusions // 易混淆字符开关与排除内容
+  customFields: CustomField[] // 默认自定义字段
+  timeoutLock: number // 超时锁定（秒）
+  passwordDisplayMode: PasswordDisplayMode // 密码展示方式
+  autoLogin: boolean // 记住登录信息
+  autoUnlock: boolean // 记住主密码
+  enablePrivacyMode: boolean // 启用密码列表隐私模式
+  showPasswordStatistics: boolean // 显示密码统计
+  showNote: boolean // 显示笔记功能
+  bgColors: Array<string> // 背景色
+  backgroundMode: BackgroundMode // 背景图：关闭、静态、动态
+  dynamicBackground: boolean // 兼容旧版：是否显示背景图
+  passwordColor: boolean // 密码颜色
+  aiModel: AiModelSetting // AI模型配置
 }
 
 // 密码管理器
 export interface PasswordManager {
-    prepareForAccountSwitch?(): Promise<void>,
-    withPausedWrites<T>(operation: () => Promise<T>): Promise<T>,
+  prepareForAccountSwitch?(): Promise<void>
+  withPausedWrites<T>(operation: () => Promise<T>): Promise<T>
 
-    // 初始化
-    login(database: Database): Promise<RespData>,
+  // 初始化
+  login(database: Database): Promise<RespData>
 
-    // 解锁
-    unlock(mainPassword: string): boolean,
+  // 解锁
+  unlock(mainPassword: string): boolean
 
-    // 锁定
-    lock(): void,
+  // 锁定
+  lock(): void
 
-    initMainPassword(mainPasswordType: MainPasswordType, mainPassword: string): Promise<RespData>,
+  initMainPassword(mainPasswordType: MainPasswordType, mainPassword: string): Promise<RespData>
 
-    // 添加演示数据
-    addDemoData(): void,
+  // 添加演示数据
+  addDemoData(): void
 
-    // 验证主密码
-    verifyPassword(mainPassword: string, ciphertext?: string): boolean,
+  // 验证主密码
+  verifyPassword(mainPassword: string, ciphertext?: string): boolean
 
-    // 修改化主密码
-    updateMainPassword(oldMainPassword: string, newMainPasswordType: MainPasswordType, newMainPassword: string): Promise<RespData>,
+  // 修改化主密码
+  updateMainPassword(
+    oldMainPassword: string,
+    newMainPasswordType: MainPasswordType,
+    newMainPassword: string,
+  ): Promise<RespData>
 
-    // 添加密码
-    addPassword(password: Password): Promise<RespData>,
+  // 添加密码
+  addPassword(password: Password, relations?: DraftPasswordRelation[]): Promise<PasswordSaveResult>
 
-    // 修改密码
-    updatePassword(password: Password): Promise<RespData>,
+  // 修改密码
+  updatePassword(password: Password): Promise<PasswordSaveResult>
 
-    // 删除密码
-    deletePassword(id: number): Promise<RespData>,
+  addPasswordRelations(relations: PasswordRelation[]): Promise<RespData>
+  updatePasswordRelation(relation: PasswordRelation): Promise<RespData>
+  removePasswordRelation(sourceId: number, targetId: number): Promise<RespData>
 
-    // 批量删除密码
-    batchDeletePasswords(ids: number[]): Promise<RespData>,
+  // 删除密码
+  deletePassword(id: number): Promise<RespData>
 
-    // 批量添加密码标签
-    batchAddPasswordLabels(passwordIds: number[], labelIds: number[]): Promise<RespData>,
+  // 批量删除密码
+  batchDeletePasswords(ids: number[]): Promise<RespData>
 
-    // 彻底删除密码
-    completelyDeletePassword(id: number): Promise<RespData>,
+  // 批量添加密码标签
+  batchAddPasswordLabels(passwordIds: number[], labelIds: number[]): Promise<RespData>
 
-    // 取消删除密码
-    cancelDeletePassword(id: number): Promise<RespData>,
+  // 彻底删除密码
+  completelyDeletePassword(id: number): Promise<RespData>
 
-    // 同步标签数据
-    syncStoreData(): Promise<RespData>,
+  // 取消删除密码
+  cancelDeletePassword(id: number): Promise<RespData>
 
-    // 同步笔记数据
-    syncNoteData(): Promise<RespData>,
+  // 同步标签数据
+  syncStoreData(): Promise<RespData>
 
-    // 同步系统设置
-    syncSetting(): Promise<RespData>,
+  // 同步笔记数据
+  syncNoteData(): Promise<RespData>
 
-    // 清空回收站
-    emptyRecycle(): Promise<RespData>,
+  // 同步系统设置
+  syncSetting(): Promise<RespData>
 
-    // 获取StoreData
-    getStoreData(): StoreData,
+  // 清空回收站
+  emptyRecycle(): Promise<RespData>
 
-    // 获取TreeNote
-    getTreeNoteData(): TreeNoteData,
+  // 获取StoreData
+  getStoreData(): StoreData
 
-    // 注销账号
-    closeAccount(): Promise<RespData>,
+  // 获取TreeNote
+  getTreeNoteData(): TreeNoteData
 
-    // 获取数据
-    getData(name: string): Promise<string>,
+  // 注销账号
+  closeAccount(): Promise<RespData>
 
-    // 设置数据
-    setData(name: string, text: string): Promise<RespData>,
+  // 获取数据
+  getData(name: string): Promise<string>
 
-    // 删除数据
-    delData(name: string): Promise<RespData>,
+  // 设置数据
+  setData(name: string, text: string): Promise<RespData>
 
-    // 上传图片
-    uploadImage(file: File, prefix: string): Promise<any>,
+  // 删除数据
+  delData(name: string): Promise<RespData>
+
+  // 上传图片
+  uploadImage(file: File, prefix: string): Promise<any>
 }
 
 // 数据库
 export interface Database {
-    // Official storage enforces logical quota rules before encrypting and writing.
-    assertCanModify?(): void,
-    validateStoreChange?(previous: Password[], next: Password[], labelsChanged: boolean): void,
-    // 单文件存储可在一次提交中同时更新密码与设置；不改变持久化格式。
-    setMainPasswordData?(storeData: string, settingData: string): Promise<RespData>,
+  // Official storage enforces logical quota rules before encrypting and writing.
+  assertCanModify?(): void
+  validateStoreChange?(
+    previous: Password[],
+    next: Password[],
+    labelsChanged: boolean,
+    relationsModified?: boolean,
+  ): void
+  // 单文件存储可在一次提交中同时更新密码与设置；不改变持久化格式。
+  setMainPasswordData?(storeData: string, settingData: string): Promise<RespData>
 
-    login(form: any): Promise<RespData>,
+  login(form: any): Promise<RespData>
 
-    getStoreData(): Promise<string>,
+  getStoreData(): Promise<string>
 
-    setStoreData(text: string): Promise<RespData>,
+  setStoreData(text: string): Promise<RespData>
 
-    // 获取笔记数据
-    getTreeNoteData(): Promise<string>,
+  // 获取笔记数据
+  getTreeNoteData(): Promise<string>
 
-    // 设置笔记数据
-    setNoteData(text: string): Promise<RespData>,
+  // 设置笔记数据
+  setNoteData(text: string): Promise<RespData>
 
-    // 获取数据
-    getData(name: string): Promise<string>,
+  // 获取数据
+  getData(name: string): Promise<string>
 
-    // 设置数据
-    setData(name: string, text: string): Promise<RespData>,
+  // 设置数据
+  setData(name: string, text: string): Promise<RespData>
 
-    deleteStoreData(): Promise<RespData>,
+  deleteStoreData(): Promise<RespData>
 
-    getSettingData(): Promise<string>,
+  getSettingData(): Promise<string>
 
-    setSettingData(text: string): Promise<RespData>,
+  setSettingData(text: string): Promise<RespData>
 
-    deleteSettingData(): Promise<RespData>,
+  deleteSettingData(): Promise<RespData>
 
-    deleteData(fileName: string): Promise<RespData>,
+  deleteData(fileName: string): Promise<RespData>
 
-    uploadImage(file: File, prefix: string): Promise<any>,
+  uploadImage(file: File, prefix: string): Promise<any>
 }
 
 // 公用异步响应
 export interface RespData {
-    status: boolean,
-    message?: string,
-    content?: string
+  status: boolean
+  message?: string
+  content?: string
 }
+
+export type PasswordSaveResult =
+  | (RespData & { status: true; passwordId: number })
+  | (RespData & { status: false })
 
 // 服务状态
 export enum ServiceStatus {
-    NO_LOGIN = '初始化',
-    LOGGED = '已登录',
-    WAIT_INIT = '待初始化',
-    UNLOCKED = '已解锁',
+  NO_LOGIN = '初始化',
+  LOGGED = '已登录',
+  WAIT_INIT = '待初始化',
+  UNLOCKED = '已解锁',
 }
 
 // NoteStore
 export interface NoteStore {
-    noteTree: Array<TreeNote>
-    currentNote: string
+  noteTree: Array<TreeNote>
+  currentNote: string
 }
 
 // PasswordStore
 export interface PasswordStore {
-    // 密码管理器
-    passwordManager: PasswordManager,
-    // 全部密码
-    allPasswordArray: Array<Password>,
-    // 标签
-    labelArray: Array<Label>,
-    // 主密码
-    mainPassword: string,
-    // 服务状态
-    serviceStatus: ServiceStatus,
-    // 主题
-    topicMode: TopicMode,
-    // 主密码类型
-    mainPasswordType: MainPasswordType,
-    // 密码表单抽屉是否显示
-    passwordFormDrawerVis: boolean,
-    // 是否显示密码回收站弹窗
-    recycleBinDialogVis: boolean,
-    // 超时锁
-    timeoutLock: any,
-    // 加载中动画
-    globalLoading: {
-        vis: boolean,
-        timeout: any,
-        content: string
-    },
-    // 隐私模式下是否已临时显示全部密码（仅保存在内存中）
-    privacyModeRevealed: boolean,
-    // 是否处于批量操作模式（仅保存在内存中）
-    batchOperationEnabled: boolean,
-    // 批量操作选中的密码ID（仅保存在内存中）
-    batchSelectedPasswordIds: number[],
-    // 密码列表筛选条件
-    filterCondition: {
-        // 文字搜索
-        searchText: string,
-        // 标签搜索
-        labelArray: Array<number>,
-        // 收藏搜索
-        favoriteId: number
-    }
+  // 密码管理器
+  passwordManager: PasswordManager
+  // 全部密码
+  allPasswordArray: Array<Password>
+  relations: PasswordRelation[]
+  // 标签
+  labelArray: Array<Label>
+  // 主密码
+  mainPassword: string
+  // 服务状态
+  serviceStatus: ServiceStatus
+  // 主题
+  topicMode: TopicMode
+  // 主密码类型
+  mainPasswordType: MainPasswordType
+  // 密码表单抽屉是否显示
+  passwordFormDrawerVis: boolean
+  // 是否显示密码回收站弹窗
+  recycleBinDialogVis: boolean
+  // 超时锁
+  timeoutLock: any
+  // 加载中动画
+  globalLoading: {
+    vis: boolean
+    timeout: any
+    content: string
+  }
+  // 隐私模式下是否已临时显示全部密码（仅保存在内存中）
+  privacyModeRevealed: boolean
+  // 是否处于批量操作模式（仅保存在内存中）
+  batchOperationEnabled: boolean
+  // 批量操作选中的密码ID（仅保存在内存中）
+  batchSelectedPasswordIds: number[]
+  // 密码列表筛选条件
+  filterCondition: {
+    // 文字搜索
+    searchText: string
+    // 标签搜索
+    labelArray: Array<number>
+    // 收藏搜索
+    favoriteId: number
+  }
 }
 
 // RefStore
 export interface RefStore {
-    // 验证密码组件
-    verifyPasswordRef: Ref,
-    // 密码表单
-    passwordFormRef: Ref,
-    // 注销账号
-    cancelAccountRef: Ref,
-    // 设置
-    settingRef: Ref,
-    // 标签树
-    labelTreeRef: Ref,
-    // 标签树外部Div
-    labelTreeDivRef: Ref,
-    // 设置密码
-    setPasswordRef: Ref,
-    // 回收站
-    recycleBinRef: Ref,
-    // 备份与恢复
-    backupAndRecoveryRef: Ref,
-    // 快速登录提示
-    fastLoginRef: Ref,
-    // Ai解析密码组件
-    aiAddPasswordRef: Ref,
-    // 标签抽屉
-    labelDrawer: Ref,
-    // 收藏抽屉
-    favoriteDrawer: Ref,
-    // 新手引导
-    tourRef: Ref,
-    // 查看密码
-    showPasswordRef: Ref,
-    // 密码导出
-    exportExcelRef: Ref,
-    // 密码导入
-    importExcelRef: Ref,
-    // 右键菜单
-    contextmenuRef: Ref,
-    // 创建密码按钮
-    createPasswordBtnRef: Ref,
-    // Ai创建密码按钮
-    aiCreatePasswordBtnRef: Ref,
-    // 密码表单
-    passwordFormFormRef: Ref,
-    // 密码表单标题录入框
-    passwordFormTitleRef: Ref,
-    // 密码表单随机按钮
-    passwordFormGenerateBtnRef: Ref,
-    // 密码表单密码生成规则
-    passwordFormGenerateRuleRef: Ref,
-    // 密码表单保存按钮
-    passwordFormSaveBtnRef: Ref,
-    // 密码列表卡片视图
-    displayModeCardRef: Ref,
-    // 密码列表表格视图
-    displayModeTableRef: Ref,
-    // 搜索框
-    searchInputRef: Ref,
-    // 笔记标题
-    noteTitleRef: Ref,
-    // Ai批量导入
-    aiImportRef: Ref,
+  // 验证密码组件
+  verifyPasswordRef: Ref
+  // 密码表单
+  passwordFormRef: Ref
+  // 注销账号
+  cancelAccountRef: Ref
+  // 设置
+  settingRef: Ref
+  // 标签树
+  labelTreeRef: Ref
+  // 标签树外部Div
+  labelTreeDivRef: Ref
+  // 设置密码
+  setPasswordRef: Ref
+  // 回收站
+  recycleBinRef: Ref
+  // 备份与恢复
+  backupAndRecoveryRef: Ref
+  // 快速登录提示
+  fastLoginRef: Ref
+  // Ai解析密码组件
+  aiAddPasswordRef: Ref
+  // 标签抽屉
+  labelDrawer: Ref
+  // 收藏抽屉
+  favoriteDrawer: Ref
+  // 新手引导
+  tourRef: Ref
+  // 查看密码
+  showPasswordRef: Ref
+  // 密码导出
+  exportExcelRef: Ref
+  // 密码导入
+  importExcelRef: Ref
+  // 右键菜单
+  contextmenuRef: Ref
+  // 创建密码按钮
+  createPasswordBtnRef: Ref
+  // Ai创建密码按钮
+  aiCreatePasswordBtnRef: Ref
+  // 密码表单
+  passwordFormFormRef: Ref
+  // 密码表单标题录入框
+  passwordFormTitleRef: Ref
+  // 密码表单随机按钮
+  passwordFormGenerateBtnRef: Ref
+  // 密码表单密码生成规则
+  passwordFormGenerateRuleRef: Ref
+  // 密码表单保存按钮
+  passwordFormSaveBtnRef: Ref
+  // 密码列表卡片视图
+  displayModeCardRef: Ref
+  // 密码列表表格视图
+  displayModeTableRef: Ref
+  // 搜索框
+  searchInputRef: Ref
+  // 笔记标题
+  noteTitleRef: Ref
+  // Ai批量导入
+  aiImportRef: Ref
 }
 
 // 备份文件格式
 export interface BackupFile {
-    explain: string,
-    storeData: StoreData,
-    noteData?: TreeNoteData | null,
-    backupTime: number,
+  explain: string
+  storeData: StoreData
+  noteData?: TreeNoteData | null
+  backupTime: number
 }
 
 // 手势密码-点 区域
 export interface GesturePoint {
-    id: number,
-    x: number,
-    y: number,
-    radius: number
+  id: number
+  x: number
+  y: number
+  radius: number
 }
 
 // 手势密码-点
 export interface Point {
-    x: number,
-    y: number
+  x: number
+  y: number
 }
 
 // 主密码类型
 export enum MainPasswordType {
-    STANDARD = 'standard',
-    GESTURE = 'gesture',
+  STANDARD = 'standard',
+  GESTURE = 'gesture',
 }
 
 // 登录信息
 export interface LoginInfo {
-    mainPasswordType: MainPasswordType,
-    loginForm: any,
+  mainPasswordType: MainPasswordType
+  loginForm: any
 }
 
 // 对象存储登录OSS
 export interface OSSLoginForm {
-    region: string,
-    accessKeyId: string,
-    accessKeySecret: string,
-    bucket: string,
+  region: string
+  accessKeyId: string
+  accessKeySecret: string
+  bucket: string
 }
 
 // 私有服务登录Form
 export interface PrivateLoginForm {
-    serverUrl: string,
-    username: string,
-    password: string,
+  serverUrl: string
+  username: string
+  password: string
 }
 
 // 对象存储登录COS
 export interface COSLoginForm {
-    region: string,
-    secretId: string,
-    secretKey: string,
-    bucket: string,
+  region: string
+  secretId: string
+  secretKey: string
+  bucket: string
 }
 
 // 密码文件存储对象
 export interface StoreData {
-    passwordData: string,
-    labelData: string,
-    mainPasswordType: MainPasswordType,
+  passwordData: string
+  labelData: string
+  relationData?: string
+  mainPasswordType: MainPasswordType
 }
 
 // 笔记树文件存储对象
 export interface TreeNoteData {
-    noteData: string,
-    mainPasswordType: MainPasswordType,
+  noteData: string
+  mainPasswordType: MainPasswordType
 }
 
 export interface LoginStore {
-    // 登录类型
-    loginType: string,
-    // 登陆中
-    logging: boolean,
-    // 登陆提示文本
-    loggingText: string,
-    // 登录表单
-    loginForm: any,
+  // 登录类型
+  loginType: string
+  // 登陆中
+  logging: boolean
+  // 登陆提示文本
+  loggingText: string
+  // 登录表单
+  loginForm: any
 }
